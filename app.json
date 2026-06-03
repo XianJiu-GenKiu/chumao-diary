@@ -1,0 +1,54 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/share/index",
+    "pages/message/index",
+    "pages/profile/index",
+    "pages/annotation/detail",
+    "pages/annotation/create",
+    "pages/group/detail",
+    "pages/group/create",
+    "pages/user/profile",
+    "pages/settings/index"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "出毛地图",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FAFAFA"
+  },
+  "tabBar": {
+    "color": "#636E72",
+    "selectedColor": "#FF6B4A",
+    "borderStyle": "white",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "地图"
+      },
+      {
+        "pagePath": "pages/share/index",
+        "text": "共享"
+      },
+      {
+        "pagePath": "pages/message/index",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于地图展示和导航"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/share/index",
+    "pages/message/index",
+    "pages/profile/index",
+    "pages/annotation/detail",
+    "pages/annotation/create",
+    "pages/group/detail",
+    "pages/group/create",
+    "pages/user/profile",
+    "pages/settings/index"
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "出毛地图",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FAFAFA"
+  },
+  "tabBar": {
+    "color": "#636E72",
+    "selectedColor": "#FF6B4A",
+    "borderStyle": "white",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "地图",
+        "iconPath": "static/tabs/map.png",
+        "selectedIconPath": "static/tabs/map-active.png"
+      },
+      {
+        "pagePath": "pages/share/index",
+        "text": "共享",
+        "iconPath": "static/tabs/share.png",
+        "selectedIconPath": "static/tabs/share-active.png"
+      },
+      {
+        "pagePath": "pages/message/index",
+        "text": "消息",
+        "iconPath": "static/tabs/message.png",
+        "selectedIconPath": "static/tabs/message-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tabs/profile.png",
+        "selectedIconPath": "static/tabs/profile-active.png"
+      }
+    ]
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^cm-": "@/components/cm-"
+    }
+  }
+}
