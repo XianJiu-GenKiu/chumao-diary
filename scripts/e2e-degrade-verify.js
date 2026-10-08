@@ -30,6 +30,22 @@ function info(msg) { console.log(`  \x1b[90m·\x1b[0m    ${msg}`) }
 
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8')
 
+// 进程级兜底：IDE 侧自动化服务在大改版重编译时会对 reLaunch 返回
+// 「timeout waiting for automator response」，该错误经 WebSocket 消息回调异步抛出，
+// 页面层 try/catch 拦不到，未捕获会直接崩掉整个进程 —— 这里吞掉它让重试逻辑有机会接管。
+const SWALLOW_ASYNC_NOISE = /timeout waiting for automator response|Connection closed, check if wechat web devTools/i
+process.on('uncaughtException', err => {
+  const msg = String((err && err.message) || err)
+  if (SWALLOW_ASYNC_NOISE.test(msg)) { console.log('  … （进程级兜底：忽略 IDE 侧异步超时噪声）'); return }
+  console.error('\n未捕获异常：', msg)
+  process.exit(1)
+})
+process.on('unhandledRejection', err => {
+  const msg = String((err && err.message) || err)
+  if (SWALLOW_ASYNC_NOISE.test(msg)) { console.log('  … （进程级兜底：忽略未处理的异步超时拒绝）'); return }
+  console.error('\n未处理的 Promise 拒绝：', msg)
+})
+
 // ────────────────────────────── 静态层 ──────────────────────────────
 function staticChecks() {
   console.log('\n【S】云函数源码降级契约（静态读源码，不依赖部署）')
@@ -246,6 +262,18 @@ function feedbackBoundaryChecks() {
   if (appJson.pages.includes('pages/location-feedback/location-feedback')) pass('app.json 已注册 pages/location-feedback')
   else fail('app.json 未注册反馈页')
 
+  // 2.5) pages 数组不得有重复声明（重复会导致 IDE 编译失败，模拟器永远就绪不了，
+  //      automator 所有命令全部超时 —— 2026-10-08 批次 3 实际踩过）
+  {
+    const dup = appJson.pages.filter((p, i) => appJson.pages.indexOf(p) !== i)
+    if (!dup.length) pass(`app.json pages 无重复（${appJson.pages.length} 页）`)
+    else fail('app.json pages 存在重复声明', dup.join(' | ') + ' —— IDE 将无法编译')
+    // tabBar 页必须在 pages 中
+    const tabMiss = (appJson.tabBar.list || []).map(t => t.pagePath).filter(p => !appJson.pages.includes(p))
+    if (!tabMiss.length) pass('tabBar 页均在 pages 中注册')
+    else fail('tabBar 页未注册进 pages', tabMiss.join(' | '))
+  }
+
   // 3) 反馈页不提供对外分享入口（提交内容不具传播路径）
   const fbJs = read('pages/location-feedback/location-feedback.js')
   const fbWxml = read('pages/location-feedback/location-feedback.wxml')
@@ -290,6 +318,23 @@ async function runtimeChecks() {
   // 已知且无害的运行时噪声（无参进入详情类页面的必然错误态）
   const EXPECTED_NOISE = [/生成分享卡片失败/, /地点不存在或已下架/]
 
+  // reLaunch 重试封装：大改版后首次 reLaunch 触发全量重编译，automator 单次调用 30s 超时属正常，
+  // 编译完成后重试即可通过（超时之外的错误不重试）
+  const reLaunchWithRetry = async (path, tries = 3) => {
+    let lastErr
+    for (let i = 0; i < tries; i++) {
+      try { return await mp.reLaunch(path) }
+      catch (e) {
+        lastErr = e
+        const msg = String((e && e.message) || e)
+        if (!/timeout/i.test(msg)) throw e
+        console.log(`  … reLaunch 超时（第 ${i + 1}/${tries} 次），等 15s 重试（首次全量编译较慢属正常）`)
+        await sleep(15000)
+      }
+    }
+    throw lastErr
+  }
+
   // ── A：页面可达性 ──
   // 这两个页面带运营方门禁，非运营方进入后被弹回 discover —— 这就是预期行为
   const GATED = {
@@ -303,7 +348,7 @@ async function runtimeChecks() {
   for (const p of normalPages) {
     let actual = null
     try {
-      await mp.reLaunch('/' + p)
+      await reLaunchWithRetry('/' + p)
       await sleep(1300)
       const page = await mp.currentPage()
       actual = page && page.path
@@ -317,7 +362,7 @@ async function runtimeChecks() {
   for (const [p, tip] of Object.entries(GATED)) {
     let actual = null
     try {
-      await mp.reLaunch('/' + p)
+      await reLaunchWithRetry('/' + p)
       await sleep(2600) // 门禁弹回有 1200ms 延时
       const page = await mp.currentPage()
       actual = page && page.path
@@ -347,7 +392,8 @@ async function runtimeChecks() {
     'pages/messages/messages', 'pages/follow-list/follow-list', 'pages/blocked-list/blocked-list',
     'pages/user-home/user-home', 'pages/tag-content/tag-content', 'pages/admin-reports/admin-reports',
     'pages/events/events', 'pages/event-detail/event-detail', 'pages/event-create/event-create',
-    'pages/xiaoju-create/xiaoju-create', 'pages/xiaoju-detail/xiaoju-detail'
+    'pages/xiaoju-create/xiaoju-create', 'pages/xiaoju-detail/xiaoju-detail',
+    'pages/featured/featured'
   ]
   const leaked = []
   for (const p of removed) {
@@ -365,7 +411,7 @@ async function runtimeChecks() {
 
   // ── F：读接口可用性 + 部署状态 ──
   console.log('\n【F】读接口可用性与线上部署状态')
-  await mp.reLaunch('/pages/discover/discover')
+  await reLaunchWithRetry('/pages/discover/discover')
   await sleep(1500)
 
   async function callCloud(name, data = {}) {
