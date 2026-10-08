@@ -1,0 +1,68 @@
+<!-- 运营控制台：仅 ADMIN_OPENIDS 白名单可进入。非运营方在 JS 内被直接弹回。 -->
+<view class="page">
+  <block wx:if="{{isAdmin}}">
+    <!-- 身份信息：openid 可一键复制，便于配置云函数环境变量 ADMIN_OPENIDS -->
+    <view class="card identity">
+      <view class="identity-row">
+        <text class="identity-label">当前身份</text>
+        <text class="identity-value">运营方</text>
+      </view>
+      <view class="identity-row">
+        <text class="identity-label">OpenID</text>
+        <text class="identity-value mono">{{openId || '未获取'}}</text>
+      </view>
+      <view class="identity-copy" bindtap="onCopyOpenId">复制 OpenID</view>
+      <text class="identity-hint">把该 OpenID 加入云函数环境变量 ADMIN_OPENIDS（逗号分隔）后即生效。</text>
+    </view>
+
+    <!-- 运营入口 -->
+    <view class="card">
+      <view class="entry" bindtap="onAddLocation">
+        <icon name="plus" size="34" color="#D4890E" />
+        <view class="entry-text">
+          <text class="entry-title">录入新地点</text>
+          <text class="entry-desc">补充地点库内容，普通用户无此入口</text>
+        </view>
+        <icon name="chevron-right" size="28" color="#bbb" />
+      </view>
+      <view class="entry-divider"></view>
+      <view class="entry" bindtap="onLeaderboard">
+        <icon name="trending-up" size="34" color="#D4890E" />
+        <view class="entry-text">
+          <text class="entry-title">地点热度榜</text>
+          <text class="entry-desc">按收藏数与浏览量排序，核对展示效果</text>
+        </view>
+        <icon name="chevron-right" size="28" color="#bbb" />
+      </view>
+    </view>
+
+    <!-- 举报处理 -->
+    <view class="card">
+      <view class="card-head">
+        <text class="card-title">举报处理</text>
+        <text class="card-refresh" bindtap="loadReports">刷新</text>
+      </view>
+
+      <view class="report" wx:for="{{reports}}" wx:key="_id">
+        <view class="report-main">
+          <text class="report-title">{{item.targetLabel}}举报 · {{item.reason || '未填写原因'}}</text>
+          <text class="report-meta">状态：{{item.status || '待处理'}}</text>
+        </view>
+        <view class="report-action" wx:if="{{item.status !== 'resolved'}}" data-id="{{item._id}}" bindtap="onResolveReport">标记已处理</view>
+      </view>
+
+      <view class="state" wx:if="{{reportsLoading}}">加载中...</view>
+      <view class="state" wx:if="{{!reportsLoading && reportsError}}">
+        <text>{{reportsError}}</text>
+        <text class="retry" bindtap="loadReports">重试</text>
+      </view>
+      <view class="state" wx:if="{{!reportsLoading && !reportsError && !reports.length}}">暂无举报</view>
+    </view>
+  </block>
+
+  <view class="state" wx:if="{{loading}}">校验身份中...</view>
+  <view class="state" wx:if="{{!loading && error}}">
+    <text>{{error}}</text>
+    <text class="retry" bindtap="onRetry">重试</text>
+  </view>
+</view>
