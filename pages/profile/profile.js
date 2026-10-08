@@ -257,6 +257,11 @@ Page({
     wx.navigateTo({ url: '/pages/leaderboard/leaderboard' })
   },
 
+  onFootprintsTap() {
+    // 数据只存本机，服务端零个人内容；无任何跨用户可见入口。
+    wx.navigateTo({ url: '/pages/footprints/footprints' })
+  },
+
   onEditProfile() {
     wx.navigateTo({ url: '/pages/profile-edit/profile-edit' })
   },

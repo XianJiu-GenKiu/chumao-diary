@@ -1,6 +1,7 @@
 const app = getApp()
 const { bindDarkMode, unbindDarkMode, redirectWithToast } = require('../../utils/common')
 const { parseSceneId } = require('../../utils/scene')
+const { evaluateFromWeather } = require('../../utils/furIndex')
 
 /**
  * 周边设施兼容两种历史形态：新数据是 { key, name }，老数据是纯字符串。
@@ -30,7 +31,9 @@ Page({
     // 本人是该地点的创建者（历史数据）；与 isAdmin 共同决定「编辑 / 删除」入口。
     isOwner: false,
     isAdmin: false,
-    darkMode: false
+    darkMode: false,
+    // 出毛适宜度（实时天气 + 本地计算；天气不可用时为 null，卡片不展示）
+    furIndex: null
   },
 
   onLoad(options) {
@@ -109,6 +112,9 @@ Page({
           mapMarkers
         })
         app.trackEvent('content_view', { targetId: id, targetType: 'location' })
+
+        // 实时天气 + 出毛适宜度（本地计算，公共气象数据，用户零输入）
+        this._loadFurIndex(data)
 
         // 判断当前用户是否为创建者（历史数据），供「编辑 / 删除」入口使用
         const openId = app.globalData.openId || await app.getOpenId()
@@ -205,6 +211,34 @@ Page({
     }
   },
 
+  /**
+   * 拉取实时天气并本地计算「出毛适宜度」。
+   * 查不到天气就静默不展示（绝不填假数据），与 getWeather 的降级约定一致。
+   */
+  _loadFurIndex(location) {
+    const latitude = Number(location && location.latitude)
+    const longitude = Number(location && location.longitude)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+    app.callCloud('getWeather', { latitude, longitude })
+      .then(res => {
+        const data = res && res.code === 0 ? res.data : null
+        if (!data) return
+        this.setData({ furIndex: evaluateFromWeather(data) })
+      })
+      .catch(() => { /* 天气不可用时不展示适宜度卡片 */ })
+  },
+
+  onFurIndexTap() {
+    const fi = this.data.furIndex
+    if (!fi || !fi.ok) return
+    const lines = fi.factors.map(f => `${f.label} ${f.value}：${f.score} 分${f.reason ? `（${f.reason}）` : ''}`)
+    wx.showModal({
+      title: `出毛适宜度 ${fi.score} 分 · ${fi.levelLabel}`,
+      content: `${lines.join('\n')}\n\n建议：${fi.advice.join('；')}\n\n仅供参考，不构成专业建议`,
+      showCancel: false
+    })
+  },
+
   openMap() {
     if (!this.data.location) return
     const { latitude, longitude, name } = this.data.location
@@ -274,20 +308,50 @@ Page({
   // 地点库由运营方维护：只有创建者本人或管理员才能看到编辑 / 删除入口。
   showActionMenu() {
     const canManage = this.data.isOwner || this.data.isAdmin
+    const visitCount = this._countLocalVisits()
+    const visitLabel = visitCount ? `记录出毛（已 ${visitCount} 次）` : '记录出毛'
     const items = canManage
-      ? ['编辑地点信息', '删除地点', '生成分享卡片', '举报地点']
-      : ['生成分享卡片', '举报地点']
+      ? [visitLabel, '编辑地点信息', '删除地点', '生成分享卡片', '举报地点']
+      : [visitLabel, '生成分享卡片', '举报地点']
 
     wx.showActionSheet({
       itemList: items,
       success: (res) => {
         const action = items[res.tapIndex]
-        if (action === '编辑地点信息') this.editLocation()
+        if (action === visitLabel) this.recordFurOuting()
+        else if (action === '编辑地点信息') this.editLocation()
         else if (action === '删除地点') this.deleteLocation()
         else if (action === '举报地点') this.reportLocation()
         else if (action === '生成分享卡片') this.shareCard()
       }
     })
+  },
+
+  /**
+   * 「记录出毛」：跳到足迹页并预填本地点。
+   * 次数从本机存储读取 —— 足迹数据只存本机（服务端零个人内容），这里绝不写云端。
+   */
+  _countLocalVisits() {
+    try {
+      const list = wx.getStorageSync('fur_footprints_v1')
+      if (!Array.isArray(list)) return 0
+      return list.filter(item => item && item.locationId === this.data.id).length
+    } catch (e) {
+      return 0
+    }
+  },
+
+  recordFurOuting() {
+    const location = this.data.location || {}
+    const params = [
+      'add=1',
+      `locationId=${encodeURIComponent(this.data.id || '')}`,
+      `placeName=${encodeURIComponent(location.name || '')}`,
+      `city=${encodeURIComponent(location.city || '')}`,
+      `latitude=${location.latitude || ''}`,
+      `longitude=${location.longitude || ''}`
+    ].join('&')
+    wx.navigateTo({ url: `/pages/footprints/footprints?${params}` })
   },
 
   shareCard() {

@@ -1,0 +1,547 @@
+/* pages/footprints —— 足迹地图 + 出毛记录 + 兽聚徽章 */
+
+.page-footprints {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  padding-bottom: calc(var(--tab-bar-height) + 40rpx);
+}
+
+/* ── 顶部 tab ── */
+.tab-bar {
+  position: relative;
+  display: flex;
+  background: var(--color-bg-card);
+  margin-bottom: var(--spacing-lg);
+}
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0 20rpx;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  transition: color var(--duration-fast);
+}
+.tab-item.active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+.tab-indicator-bar {
+  width: 64rpx;
+  height: 6rpx;
+  margin: 0 auto;
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+}
+
+/* ── 统计卡 ── */
+.stats-card {
+  display: flex;
+  margin: 0 var(--page-padding) var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  border-radius: var(--radius-card);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+}
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+.stat-num {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  font-family: var(--font-family-num);
+}
+.stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+
+/* ── 成就地图 ── */
+.map-card {
+  margin: 0 var(--page-padding) var(--spacing-lg);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+}
+.footprint-map {
+  width: 100%;
+  height: 420rpx;
+}
+.map-empty {
+  height: 420rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: var(--color-map-bg);
+}
+.map-empty-title {
+  margin-top: 8rpx;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+}
+.map-empty-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-hint);
+}
+.map-legend {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  padding: 16rpx 0;
+  background: var(--color-bg-card);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+.legend-icon {
+  width: 32rpx;
+  height: 40rpx;
+}
+
+/* ── 通用区块 ── */
+.section {
+  margin: 0 var(--page-padding) var(--spacing-lg);
+}
+.section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ── 里程碑 ── */
+.milestone-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.milestone {
+  width: calc((100% - 32rpx) / 3);
+  box-sizing: border-box;
+  padding: 20rpx 12rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 2rpx solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  opacity: 0.55;
+}
+.milestone.unlocked {
+  opacity: 1;
+  border-color: var(--color-primary-bg);
+  background: var(--color-primary-bg);
+}
+.milestone-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.milestone-desc {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  text-align: center;
+}
+
+/* ── 城市徽章墙 ── */
+.badge-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+.city-badge {
+  min-width: 120rpx;
+  padding: 10rpx 20rpx;
+  border-radius: var(--radius-round);
+  background: var(--color-bg-card);
+  border: 2rpx solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  opacity: 0.5;
+}
+.city-badge.active {
+  opacity: 1;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+.city-badge-name {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+.city-badge-count {
+  font-size: var(--font-size-2xs);
+  color: var(--color-primary);
+}
+
+/* ── 兽聚徽章 ── */
+.furmeet-note {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  margin-bottom: var(--spacing-md);
+}
+.furmeet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.furmeet-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 2rpx solid var(--color-border-light);
+  opacity: 0.55;
+}
+.furmeet-badge.active {
+  opacity: 1;
+  border-color: #2E9E8F;
+  background: #EAF6F4;
+}
+.furmeet-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+.furmeet-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+.furmeet-meta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.furmeet-count {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+.furmeet-badge.active .furmeet-count {
+  color: #2E9E8F;
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── 海报入口 ── */
+.poster-btn {
+  margin: 0 var(--page-padding);
+  height: var(--touch-comfort);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+.poster-tip {
+  margin: 12rpx var(--page-padding) 0;
+  text-align: center;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+
+/* ── 出毛记录列表 ── */
+.log-total {
+  margin: 0 var(--page-padding) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+.log-group {
+  margin-bottom: var(--spacing-lg);
+}
+.log-month {
+  margin: 0 var(--page-padding) var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.log-item {
+  margin: 0 var(--page-padding) var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+}
+.log-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+.log-date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+.log-city {
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+}
+.log-place {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: 8rpx;
+}
+.log-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 8rpx;
+}
+.log-tag {
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-round);
+  font-size: var(--font-size-2xs);
+}
+.furmeet-tag {
+  background: #EAF6F4;
+  color: #2E9E8F;
+}
+.log-line {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 6rpx;
+}
+.log-line.note {
+  color: var(--color-text-hint);
+}
+.log-photos {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+.log-photo {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: var(--radius-md);
+}
+
+/* ── 空态 ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding: 120rpx 0;
+}
+.empty-title {
+  margin-top: 8rpx;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+}
+.empty-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-hint);
+}
+
+/* ── 悬浮按钮 ── */
+.fab {
+  position: fixed;
+  right: var(--page-padding);
+  bottom: calc(var(--tab-bar-height) + 40rpx);
+  height: var(--touch-comfort);
+  padding: 0 40rpx;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── 表单弹层 ── */
+.form-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--color-bg-overlay);
+  z-index: 60;
+}
+.form-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: var(--color-bg-card);
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx var(--page-padding) calc(env(safe-area-inset-bottom) + 32rpx);
+}
+.form-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+.form-field {
+  margin-bottom: var(--spacing-lg);
+}
+.form-field.row {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+.form-half {
+  flex: 1;
+}
+.form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: 10rpx;
+}
+.form-input,
+.form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18rpx 20rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+.form-picker {
+  padding: 18rpx 20rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+.form-textarea {
+  min-height: 120rpx;
+}
+.loc-row {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.loc-btn {
+  flex: 1;
+  height: var(--touch-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+.coords-source {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  margin-bottom: var(--spacing-md);
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+.chip {
+  padding: 10rpx 24rpx;
+  border-radius: var(--radius-round);
+  background: var(--color-bg-page);
+  border: 2rpx solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+.chip.selected {
+  background: #EAF6F4;
+  border-color: #2E9E8F;
+  color: #2E9E8F;
+}
+.photo-row {
+  display: flex;
+  gap: 16rpx;
+}
+.photo-item {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+}
+.photo-img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+}
+.photo-del {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+}
+.photo-add {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: var(--radius-md);
+  border: 2rpx dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-hint);
+}
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+.btn-cancel,
+.btn-save {
+  flex: 1;
+  height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-round);
+  font-size: var(--font-size-base);
+}
+.btn-cancel {
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+}
+.btn-save {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}

@@ -881,6 +881,8 @@
 }
 
 .map-fab-locate { order: 1; }
+/* 找场地入口：与定位按钮同列，定位按钮保持在最下方 */
+.map-fab-finder { order: 0; }
 
 .map-fab-btn:active {
   transform: scale(0.92);
@@ -995,3 +997,8 @@
   border-color: #4B9B6A;
   color: #fff;
 }
+
+/* ── 出毛适宜度徽标（环境信息条内，点击看分项拆解） ── */
+.env-fur { display: flex; align-items: center; gap: 8rpx; padding: 6rpx 16rpx; border-radius: 999rpx; background: rgba(255,255,255,.7); }
+.env-fur-dot { width: 16rpx; height: 16rpx; border-radius: 50%; flex-shrink: 0; }
+.env-fur-text { font-size: 24rpx; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; }

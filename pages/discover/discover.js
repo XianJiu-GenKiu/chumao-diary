@@ -1,6 +1,7 @@
 const app = getApp()
 const { createPager, stopRefresh, getNavLayout, debounce, bindDarkMode, unbindDarkMode } = require('../../utils/common')
 const { normalizePoi, COLLECTION_STATUS } = require('../../utils/poi-adapter')
+const { evaluateFromWeather } = require('../../utils/furIndex')
 
 function getCityByLocation(latitude, longitude) {
   return app.callCloud('getCityByLocation', { latitude, longitude }).then(result => {
@@ -602,6 +603,11 @@ Page({
     })
   },
 
+  /** 找场地：不带参数进入周边服务页（finder 模式，先选位置再查设施） */
+  onOpenSiteFinder() {
+    wx.navigateTo({ url: '/pages/nearby-services/nearby-services' })
+  },
+
   moveToMyLocation() {
     wx.getLocation({
       type: 'gcj02',
@@ -669,8 +675,23 @@ Page({
       temperature: Number.isFinite(data.temperature) ? `${data.temperature}°` : '—',
       humidity: Number.isFinite(data.humidity) ? `${data.humidity}%` : '—',
       wind: data.windDisplay || (Number.isFinite(data.wind) ? `${data.wind}级` : '—'),
-      condition: data.condition || '—'
+      condition: data.condition || '—',
+      // 出毛适宜度：本地规则计算（公共气象数据 → 程序输出，用户零输入）。
+      // 紫外线接口（批次 2）接入前自动按 4 因子降级。
+      furIndex: evaluateFromWeather(data)
     }
+  },
+
+  /** 点击适宜度徽标：展示分项拆解与建议 */
+  onFurIndexTap() {
+    const fi = this.data.weatherView && this.data.weatherView.furIndex
+    if (!fi || !fi.ok) return
+    const lines = fi.factors.map(f => `${f.label} ${f.value}：${f.score} 分${f.reason ? `（${f.reason}）` : ''}`)
+    wx.showModal({
+      title: `出毛适宜度 ${fi.score} 分 · ${fi.levelLabel}`,
+      content: `${lines.join('\n')}\n\n建议：${fi.advice.join('；')}\n\n仅供参考，不构成专业建议`,
+      showCancel: false
+    })
   },
 
   // ── 附近推荐 ──

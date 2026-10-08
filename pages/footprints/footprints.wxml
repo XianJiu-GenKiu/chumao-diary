@@ -1,0 +1,264 @@
+<view class="page page-footprints {{darkMode ? 'dark-theme' : ''}}">
+
+  <!-- 顶部 tab：足迹地图 / 出毛记录 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'map' ? 'active' : ''}}" data-tab="map" bindtap="onTabTap">足迹地图</view>
+    <view class="tab-item {{activeTab === 'logs' ? 'active' : ''}}" data-tab="logs" bindtap="onTabTap">出毛记录</view>
+    <view class="tab-indicator" style="transform: translateX({{activeTab === 'map' ? 0 : 100}}%);">
+      <view class="tab-indicator-bar"></view>
+    </view>
+  </view>
+
+  <!-- ══════════ tab 1 足迹地图 ══════════ -->
+  <block wx:if="{{activeTab === 'map'}}">
+
+    <!-- 统计卡 -->
+    <view class="stats-card card">
+      <view class="stat">
+        <text class="stat-num">{{stats.visits}}</text>
+        <text class="stat-label">出毛次数</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{stats.places}}</text>
+        <text class="stat-label">到访地点</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{stats.cities}}</text>
+        <text class="stat-label">点亮城市</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{stats.furmeetCount}}</text>
+        <text class="stat-label">兽聚场次</text>
+      </view>
+    </view>
+
+    <!-- 成就地图 -->
+    <view class="map-card card">
+      <map
+        wx:if="{{hasPoints}}"
+        class="footprint-map"
+        latitude="{{mapLatitude}}"
+        longitude="{{mapLongitude}}"
+        scale="{{mapScale}}"
+        markers="{{markers}}"
+        polyline="{{polyline}}"
+        include-points="{{includePoints}}"
+        enable-poi="{{true}}"
+        show-location="{{false}}"
+        bindmarkertap="onMarkerTap"
+      ></map>
+      <view wx:else class="map-empty">
+        <icon name="map" size="56" color="#D0D0D0" />
+        <text class="map-empty-title">还没有足迹</text>
+        <text class="map-empty-desc">记录第一次出毛，点亮你的第一座城</text>
+      </view>
+      <view class="map-legend">
+        <view class="legend-item"><image class="legend-icon" src="/images/map/marker-footprint.png" mode="aspectFit" /><text>我的足迹</text></view>
+        <view class="legend-item"><image class="legend-icon" src="/images/map/marker-furmeet.png" mode="aspectFit" /><text>参加过的兽聚</text></view>
+      </view>
+    </view>
+
+    <!-- 里程碑 -->
+    <view class="section">
+      <view class="section-title">里程碑</view>
+      <view class="milestone-row">
+        <view
+          class="milestone {{item.unlocked ? 'unlocked' : ''}}"
+          wx:for="{{milestones}}"
+          wx:key="key"
+        >
+          <icon name="{{item.unlocked ? 'star' : 'star-outline'}}" size="30" color="{{item.unlocked ? '#D4890E' : '#D0D0D0'}}" />
+          <text class="milestone-label">{{item.label}}</text>
+          <text class="milestone-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 城市徽章墙 -->
+    <view class="section">
+      <view class="section-title">城市徽章 · 已点亮 {{stats.cities}} / {{cityBadges.length}}</view>
+      <view class="badge-wall">
+        <view
+          class="city-badge {{item.active ? 'active' : ''}}"
+          wx:for="{{cityBadges}}"
+          wx:key="name"
+        >
+          <text class="city-badge-name">{{item.label}}</text>
+          <text class="city-badge-count" wx:if="{{item.active}}">{{item.count}} 次</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 兽聚徽章 -->
+    <view class="section">
+      <view class="section-title">兽聚徽章 · {{stats.furmeetCount}} 场 / {{stats.furmeetDistinct}} 个兽聚</view>
+      <view class="furmeet-note">兽聚由官方收录，仅供记录成就；打卡只保存在你的手机里</view>
+      <view class="furmeet-list">
+        <view
+          class="furmeet-badge {{item.active ? 'active' : ''}}"
+          wx:for="{{furmeetBadges}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onFurmeetBadgeTap"
+        >
+          <view class="furmeet-main">
+            <text class="furmeet-name">{{item.cityLabel}} · {{item.name}}</text>
+            <text class="furmeet-meta">{{item.monthsText}}{{item.tip ? ' · ' + item.tip : ''}}</text>
+          </view>
+          <text class="furmeet-count">{{item.active ? '去过 ' + item.count + ' 次' : '未打卡'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 海报入口 -->
+    <view class="poster-btn" bindtap="goPoster">生成足迹海报</view>
+    <view class="poster-tip">海报只包含你的成就数据，可保存后发到微信 / QQ</view>
+  </block>
+
+  <!-- ══════════ tab 2 出毛记录 ══════════ -->
+  <block wx:else>
+    <view class="log-total" wx:if="{{logTotal}}">共 {{logTotal}} 条记录 · 仅保存在本机</view>
+
+    <view class="log-group" wx:for="{{logGroups}}" wx:key="month" wx:for-item="group">
+      <view class="log-month">{{group.month}}</view>
+      <view
+        class="log-item card"
+        wx:for="{{group.items}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onLogItemTap"
+      >
+        <view class="log-head">
+          <text class="log-date">{{item.dateText}}</text>
+          <text class="log-city">{{item.cityLabel}}</text>
+        </view>
+        <view class="log-place">{{item.placeName}}</view>
+        <view class="log-tags" wx:if="{{item.furmeetNames.length}}">
+          <text class="log-tag furmeet-tag" wx:for="{{item.furmeetNames}}" wx:key="*this" wx:for-item="fname">兽聚 · {{fname}}</text>
+        </view>
+        <view class="log-line" wx:if="{{item.companions}}">和 {{item.companions}} 一起</view>
+        <view class="log-line note" wx:if="{{item.note}}">{{item.note}}</view>
+        <view class="log-photos" wx:if="{{item.photos.length}}">
+          <image
+            class="log-photo"
+            wx:for="{{item.photos}}"
+            wx:key="*this"
+            wx:for-item="photo"
+            src="{{photo}}"
+            mode="aspectFill"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!logTotal}}">
+      <icon name="paw" size="72" color="#D0D0D0" />
+      <text class="empty-title">还没有出毛记录</text>
+      <text class="empty-desc">记录第一次出毛，点亮你的第一座城</text>
+    </view>
+
+    <view class="fab" bindtap="openFormNew">＋ 记录一次出毛</view>
+  </block>
+
+  <!-- ══════════ 记录表单（底部弹层） ══════════ -->
+  <view class="form-mask" wx:if="{{showForm}}" bindtap="closeForm"></view>
+  <view class="form-sheet" wx:if="{{showForm}}" catchtap="noop">
+    <view class="form-title">{{editingId ? '编辑出毛记录' : '记录一次出毛'}}</view>
+
+    <!-- 地点 -->
+    <view class="form-field">
+      <text class="form-label">地点名称</text>
+      <input
+        class="form-input"
+        placeholder="如：XX 森林公园"
+        value="{{form.placeName}}"
+        bindinput="onFormPlaceInput"
+      />
+    </view>
+    <view class="loc-row">
+      <view class="loc-btn" bindtap="chooseOnMap">在地图上选点</view>
+      <view class="loc-btn" bindtap="useCurrentLocation">用当前位置</view>
+    </view>
+    <view class="coords-source" wx:if="{{coordsSource}}">坐标来源：{{coordsSource}}</view>
+
+    <!-- 城市 -->
+    <view class="form-field">
+      <text class="form-label">城市</text>
+      <picker mode="selector" range="{{cityNames}}" value="{{cityIndex}}" bindchange="onFormCityChange">
+        <view class="form-picker">{{form.city ? cityNames[cityIndex] : '选择城市'}}</view>
+      </picker>
+    </view>
+
+    <!-- 时间 -->
+    <view class="form-field row">
+      <view class="form-half">
+        <text class="form-label">日期</text>
+        <picker mode="date" value="{{formDate}}" bindchange="onFormDateChange">
+          <view class="form-picker">{{formDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-half">
+        <text class="form-label">时间</text>
+        <picker mode="time" value="{{formTime}}" bindchange="onFormTimeChange">
+          <view class="form-picker">{{formTime || '12:00'}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 兽聚（仅展示当前城市的名录，只读勾选） -->
+    <view class="form-field" wx:if="{{formFurmeets.length}}">
+      <text class="form-label">参加的兽聚（可选）</text>
+      <view class="chip-row">
+        <view
+          class="chip {{item.selected ? 'selected' : ''}}"
+          wx:for="{{formFurmeets}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onFormFurmeetToggle"
+        >{{item.name}}</view>
+      </view>
+    </view>
+
+    <!-- 同伴（纯文本本地备注） -->
+    <view class="form-field">
+      <text class="form-label">和谁一起（仅保存在本机）</text>
+      <input
+        class="form-input"
+        placeholder="如：毛毛、小白"
+        value="{{form.companions}}"
+        bindinput="onFormCompanionsInput"
+      />
+    </view>
+
+    <!-- 备注 -->
+    <view class="form-field">
+      <text class="form-label">备注</text>
+      <textarea
+        class="form-textarea"
+        placeholder="这一天发生了什么"
+        value="{{form.note}}"
+        bindinput="onFormNoteInput"
+        maxlength="200"
+        auto-height
+      ></textarea>
+    </view>
+
+    <!-- 照片 -->
+    <view class="form-field">
+      <text class="form-label">照片（最多 3 张，仅本机）</text>
+      <view class="photo-row">
+        <view class="photo-item" wx:for="{{form.photos}}" wx:key="*this">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" />
+          <view class="photo-del" data-index="{{index}}" catchtap="removePhoto">×</view>
+        </view>
+        <view class="photo-add" wx:if="{{form.photos.length < 3}}" bindtap="choosePhoto">＋</view>
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <view class="btn-cancel" bindtap="closeForm">取消</view>
+      <view class="btn-save" bindtap="saveForm">保存</view>
+    </view>
+  </view>
+
+</view>

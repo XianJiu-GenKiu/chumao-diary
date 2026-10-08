@@ -206,6 +206,9 @@
 
     <!-- 地图模式 FAB 浮动按钮：贴着环境栏上沿，并随面板一起滑动 -->
     <view class="map-fab-wrap {{mapPanelExpanded ? 'panel-expanded' : 'collapsed'}} {{mapFabDragging ? 'dragging' : ''}}" style="--fab-panel-offset: {{mapFabFollowOffset}}px;">
+      <view class="map-fab-btn secondary map-fab-finder" bindtap="onOpenSiteFinder">
+        <icon name="compass" size="40" color="#D4890E" />
+      </view>
       <view class="map-fab-btn secondary map-fab-locate" bindtap="moveToMyLocation">
         <icon name="map-pin" size="40" color="#D4890E" />
       </view>
@@ -229,6 +232,12 @@
         bindtouchend="onPanelTouchEnd"
         bindtouchcancel="onPanelTouchEnd"
       >
+        <!-- 出毛适宜度：由温度/湿度/风力/天气本地计算，点击看分项拆解 -->
+        <view class="env-fur" wx:if="{{weatherView.furIndex && weatherView.furIndex.ok}}" bindtap="onFurIndexTap">
+          <view class="env-fur-dot" style="background: {{weatherView.furIndex.levelColor}};"></view>
+          <text class="env-fur-text">{{weatherView.furIndex.levelLabel}} {{weatherView.furIndex.score}}</text>
+        </view>
+        <view class="env-dot" wx:if="{{weatherView.furIndex && weatherView.furIndex.ok}}"></view>
         <view class="env-item-sm">
           <text class="env-val">{{weatherView.temperature || '—'}}</text>
           <text class="env-lbl">温度</text>

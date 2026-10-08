@@ -1,13 +1,34 @@
 <view class="nearby-page">
-  <view class="nearby-nav"><view bindtap="goBack">‹</view><view><text class="nearby-title">{{locationName}}</text><text class="nearby-subtitle">拍摄地周边服务</text></view><view class="nearby-nav-more">⋯</view></view>
+  <view class="nearby-nav"><view bindtap="goBack">‹</view><view><text class="nearby-title">{{locationName}}</text><text class="nearby-subtitle">{{mode === 'finder' ? '找场地 · 周边设施' : '拍摄地周边服务'}}</text></view><view class="nearby-nav-more">⋯</view></view>
+
+  <!-- 找场地模式：先选位置 -->
+  <view class="finder-box" wx:if="{{mode === 'finder'}}">
+    <view class="finder-search">
+      <icon name="search" size="30" color="#909090" />
+      <input class="finder-input" placeholder="搜索地址，如：人民公园" value="{{searchKeyword}}" bindinput="onSearchInput" confirm-type="search" />
+    </view>
+    <view class="finder-quick">
+      <view class="finder-quick-btn" bindtap="chooseOnMap">在地图上选点</view>
+      <view class="finder-quick-btn" bindtap="useCurrentLocation">用当前位置</view>
+    </view>
+    <view class="suggest-list" wx:if="{{suggestList.length}}">
+      <view class="suggest-item" wx:for="{{suggestList}}" wx:key="_id" data-item="{{item}}" bindtap="onSuggestTap">
+        <text class="suggest-name">{{item.name}}</text>
+        <text class="suggest-address">{{item.address || '暂无地址'}}</text>
+      </view>
+    </view>
+  </view>
+
   <view class="nearby-tabs"><text wx:for="{{categories}}" wx:key="*this" class="nearby-tab {{activeCategory === item ? 'active' : ''}}" data-category="{{item}}" bindtap="switchCategory">{{item}}</text></view>
   <scroll-view scroll-y class="nearby-scroll">
-    <view class="nearby-summary"><view><text class="summary-title">先了解一下附近</text><text class="summary-desc">拍摄结束后，吃饭、休息和返程都可以在这里找到</text></view><view class="summary-weather">{{weather}}<text>适合出行</text></view></view>
+    <view class="nearby-summary"><view><text class="summary-title">先了解一下附近</text><text class="summary-desc">{{mode === 'finder' ? '选好位置，看看附近的厕所、更衣室、车站和便利店' : '拍摄结束后，吃饭、休息和返程都可以在这里找到'}}</text></view><view class="summary-weather">{{weather}}<text>适合出行</text></view></view>
+
     <view class="nearby-loading" wx:if="{{loading}}">正在查询真实周边地点…</view>
+    <view class="nearby-empty" wx:elif="{{mode === 'finder' && !latitude}}"><text>先选一个位置，再查周边设施</text><button bindtap="chooseOnMap">在地图上选点</button></view>
     <view class="nearby-empty" wx:elif="{{errorMessage}}"><text>{{errorMessage}}</text><button bindtap="retry">重新查询</button></view>
     <view class="nearby-empty" wx:elif="{{displayServices.length === 0}}">附近暂未找到相关地点</view>
-    <view class="service-list" wx:else><view wx:for="{{displayServices}}" wx:key="id" class="service-card" bindtap="openService" data-item="{{item}}"><view class="service-icon service-{{item.kind}}"><icon name="{{item.icon}}" size="34" color="#4B9B6A" /></view><view class="service-main"><view class="service-head"><text class="service-name">{{item.name}}</text><text class="service-distance">{{item.distance}}</text></view><text class="service-meta">{{item.meta}} · {{item.address}}</text><view class="service-tags"><text wx:for="{{item.tags}}" wx:key="*this">{{item}}</text></view></view><view class="service-go" catchtap="openMap" data-item="{{item}}"><icon name="navigation" size="28" color="#4B9B6A" /></view></view></view>
-    <view class="nearby-tip"><icon name="info" size="26" color="#4B9B6A" /><text>周边地点来自腾讯地图实时检索，营业时间和入场规则请以现场为准。</text></view>
+    <view class="service-list" wx:else><view wx:for="{{displayServices}}" wx:key="id" class="service-card" bindtap="openService" data-item="{{item}}"><view class="service-icon service-{{item.kind}}"><icon name="{{item.icon}}" size="34" color="#4B9B6A" /></view><view class="service-main"><view class="service-head"><text class="service-name">{{item.name}}</text><text class="service-distance">{{item.distance}}</text></view><text class="service-meta">{{item.category}} · {{item.address}}</text><view class="service-tags"><text wx:for="{{item.tags}}" wx:key="*this">{{item}}</text></view></view><view class="service-go" catchtap="openMap" data-item="{{item}}"><icon name="navigation" size="28" color="#4B9B6A" /></view></view></view>
+    <view class="nearby-tip"><icon name="info" size="26" color="#4B9B6A" /><text>周边地点来自腾讯地图实时检索，营业时间和入场规则请以现场为准。更衣室等设施可能较少，建议出发前电话确认。</text></view>
   </scroll-view>
   <view class="nearby-bottom"><button class="primary-btn" bindtap="openMap">在地图中查看</button></view>
 </view>

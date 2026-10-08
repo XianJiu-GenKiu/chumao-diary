@@ -71,3 +71,21 @@ page { background: #F7F8FA; }
   border-radius: 50%;
   background: #EEF8F0;
 }
+
+/* ── 找场地模式：位置选择 ── */
+.finder-box { padding: 16rpx 24rpx 0; }
+.finder-search { display: flex; align-items: center; gap: 12rpx; padding: 0 20rpx; height: 76rpx; border-radius: 16rpx; background: #fff; box-shadow: var(--shadow-sm); }
+.finder-input { flex: 1; font-size: 28rpx; color: #333; }
+.finder-quick { display: flex; gap: 16rpx; margin-top: 16rpx; }
+.finder-quick-btn { flex: 1; height: 68rpx; display: flex; align-items: center; justify-content: center; border-radius: 14rpx; background: #FFF7E6; color: #D4890E; font-size: 26rpx; }
+.suggest-list { margin-top: 12rpx; border-radius: 14rpx; background: #fff; overflow: hidden; box-shadow: var(--shadow-sm); }
+.suggest-item { display: flex; flex-direction: column; gap: 4rpx; padding: 18rpx 20rpx; border-bottom: 1rpx solid #F0F0F0; }
+.suggest-item:last-child { border-bottom: none; }
+.suggest-name { font-size: 28rpx; color: #333; }
+.suggest-address { font-size: 24rpx; color: #909090; }
+
+/* ── 新增设施类型配色 ── */
+.service-wc { background: #E8F5FC; }
+.service-dress { background: #F3ECFF; }
+.service-pharmacy { background: #FFF1F0; }
+.service-parking { background: #F0F0F0; }

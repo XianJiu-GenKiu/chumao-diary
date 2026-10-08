@@ -65,6 +65,22 @@
     </view>
   </view>
 
+  <!-- 出毛适宜度：实时天气 + 本地规则计算，点击看分项拆解 -->
+  <view class="card fur-index-card" wx:if="{{furIndex && furIndex.ok}}" bindtap="onFurIndexTap">
+    <view class="fur-index-head">
+      <view class="fur-index-badge" style="background: {{furIndex.levelColor}};">
+        <text class="fur-index-score">{{furIndex.score}}</text>
+        <text class="fur-index-label">{{furIndex.levelLabel}}</text>
+      </view>
+      <view class="fur-index-main">
+        <text class="fur-index-title">今日出毛适宜度</text>
+        <text class="fur-index-desc">{{furIndex.headline}}</text>
+      </view>
+      <text class="fur-index-arrow">›</text>
+    </view>
+    <view class="fur-index-tip">仅供参考，不构成专业建议</view>
+  </view>
+
   <!-- 天气信息卡片 -->
   <view class="card weather-card" wx:if="{{location.weather}}">
     <view class="card-header">天气信息</view>

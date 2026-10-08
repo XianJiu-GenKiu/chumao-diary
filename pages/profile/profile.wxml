@@ -71,6 +71,7 @@
   </view>
 
   <view class="collection-entry" bindtap="onLeaderboardTap"><icon name="trending-up" size="28" color="#D4890E" /><text>热门排行榜</text><icon name="chevron-right" size="28" color="#bbb" /></view>
+  <view class="collection-entry" bindtap="onFootprintsTap"><icon name="map-pin" size="28" color="#D4890E" /><text>我的足迹</text><text class="collection-entry-desc">成就地图与出毛记录</text><icon name="chevron-right" size="28" color="#bbb" /></view>
   <view class="collection-entry" bindtap="onCollectionsTap"><icon name="bookmark" size="28" color="#D4890E" /><text>我的地点合集</text><icon name="chevron-right" size="28" color="#bbb" /></view>
   <view class="collection-entry admin-entry" wx:if="{{isAdmin}}" bindtap="onAdminConsoleTap"><icon name="shield" size="28" color="#D4890E" /><text>管理员中心</text><text class="admin-entry-desc">地点录入与精选运营</text><icon name="chevron-right" size="28" color="#bbb" /></view>
   <view class="tabs profile-tabs">
