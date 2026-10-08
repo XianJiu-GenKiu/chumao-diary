@@ -207,6 +207,19 @@ Page({
 
   goBack() { wx.navigateBack() },
 
+  /**
+   * 去「推荐新地点」反馈页。
+   * 带动当前搜索词作为名称预填，用户少打一次字；提交仍走单向反馈通道
+   * （内容只对运营方可见，不会公开展示）。
+   */
+  goRecommend() {
+    const keyword = String(this.data.searchKeyword || '').trim().slice(0, 30)
+    const url = keyword
+      ? `/pages/location-feedback/location-feedback?name=${encodeURIComponent(keyword)}`
+      : '/pages/location-feedback/location-feedback'
+    wx.navigateTo({ url })
+  },
+
   switchCategory(e) {
     const category = e.currentTarget.dataset.category
     this.setData({ activeCategory: category, displayServices: category === '全部' ? this.data.services : this.data.services.filter(item => item.category === category) })

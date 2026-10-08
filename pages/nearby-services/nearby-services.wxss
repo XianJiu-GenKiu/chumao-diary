@@ -89,3 +89,31 @@ page { background: #F7F8FA; }
 .service-dress { background: #F3ECFF; }
 .service-pharmacy { background: #FFF1F0; }
 .service-parking { background: #F0F0F0; }
+
+/* ── 推荐新地点入口（单向反馈，仅运营方可见） ── */
+.recommend-entry {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 20rpx 24rpx 8rpx;
+  padding: 24rpx 22rpx;
+  border-radius: 16rpx;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.recommend-entry-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.recommend-entry-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+.recommend-entry-desc {
+  font-size: 24rpx;
+  color: #909090;
+}

@@ -1,0 +1,9 @@
+{
+  "name": "manageSubmissions",
+  "version": "1.0.0",
+  "description": "用户地点反馈处理云函数（仅运营方）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

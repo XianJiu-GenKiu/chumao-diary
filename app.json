@@ -17,7 +17,8 @@
     "pages/share-card/share-card",
     "pages/nearby-services/nearby-services",
     "pages/admin-console/admin-console",
-    "pages/footprints/footprints"
+    "pages/footprints/footprints",
+    "pages/location-feedback/location-feedback"
   ],
   "window": {
     "navigationBarTitleText": "出毛日记",

@@ -41,6 +41,7 @@ Page({
           { label: '通知设置', icon: 'bell', action: 'toggleNotify', checked: notify, isSwitch: true },
           { label: '深色模式', icon: 'moon', action: 'toggleDark', checked: dark, isSwitch: true },
           { label: '清除缓存', icon: 'trash', action: 'clearCache' },
+          { label: '推荐新地点', icon: 'map-pin', url: '/pages/location-feedback/location-feedback' },
           { label: '意见反馈', icon: 'message-circle', action: 'feedback' },
           { label: '用户协议', icon: 'file-text', action: 'agreement' },
           { label: '关于我们', icon: 'info', action: 'about' }

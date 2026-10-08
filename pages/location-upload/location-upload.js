@@ -96,9 +96,7 @@ Page({
    */
   _applyExternalPoi(options) {
     const name = options && options.poiName ? decodeURIComponent(options.poiName) : ''
-    const latitude = Number(options && options.poiLat)
-    const longitude = Number(options && options.poiLng)
-    if (!name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return false
+    if (!name) return false
 
     const address = options.poiAddress ? decodeURIComponent(options.poiAddress) : ''
     const rawCategory = options.poiCategory ? decodeURIComponent(options.poiCategory) : ''
@@ -106,6 +104,24 @@ Page({
     const categoryIndex = this.data.categoryOptions.findIndex(item =>
       rawCategory && (rawCategory.includes(item) || item.includes(rawCategory))
     )
+    const latitude = Number(options && options.poiLat)
+    const longitude = Number(options && options.poiLng)
+    const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude)
+
+    // 只有名称、没有坐标（来自用户反馈的「推荐新地点」）：
+    // 仍预填名称与用户描述的位置，坐标留给运营方定位或地图选点，
+    // 否则自动定位会立刻把用户写的位置覆盖掉。
+    if (!hasCoords) {
+      this._prefilledFromMap = true
+      this.setData({
+        name,
+        address,
+        category: categoryIndex >= 0 ? this.data.categoryOptions[categoryIndex] : '',
+        categoryIndex
+      })
+      wx.showToast({ title: '已填入用户推荐的名称', icon: 'none' })
+      return true
+    }
 
     this._prefilledFromMap = true
     this.setData({

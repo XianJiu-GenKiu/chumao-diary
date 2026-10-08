@@ -1,0 +1,93 @@
+<!-- 推荐新地点：用户 → 运营方的单向反馈表单。不含任何对外分享 / 他人可见入口。 -->
+<view class="page {{darkMode ? 'dark-theme' : ''}}">
+  <block wx:if="{{!submitted}}">
+    <view class="intro">
+      <text class="intro-title">推荐新地点</text>
+      <text class="intro-desc">发现了好去处？填一下告诉我们，核对后由我们录入地点库。</text>
+    </view>
+
+    <view class="card">
+      <!-- 地点名称 -->
+      <view class="field">
+        <view class="field-head">
+          <text class="field-label">地点名称<text class="required">*</text></text>
+          <text class="field-count">{{name.length}}/{{nameMax}}</text>
+        </view>
+        <input class="field-input" value="{{name}}" maxlength="{{nameMax}}"
+          placeholder="例如：XX公园北侧草坪" placeholder-class="ph" bindinput="onNameInput" />
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 地点类型（封闭标签集，只能选不能填） -->
+      <view class="field">
+        <view class="field-head">
+          <text class="field-label">地点类型<text class="required">*</text></text>
+        </view>
+        <view class="tag-wrap">
+          <view wx:for="{{categories}}" wx:key="*this"
+            class="tag {{category === item ? 'tag-active' : ''}}"
+            data-value="{{item}}" bindtap="onCategoryTap">{{item}}</view>
+        </view>
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 所在位置（选填） -->
+      <view class="field">
+        <view class="field-head">
+          <text class="field-label">所在位置</text>
+          <text class="field-optional">选填</text>
+        </view>
+        <view class="loc-row">
+          <input class="field-input loc-input" value="{{address}}" maxlength="{{addressMax}}"
+            placeholder="手输大致位置，或点右侧地图选点" placeholder-class="ph" bindinput="onAddressInput" />
+          <view class="loc-btn" bindtap="chooseOnMap">
+            <icon name="map-pin" size="28" color="#D4890E" />
+            <text>选点</text>
+          </view>
+        </view>
+        <view class="loc-picked" wx:if="{{latitude !== null}}">
+          <text class="loc-picked-text">已记录坐标 {{latitude}}, {{longitude}}</text>
+          <text class="loc-clear" bindtap="clearLocation">清除</text>
+        </view>
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 补充说明（选填，≤30 字） -->
+      <view class="field">
+        <view class="field-head">
+          <text class="field-label">补充说明</text>
+          <text class="field-count">{{note.length}}/{{noteMax}}</text>
+        </view>
+        <textarea class="field-textarea" value="{{note}}" maxlength="{{noteMax}}"
+          placeholder="一句话说明怎么走或有什么特点（选填）" placeholder-class="ph"
+          bindinput="onNoteInput" auto-height />
+      </view>
+    </view>
+
+    <view class="notice">
+      <icon name="alert-circle" size="28" color="#909090" />
+      <text class="notice-text">反馈仅用于我们核对与录入，不会公开展示，也不会显示你的昵称或头像。</text>
+    </view>
+
+    <view class="footer">
+      <button class="submit-btn {{submitting ? 'is-disabled' : ''}}"
+        bindtap="submit" disabled="{{submitting}}">{{submitting ? '提交中...' : '提交反馈'}}</button>
+    </view>
+  </block>
+
+  <!-- 完成态：只告知「已收到」，不提供分享 -->
+  <view class="done" wx:else>
+    <view class="done-icon">
+      <icon name="check" size="64" color="#4CAF50" />
+    </view>
+    <text class="done-title">已收到，谢谢！</text>
+    <text class="done-desc">我们会尽快核对。若确认收录，它会出现在地图上供大家查看。</text>
+    <view class="done-actions">
+      <view class="done-btn ghost" bindtap="onSubmitAnother">再推荐一个</view>
+      <view class="done-btn" bindtap="onBack">返回</view>
+    </view>
+  </view>
+</view>

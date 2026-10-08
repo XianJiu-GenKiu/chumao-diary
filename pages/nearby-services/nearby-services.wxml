@@ -26,9 +26,19 @@
     <view class="nearby-loading" wx:if="{{loading}}">正在查询真实周边地点…</view>
     <view class="nearby-empty" wx:elif="{{mode === 'finder' && !latitude}}"><text>先选一个位置，再查周边设施</text><button bindtap="chooseOnMap">在地图上选点</button></view>
     <view class="nearby-empty" wx:elif="{{errorMessage}}"><text>{{errorMessage}}</text><button bindtap="retry">重新查询</button></view>
-    <view class="nearby-empty" wx:elif="{{displayServices.length === 0}}">附近暂未找到相关地点</view>
+    <view class="nearby-empty" wx:elif="{{displayServices.length === 0}}"><text>附近暂未找到相关地点</text><button bindtap="goRecommend">没找到？推荐给我们</button></view>
     <view class="service-list" wx:else><view wx:for="{{displayServices}}" wx:key="id" class="service-card" bindtap="openService" data-item="{{item}}"><view class="service-icon service-{{item.kind}}"><icon name="{{item.icon}}" size="34" color="#4B9B6A" /></view><view class="service-main"><view class="service-head"><text class="service-name">{{item.name}}</text><text class="service-distance">{{item.distance}}</text></view><text class="service-meta">{{item.category}} · {{item.address}}</text><view class="service-tags"><text wx:for="{{item.tags}}" wx:key="*this">{{item}}</text></view></view><view class="service-go" catchtap="openMap" data-item="{{item}}"><icon name="navigation" size="28" color="#4B9B6A" /></view></view></view>
     <view class="nearby-tip"><icon name="info" size="26" color="#4B9B6A" /><text>周边地点来自腾讯地图实时检索，营业时间和入场规则请以现场为准。更衣室等设施可能较少，建议出发前电话确认。</text></view>
+
+    <!-- 推荐新地点：单向反馈入口，内容仅运营方可见 -->
+    <view class="recommend-entry" bindtap="goRecommend">
+      <icon name="plus-circle" size="32" color="#D4890E" />
+      <view class="recommend-entry-text">
+        <text class="recommend-entry-title">没找到要去的地方？</text>
+        <text class="recommend-entry-desc">推荐给我们，核对后会收录到地图</text>
+      </view>
+      <icon name="chevron-right" size="28" color="#bbb" />
+    </view>
   </scroll-view>
   <view class="nearby-bottom"><button class="primary-btn" bindtap="openMap">在地图中查看</button></view>
 </view>

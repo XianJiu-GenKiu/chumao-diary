@@ -1,0 +1,231 @@
+/* 推荐新地点：表单页样式（全部使用 design-tokens 中已定义的变量） */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  padding-bottom: 160rpx;
+  box-sizing: border-box;
+}
+
+/* ── 顶部说明 ── */
+.intro {
+  padding: 40rpx var(--page-padding-sm) 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.intro-title {
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.intro-desc {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+/* ── 表单卡片 ── */
+.card {
+  margin: 24rpx var(--page-padding-sm);
+  padding: 8rpx 24rpx;
+  border-radius: var(--radius-card);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+}
+.divider {
+  height: 1rpx;
+  background: var(--color-divider);
+}
+.field {
+  padding: 26rpx 0;
+}
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+.field-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.required {
+  margin-left: 6rpx;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+.field-optional {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.field-count {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  font-family: var(--font-family-num);
+}
+.field-input {
+  width: 100%;
+  height: var(--touch-min);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+.field-textarea {
+  width: 100%;
+  min-height: 96rpx;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+.ph {
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-sm);
+}
+
+/* ── 类型标签（封闭集合，单选） ── */
+.tag-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.tag {
+  padding: 0 26rpx;
+  height: var(--touch-sm);
+  line-height: var(--touch-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-gray-100);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  border: 1rpx solid transparent;
+}
+.tag-active {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── 位置 ── */
+.loc-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.loc-input {
+  flex: 1;
+  min-width: 0;
+}
+.loc-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  height: var(--touch-sm);
+  padding: 0 22rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+.loc-picked {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 14rpx;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.loc-picked-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.loc-clear {
+  flex: none;
+  color: var(--color-primary);
+}
+
+/* ── 合规提示 ── */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10rpx;
+  margin: 8rpx var(--page-padding-sm) 0;
+  padding: 0 8rpx;
+}
+.notice-text {
+  flex: 1;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-hint);
+}
+
+/* ── 底部按钮 ── */
+.footer {
+  margin: 40rpx var(--page-padding-sm) 0;
+}
+.submit-btn {
+  height: var(--touch-comfort);
+  line-height: var(--touch-comfort);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+.submit-btn.is-disabled {
+  opacity: 0.6;
+}
+
+/* ── 完成态 ── */
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 160rpx var(--page-padding) 0;
+}
+.done-icon {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background: var(--color-secondary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.done-title {
+  margin-top: 36rpx;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+.done-desc {
+  margin-top: 16rpx;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+.done-actions {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 64rpx;
+  width: 100%;
+}
+.done-btn {
+  flex: 1;
+  height: var(--touch-min);
+  line-height: var(--touch-min);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-base);
+  text-align: center;
+}
+.done-btn.ghost {
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  border: 1rpx solid var(--color-primary);
+}

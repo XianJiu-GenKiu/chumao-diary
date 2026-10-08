@@ -5,8 +5,10 @@
  * 从 app.json 动态读取页面列表，因此不会因页面增减而失效。
  * 分两层：静态层（读本地源码，不需要 IDE）+ 运行时层（需要 IDE 自动化端口）。
  *
- *   静态 S: 云函数源码是否已按降级约定改造
- *   运行 A: 16 个页面可达（含 2 个门禁页的预期重定向）
+ *   静态 S:   云函数源码是否已按降级约定改造
+ *   静态 S-2: 地点反馈规则集（服务端母本 ↔ 客户端副本）一致性与行为断言
+ *   静态 S-3: 反馈通道边界（客户端不直读反馈集合 / 无分享入口 / 无提交列表）
+ *   运行 A: 全部页面可达（含 2 个门禁页的预期重定向）
  *   运行 B: 运行时噪声（排除已知预期项）
  *   运行 C: tabBar 3 项可切换
  *   运行 E: 已删 14 页确认不可达
@@ -93,6 +95,31 @@ function staticChecks() {
       file: 'cloudfunctions/searchLocations/index.js',
       bad: /\bposts\b/,
       hint: '仍召回帖子'
+    },
+    // ── 用户地点反馈通道（单向：用户 → 运营方） ──
+    {
+      name: 'submitLocationFeedback 只写反馈表，不写公开地点库',
+      file: 'cloudfunctions/submitLocationFeedback/index.js',
+      bad: /collection\(\s*['"]locations['"]\s*\)/,
+      hint: '提交路径出现了对公开 locations 集合的写入'
+    },
+    {
+      name: 'submitLocationFeedback 有每日提交上限（防刷）',
+      file: 'cloudfunctions/submitLocationFeedback/index.js',
+      must: /DAILY_LIMIT/,
+      hint: '缺少防刷上限'
+    },
+    {
+      name: 'manageSubmissions 有运营方白名单门禁',
+      file: 'cloudfunctions/manageSubmissions/index.js',
+      must: /ADMIN_OPENIDS/,
+      hint: '缺少 ADMIN_OPENIDS 门禁'
+    },
+    {
+      name: 'manageSubmissions 不对外返回提交者身份',
+      file: 'cloudfunctions/manageSubmissions/index.js',
+      bad: /submitterOpenId/,
+      hint: '对外返回里出现了提交者字段（违反「不暴露提交者」边界）'
     }
   ]
 
@@ -106,6 +133,105 @@ function staticChecks() {
     if (c.miss && !c.miss.test(code)) { fail(c.name, c.hint); continue }
     pass(c.name)
   }
+}
+
+// ─────────────────── 静态层 2：类型清单一致性 ───────────────────
+// 客户端不 require 云函数目录，因此类型标签存在两份。这里直接 require 两份
+// 做逐项比对与行为断言，比正则匹配强得多（能抓到「加了标签但只改一边」）。
+function configChecks() {
+  console.log('\n【S-2】地点反馈规则集：服务端母本 ↔ 客户端副本')
+  const server = require(path.join(ROOT, 'cloudfunctions-shared/locationFeedback.js'))
+  const client = require(path.join(ROOT, 'config/location-feedback.js'))
+
+  const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) &&
+    a.length === b.length && a.every((v, i) => v === b[i])
+
+  if (sameList(server.FEEDBACK_CATEGORIES, client.FEEDBACK_CATEGORIES)) {
+    pass(`类型标签清单一致（${server.FEEDBACK_CATEGORIES.length} 项）`, server.FEEDBACK_CATEGORIES.join(' / '))
+  } else {
+    fail('类型标签清单漂移', `服务端 [${server.FEEDBACK_CATEGORIES}] ≠ 客户端 [${client.FEEDBACK_CATEGORIES}]`)
+  }
+
+  if (server.NAME_MAX === client.NAME_MAX && server.NOTE_MAX === client.NOTE_MAX && server.ADDRESS_MAX === client.ADDRESS_MAX) {
+    pass('字段长度上限一致', `名称 ${server.NAME_MAX} / 反馈 ${server.NOTE_MAX} / 位置 ${server.ADDRESS_MAX}`)
+  } else {
+    fail('字段长度上限不一致', `服务端 ${server.NAME_MAX}/${server.NOTE_MAX}/${server.ADDRESS_MAX}，客户端 ${client.NAME_MAX}/${client.NOTE_MAX}/${client.ADDRESS_MAX}`)
+  }
+
+  // 封闭集合：任何不在清单里的值都必须被拒（含带空格、空值、自定义标签）
+  const smuggled = ['自定义标签', '', ' 自然风光', '自然风光 '].filter(c => server.isAllowedCategory(c))
+  if (!smuggled.length) pass('类型标签为封闭集合（自定义/越界值一律拒绝）')
+  else fail('类型标签可被绕过', smuggled.join(' | '))
+
+  // 超长反馈必须被拒（30 字是硬上限）
+  const longNote = 'x'.repeat(server.NOTE_MAX + 1)
+  const longRes = server.validateFeedback({ name: '测试地点', category: server.FEEDBACK_CATEGORIES[0], note: longNote })
+  if (!longRes.ok) pass(`超长反馈被拒（>${server.NOTE_MAX} 字）`, longRes.message)
+  else fail('超长反馈未被拒绝')
+
+  // 缺名称 / 缺类型必须被拒
+  if (!server.validateFeedback({ category: server.FEEDBACK_CATEGORIES[0] }).ok &&
+      !server.validateFeedback({ name: '测试地点' }).ok) {
+    pass('缺少名称或类型时拒绝提交')
+  } else {
+    fail('必填校验缺失')
+  }
+
+  // 文本清洗：换行与控制字符必须被归一化（避免反馈里夹带版式/隐藏字符）
+  const dirty = server.validateFeedback({
+    name: '测试\n地点',
+    category: server.FEEDBACK_CATEGORIES[0],
+    note: 'a\u0000b\u200Bc'
+  })
+  const dirtyText = dirty.ok ? dirty.data.name + dirty.data.note : ''
+  if (dirty.ok && !/[\n\u0000\u200B]/.test(dirtyText)) pass('文本清洗生效（换行/控制字符/零宽字符被移除）')
+  else fail('文本清洗未生效', JSON.stringify(dirty))
+}
+
+// ─────────────────── 静态层 3：反馈通道边界 ───────────────────
+function feedbackBoundaryChecks() {
+  console.log('\n【S-3】反馈通道边界（用户之间互不可见、内容不传播）')
+
+  // 1) 客户端不得直接读写反馈集合 —— 读取只能经运营方云函数
+  const clientFiles = []
+  const walk = dir => {
+    for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`
+      if (entry.isDirectory()) walk(rel)
+      else if (/\.(js|json|wxml|wxss)$/.test(entry.name)) clientFiles.push(rel)
+    }
+  }
+  ;['pages', 'components', 'utils', 'config'].forEach(walk)
+  clientFiles.push('app.js')
+
+  // 只扫「真实代码」，剔除注释 —— 合规说明里提到集合名不算违规。
+  const stripComments = (text, file) => {
+    if (file.endsWith('.wxml')) return text.replace(/<!--[\s\S]*?-->/g, '')
+    if (file.endsWith('.json')) return text
+    return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  }
+  const direct = clientFiles.filter(f => {
+    try { return /location_submissions/.test(stripComments(read(f), f)) } catch (e) { return false }
+  })
+  if (!direct.length) pass('客户端不直接引用 location_submissions（仅注释中提及）', `${clientFiles.length} 个客户端文件已扫描`)
+  else fail('客户端出现对反馈集合的直接引用', direct.join(', '))
+
+  // 2) app.json 已注册反馈页
+  const appJson = JSON.parse(read('app.json'))
+  if (appJson.pages.includes('pages/location-feedback/location-feedback')) pass('app.json 已注册 pages/location-feedback')
+  else fail('app.json 未注册反馈页')
+
+  // 3) 反馈页不提供对外分享入口（提交内容不具传播路径）
+  const fbJs = read('pages/location-feedback/location-feedback.js')
+  const fbWxml = read('pages/location-feedback/location-feedback.wxml')
+  if (!/onShareAppMessage|onShareTimeline/.test(fbJs) && !/open-type="share"/.test(fbWxml)) pass('反馈页无对外分享入口')
+  else fail('反馈页存在分享入口', '提交内容不得提供传播路径')
+
+  // 4) 反馈页不展示「我的提交 / 他人提交」类列表
+  const listWords = ['我的提交', '提交记录', '历史反馈', '大家推荐', '最新推荐', '他人提交']
+  const found = listWords.filter(w => fbWxml.includes(w))
+  if (!found.length) pass('反馈页无提交列表（用户之间互不可见）')
+  else fail('反馈页出现提交列表类文案', found.join(' | '))
 }
 
 // ────────────────────────────── 运行时层 ──────────────────────────────
@@ -311,6 +437,8 @@ async function main() {
   const staticOnly = process.argv.includes('--static-only')
   console.log('\n══ 出毛日记 · 公开展示型 部署前验证 ══' + (staticOnly ? '（仅静态层）' : ''))
   staticChecks()
+  configChecks()
+  feedbackBoundaryChecks()
   if (!staticOnly) await runtimeChecks()
 
   const failed = results.filter(r => !r.ok)

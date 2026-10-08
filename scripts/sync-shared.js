@@ -65,6 +65,11 @@ const MANIFEST = {
     'searchLocations',
     'comment-list'
   ],
+  // 用户地点反馈的封闭规则集（类型标签闭合集合 / 长度上限 / 文本清洗）。
+  // 客户端副本在 config/location-feedback.js，由 e2e-degrade-verify 静态层比对。
+  'locationFeedback.js': [
+    'submitLocationFeedback'
+  ],
   // 腾讯位置服务统一调用层：key 读取、请求封装、城市表。
   // 下列函数此前各自复制了一份 MAP_KEY 与 https 封装，并共用一个官方示例 key。
   'mapApi.js': [
@@ -93,7 +98,9 @@ const MANIFEST = {
     'toggleFavorite',
     'post-favorite',
     // 拉黑关系表：首次拉黑时集合可能尚未存在
-    'blockUser'
+    'blockUser',
+    // 用户地点反馈表：第一个提交的用户会触发首次写入
+    'submitLocationFeedback'
   ]
 }
 

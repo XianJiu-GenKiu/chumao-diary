@@ -6,7 +6,7 @@
  * （addLocation / manageReports 都会独立校验 isAdmin）。
  */
 const app = getApp()
-const { bindDarkMode, unbindDarkMode } = require('../../utils/common')
+const { bindDarkMode, unbindDarkMode, formatTime } = require('../../utils/common')
 
 /** 举报目标类型 → 中文（posts / comments 已下线，只可能出现 location） */
 const TARGET_LABEL = { location: '地点', post: '动态', comment: '评论' }
@@ -21,6 +21,10 @@ Page({
     reports: [],
     reportsLoading: false,
     reportsError: '',
+    // 用户推荐地点（单向反馈）：只有运营方能读，接口不返回提交者身份
+    submissions: [],
+    submissionsLoading: false,
+    submissionsError: '',
     actionPending: false
   },
 
@@ -54,8 +58,67 @@ Page({
         loading: false
       })
       this.loadReports()
+      this.loadSubmissions()
     } catch (err) {
       this.setData({ loading: false, error: err.message || '身份校验失败' })
+    }
+  },
+
+  /**
+   * 加载用户推荐的地点反馈。
+   * 接口（manageSubmissions）只返回白名单字段，**不含提交者身份**，
+   * 因此这里也拿不到、更不会展示「是谁提交的」。
+   */
+  async loadSubmissions() {
+    this.setData({ submissionsLoading: true, submissionsError: '' })
+    try {
+      const res = await app.callCloud('manageSubmissions', { action: 'list', status: 'pending', page: 1, pageSize: 20 })
+      if (!res || res.code !== 0) throw new Error((res && res.message) || '加载失败')
+      const list = (res.data && res.data.list) || []
+      this.setData({
+        submissions: list.map(item => ({
+          ...item,
+          coordText: (item.latitude !== null && item.longitude !== null)
+            ? `${item.latitude}, ${item.longitude}`
+            : '',
+          timeText: formatTime(item.createdAt, 'YYYY-MM-DD HH:mm')
+        })),
+        submissionsLoading: false
+      })
+    } catch (err) {
+      this.setData({ submissionsLoading: false, submissionsError: err.message || '加载失败' })
+    }
+  },
+
+  /** 去录入：跳转运营方录入页并预填反馈里的名称 / 位置 / 类型。 */
+  onSubmissionAdd(e) {
+    const item = e.currentTarget.dataset.item
+    if (!item) return
+    const query = [
+      `poiName=${encodeURIComponent(item.name || '')}`,
+      `poiAddress=${encodeURIComponent(item.address || '')}`
+    ]
+    if (item.latitude !== null && item.longitude !== null) {
+      query.push(`poiLat=${item.latitude}`, `poiLng=${item.longitude}`)
+    }
+    if (item.category) query.push(`poiCategory=${encodeURIComponent(item.category)}`)
+    wx.navigateTo({ url: `/pages/location-upload/location-upload?${query.join('&')}` })
+  },
+
+  /** 标记已处理 / 忽略：只改 location_submissions 的状态，不写公开地点库。 */
+  async onSubmissionUpdate(e) {
+    const { id, status } = e.currentTarget.dataset
+    if (!id || !status || this.data.actionPending) return
+    this.setData({ actionPending: true })
+    try {
+      const res = await app.callCloud('manageSubmissions', { action: 'update', submissionId: id, status })
+      if (!res || res.code !== 0) throw new Error((res && res.message) || '操作失败')
+      wx.showToast({ title: status === 'rejected' ? '已忽略' : '已标记处理', icon: 'success' })
+      this.loadSubmissions()
+    } catch (err) {
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    } finally {
+      this.setData({ actionPending: false })
     }
   },
 
