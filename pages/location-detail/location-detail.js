@@ -275,8 +275,8 @@ Page({
   showActionMenu() {
     const canManage = this.data.isOwner || this.data.isAdmin
     const items = canManage
-      ? ['编辑地点信息', '删除地点', '生成分享卡片', '举报内容']
-      : ['生成分享卡片', '举报内容']
+      ? ['编辑地点信息', '删除地点', '生成分享卡片', '举报地点']
+      : ['生成分享卡片', '举报地点']
 
     wx.showActionSheet({
       itemList: items,
@@ -284,7 +284,7 @@ Page({
         const action = items[res.tapIndex]
         if (action === '编辑地点信息') this.editLocation()
         else if (action === '删除地点') this.deleteLocation()
-        else if (action === '举报内容') this.reportContent()
+        else if (action === '举报地点') this.reportLocation()
         else if (action === '生成分享卡片') this.shareCard()
       }
     })
@@ -331,7 +331,7 @@ Page({
     })
   },
 
-  reportContent() {
+  reportLocation() {
     const { id, location } = this.data
     wx.showActionSheet({
       itemList: ['垃圾广告', '违法违规', '不实信息', '其他'],

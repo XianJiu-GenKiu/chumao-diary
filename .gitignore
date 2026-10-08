@@ -25,3 +25,8 @@ toolchain-backup/
 
 # 云函数本地依赖残留
 cloudfunctions/**/node_modules/
+
+# 验证脚本运行时产物（日志与报告，每次跑都变）
+scripts/.ide-*.log
+scripts/.e2e-report.json
+scripts/.degrade-verify-report.json
