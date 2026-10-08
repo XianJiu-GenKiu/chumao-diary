@@ -12,6 +12,11 @@ async function isUserActive(openid) {
   return !result.data.length || result.data[0].status !== 'banned'
 }
 
+/** 运营方白名单：沿用 manageReports 的 ADMIN_OPENIDS 约定。 */
+function isAdmin(openid) {
+  return String(process.env.ADMIN_OPENIDS || '').split(',').map(id => id.trim()).filter(Boolean).includes(openid)
+}
+
 async function ensureCollection(name) {
   try {
     await db.createCollection(name)
@@ -30,6 +35,13 @@ exports.main = async (event, context) => {
     return { code: -1, message: '未登录' }
   }
   if (!await isUserActive(openid)) return { code: -403, message: '账号已被封禁' }
+
+  // 公开展示型：地点库由运营方统一录入，不再开放用户上传。
+  // 客户端已移除全部上传入口，这里再加一道服务端门禁——绕过客户端直接调用
+  // 云函数同样会被拒绝，避免出现「接口在但入口没有」的灰色状态。
+  if (!isAdmin(openid)) {
+    return { code: -403, message: '地点库由运营方统一录入，暂不开放用户上传' }
+  }
 
   const {
     name = '',

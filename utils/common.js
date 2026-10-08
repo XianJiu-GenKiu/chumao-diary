@@ -260,36 +260,6 @@ async function uploadImages(images, folder = 'images', options = {}) {
 }
 
 
-// ── 评论提交 ──
-
-/**
- * 提交评论并返回构建好的评论对象（供乐观更新）
- * @param {object} params - { targetId, targetType, content, replyTo? }
- * @returns {Promise<object>} { success, comment?, message? }
- */
-async function submitComment(params) {
-  const res = await app.callCloud('comment-create', params)
-  if (res.code !== 0) return { success: false, message: res.message || '评论失败' }
-
-  const userInfo = app.globalData.userInfo || {}
-  return {
-    success: true,
-    comment: {
-      _id: res.data.commentId,
-      content: params.content,
-      userOpenId: app.globalData.openId,
-      authorName: userInfo.nickname || userInfo.name || '我',
-      authorAvatar: userInfo.avatar || userInfo.avatarUrl || '',
-      likeCount: 0,
-      createdAt: new Date(),
-      createTimeText: '刚刚',
-      _createTimeText: '刚刚',
-      parentId: params.replyTo || null
-    }
-  }
-}
-
-
 // ── 下拉刷新包装 ──
 
 /**
@@ -443,7 +413,6 @@ module.exports = {
   debounce,
   createPager,
   uploadImages,
-  submitComment,
   stopRefresh,
   toggleOptimistic,
   rollbackOptimistic,

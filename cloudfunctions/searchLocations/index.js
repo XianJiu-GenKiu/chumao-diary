@@ -1,6 +1,7 @@
 // 云函数：searchLocations
-// 功能：按关键词搜索地点（名称、描述、标签模糊匹配），同时搜索帖子
-// 分页说明：先分别取足够多的地点和帖子，再合并排序后按页截取
+// 功能：按关键词搜索地点（名称、地址、描述、提示、最佳时间、标签模糊匹配）
+// 公开展示型：不再召回帖子——发布型内容（posts）已整体下线，
+// 搜索结果只可能返回地点库内容。
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
@@ -24,7 +25,7 @@ exports.main = async (event, context) => {
   const skip = (safePage - 1) * safePageSize
 
   try {
-    // 搜索地点（名称、描述、标签）
+    // 搜索地点（名称、地址、描述、提示、最佳时间、标签）
     const locRes = await db.collection('locations')
       .where(_.or([
         { name: reg },
@@ -38,39 +39,20 @@ exports.main = async (event, context) => {
       .limit(MAX_FETCH)
       .get()
 
-    // 搜索帖子内容
-    const postRes = await db.collection('posts')
-      .where(_.or([
-        { content: reg },
-        { tags: reg }
-      ]))
-      .orderBy('createdAt', 'desc')
-      .limit(MAX_FETCH)
-      .get()
-
-    // 合并结果，标记类型
     // 可见性规则统一由 visibility.js 提供：只有 approved 才公开，
     // rejected / pending 一律仅作者本人可见。
     // 拉黑过滤：搜索结果里同样不展示被当前用户拉黑的内容。
     const blockedIds = await getBlockedIds(db, openid)
-    const locations = filterBlocked(locRes.data
+    const merged = filterBlocked(locRes.data
       .filter(item => isPubliclyVisible(item, openid))
       .filter(item => matchesScene(item, scene)), blockedIds)
       .map(item => ({ ...item, _type: 'location' }))
-    const posts = filterBlocked(postRes.data
-      .filter(item => isPubliclyVisible(item, openid))
-      .filter(item => !scene || scene === 'all' || (Array.isArray(item.tags) && item.tags.includes(scene))), blockedIds)
-      .map(item => ({ ...item, _type: 'post' }))
-
-    // 合并后按时间倒序排序
-    const merged = [...locations, ...posts]
       .sort((a, b) => {
         const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
         const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
         return tb - ta
       })
 
-    // 在合并结果上分页
     const paged = merged.slice(skip, skip + safePageSize)
 
     return { code: 0, data: paged }

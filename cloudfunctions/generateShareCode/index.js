@@ -12,9 +12,10 @@
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
+// scene 跳转目标必须是降级版里真实存在的页面，否则会生成扫不开的码。
+// event-detail 已随活动功能一并下线，不能再出现在白名单里。
 const ALLOWED_PAGES = [
   'pages/location-detail/location-detail',
-  'pages/event-detail/event-detail',
   'pages/route-plan/route-plan'
 ]
 const MAX_SCENE_LENGTH = 32

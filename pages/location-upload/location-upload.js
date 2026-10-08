@@ -47,8 +47,21 @@ Page({
     steps: ['基本信息', '位置信息', '详细说明']
   },
 
-  onLoad(options) {
+  async onLoad(options) {
     this.setData({ darkMode: app.globalData.darkMode || false })
+
+    // 公开展示型：地点库由运营方统一录入，本页仅对运营方开放。
+    // 客户端已移除全部入口，这里拦的是「直接输入路径 / 旧分享链接」这类绕过方式；
+    // 真正的写入门禁在云函数 addLocation，本页只负责不把界面呈现给普通用户。
+    if (!await this._ensureAdmin()) {
+      wx.showToast({ title: '仅运营方可录入地点', icon: 'none' })
+      setTimeout(() => {
+        if (getCurrentPages().length > 1) wx.navigateBack()
+        else wx.reLaunch({ url: '/pages/discover/discover' })
+      }, 1200)
+      return
+    }
+
     if (!this._ensureLoggedIn()) return
     // 从地图外部地点跳转过来时，先预填腾讯地图返回的基础信息，
     // 用户只需补充图片与描述，避免重复手动输入。
@@ -59,6 +72,21 @@ Page({
     } else if (!prefilled) this._locate()
     // 深色模式实时同步（统一走 utils/common 的 bindDarkMode）
     bindDarkMode(this)
+  },
+
+  /** 判定当前用户是否为运营方；全局已探测过就直接复用，避免重复调用云函数。 */
+  async _ensureAdmin() {
+    if (typeof app.globalData.isAdmin === 'boolean') return app.globalData.isAdmin
+    if (!app.globalData.isLoggedIn) return false
+    try {
+      const res = await app.callCloud('manageReports', { action: 'whoami' })
+      const isAdmin = !!(res && res.code === 0 && res.data && res.data.isAdmin)
+      app.globalData.isAdmin = isAdmin
+      return isAdmin
+    } catch (err) {
+      // 探测失败一律按「非运营方」处理，宁可挡住也不放行。
+      return false
+    }
   },
 
   /**

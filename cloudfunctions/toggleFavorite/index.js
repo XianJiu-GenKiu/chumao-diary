@@ -92,22 +92,9 @@ exports.main = async (event, context) => {
       favoriteCount = Math.max(0, Number(freshRes.data.favoriteCount) || 0)
     } catch (e) { /* 回读失败时保留估算值 */ }
 
-    // 仅在「新增收藏」时通知作者；取消收藏不打扰对方。
-    if (nowFavorited && target.creatorOpenId && target.creatorOpenId !== openid) {
-      try {
-        // messages 集合可能尚未创建，通知失败会被 catch 吞掉，先自愈一次。
-        await ensureCollection(db, 'messages')
-        const userRes = await db.collection('users').where({ openId: openid }).limit(1).get()
-        const user = userRes.data[0] || {}
-        await db.collection('messages').add({ data: {
-          toOpenId: target.creatorOpenId, fromOpenId: openid,
-          fromName: user.nickname || '用户', fromAvatar: user.avatar || '',
-          type: 'favorite', content: '收藏了你的内容',
-          targetId, targetType, isRead: false, createdAt: db.serverDate()
-        } })
-      } catch (notifyError) { console.warn('favorite notification failed:', notifyError.message) }
-    }
-
+    // 公开展示型：不再向作者发送「谁收藏了你」的通知。
+    // 那是整条链路里唯一一处「A 的行为被 B 看见」的跨用户可见点，
+    // 移除后收藏彻底成为纯个人事务。
     return { code: 0, data: { favorited: nowFavorited, favoriteCount } }
   } catch (err) {
     console.error('toggleFavorite 云函数出错:', err)

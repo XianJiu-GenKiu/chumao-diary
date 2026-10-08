@@ -4,7 +4,7 @@ const { uploadImages, stopRefresh, bindDarkMode, unbindDarkMode } = require('../
 Page({
   data: {
     userInfo: null,
-    stats: { postCount: 0, likeCount: 0, favoriteCount: 0 },
+    stats: { favoriteCount: 0, locationCount: 0 },
     settingGroups: [],
     darkMode: false
   },

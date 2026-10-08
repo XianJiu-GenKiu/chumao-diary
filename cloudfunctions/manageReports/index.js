@@ -8,8 +8,15 @@ function isAdmin(openid) {
 
 exports.main = async event => {
   const { OPENID: openid } = cloud.getWXContext()
-  if (!openid || !isAdmin(openid)) return { code: -403, message: '无管理员权限' }
   const { action = 'list', reportId, status, page = 1, pageSize = 20 } = event
+
+  // whoami：探测当前用户是否运营方。它本身就是校验接口，因此不做管理员前置校验；
+  // 前端只用结果决定是否展示运营入口，真正的写入门禁仍在下面各管理 action 上。
+  if (action === 'whoami') {
+    return { code: 0, data: { isAdmin: !!openid && isAdmin(openid) } }
+  }
+
+  if (!openid || !isAdmin(openid)) return { code: -403, message: '无管理员权限' }
   try {
     if (action === 'backfillPostGeo') {
       const safePage = Math.max(1, Math.floor(Number(page) || 1))

@@ -1,5 +1,7 @@
 // 云函数：getUserContent
-// 功能：根据 tab 获取用户内容（dynamic / favorite / location）
+// 功能：根据 tab 获取用户内容（favorite / location）。
+// 公开展示型：`dynamic`（我的动态）分支已下线——帖子是发布型内容，
+// 客户端已无入口，接口也不再返回。
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
@@ -9,7 +11,7 @@ const _ = db.command
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
-  const { tab = 'dynamic' } = event
+  const { tab = 'favorite' } = event
   const safePage = Math.max(1, Math.floor(Number(event.page) || 1))
   const safePageSize = Math.min(50, Math.max(1, Math.floor(Number(event.pageSize) || 10)))
   const skip = (safePage - 1) * safePageSize
@@ -19,17 +21,7 @@ exports.main = async (event, context) => {
   }
 
   try {
-    if (tab === 'dynamic') {
-      // 我的动态 — 该用户发布的帖子
-      const result = await db.collection('posts')
-        .where({ creatorOpenId: openid })
-        .orderBy('createdAt', 'desc')
-        .skip(skip)
-        .limit(safePageSize)
-        .get()
-      return { code: 0, data: result.data }
-
-    } else if (tab === 'favorite') {
+    if (tab === 'favorite') {
       // 我的收藏 — v2.0 个人中心展示收藏地点。
       // favorites 集合在「还没有任何人收藏过」时并不存在，直接查询会抛 -502005；
       // 这种情况等价于「没有收藏」，不应让整个「我的」页面报错。
