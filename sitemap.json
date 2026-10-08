@@ -4,6 +4,14 @@
     {
       "action": "allow",
       "page": "*"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/admin-console/admin-console"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/location-upload/location-upload"
     }
   ]
 }

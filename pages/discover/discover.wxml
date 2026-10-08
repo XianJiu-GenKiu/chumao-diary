@@ -9,7 +9,6 @@
     <view class="app-title">
       <text class="app-title-text">出毛日记</text>
       <view class="nav-quick-actions">
-        <view class="nav-event-btn" bindtap="goEvents"><icon name="calendar" size="36" color="#D4890E" /></view>
         <view class="nav-event-btn" bindtap="goSeasonal"><icon name="sun" size="36" color="#D4890E" /></view>
       </view>
     </view>
@@ -42,19 +41,10 @@
       </view>
     </view>
 
-  <!-- 固定在搜索栏底部的模式切换与筛选栏 -->
+  <!-- 固定在搜索栏底部的筛选栏 -->
   <view class="fixed-top-bar">
-    <!-- 模式切换：Segmented Control -->
-    <view class="mode-switch-wrap">
-      <segmented-control
-        items="{{['地图', '小聚']}}"
-        activeIndex="{{viewMode === 'map' ? 0 : 1}}"
-        bind:change="onViewModeChange"
-      />
-    </view>
-
-    <!-- 筛选栏（仅地图模式显示） -->
-    <view class="filter-section" wx:if="{{viewMode === 'map'}}">
+    <!-- 筛选栏 -->
+    <view class="filter-section">
       <view class="filter-container">
         <!-- 类别标签改为换行展示。
              旧版是单行横向 scroll-view：430px 屏下 4 个标签共需 470px，可视区只有
@@ -90,10 +80,8 @@
     </view>
   </view>
   </view>
-  <!-- 小聚内容从固定导航栏下方开始，保留手绘稿的连续卡片流结构 -->
-  <view class="nav-bar-spacer" wx:if="{{viewMode === 'xiaoju'}}" style="height: {{customNavHeight}}px;"></view>
   <!-- 地图地点加载失败提示：避免加载失败时标点静默消失、用户无法判断原因 -->
-  <view class="map-load-error" wx:if="{{viewMode === 'map' && errorMessage}}" bindtap="onMapLoadRetry">
+  <view class="map-load-error" wx:if="{{errorMessage}}" bindtap="onMapLoadRetry">
     <icon name="info" size="30" color="#D4890E" />
     <text class="map-load-error-text">{{errorMessage}}</text>
     <text class="map-load-error-retry">重新加载</text>
@@ -179,7 +167,7 @@
   </view>
 
   <!-- 地图模式 -->
-  <view class="map-mode" wx:if="{{viewMode === 'map'}}">
+  <view class="map-mode">
     <!-- 地图区域（高度随面板状态变化） -->
     <view class="map-section">
       <map
@@ -294,48 +282,9 @@
     bind:navigate="onNavigateToPoi"
     bind:favorite="onTogglePoiFavorite"
     bind:nearbyServices="onNearbyServices"
+    show-add="{{isAdmin}}"
     bind:addToDiary="onAddExternalPoi"
     bind:close="onClosePoiPreview"
   />
-
-  <!-- 小聚路线攻略流：UI 框架阶段使用本地演示数据，后续替换为公开路线接口 -->
-  <view class="xiaoju-section" wx:if="{{viewMode === 'xiaoju'}}">
-    <view class="xiaoju-intro">
-      <view>
-        <text class="xiaoju-heading">小聚</text>
-        <text class="xiaoju-subheading">参考大家的出毛路线，规划下一次拍摄</text>
-      </view>
-      <view class="xiaoju-create-btn" bindtap="onCreateXiaoju"><icon name="plus-circle" size="32" color="#D4890E" /><text>创建</text></view>
-    </view>
-    <scroll-view class="xiaoju-filter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="xiaoju-filter-list">
-        <view wx:for="{{xiaojuFilters}}" wx:key="*this" class="xiaoju-filter {{item === xiaojuFilter ? 'active' : ''}}" data-filter="{{item}}" bindtap="onXiaojuFilterTap">{{item}}</view>
-      </view>
-    </scroll-view>
-    <view class="xiaoju-list">
-      <view class="xiaoju-card" wx:for="{{xiaojuList}}" wx:key="id" data-item="{{item}}" bindtap="onXiaojuTap">
-        <image class="xiaoju-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
-        <view class="xiaoju-cover-shade"></view>
-        <view class="xiaoju-card-content">
-          <view class="xiaoju-tags"><text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="xiaoju-tag">{{tag}}</text></view>
-          <text class="xiaoju-title">{{item.title}}</text>
-          <text class="xiaoju-summary">{{item.summary}}</text>
-          <view class="xiaoju-route-meta"><text>📍 {{item.points}} 个点位</text><text>⏱ {{item.duration}}</text><text>{{item.people}}</text></view>
-          <view class="xiaoju-card-footer">
-            <view class="xiaoju-author"><view class="xiaoju-avatar"><icon name="user" size="24" color="#D4890E" /></view><text>{{item.author}}</text></view>
-            <view class="xiaoju-actions" catchtap="preventBubble">
-              <view class="xiaoju-action" data-index="{{index}}" bindtap="onXiaojuLike"><icon name="thumbs-up" size="25" color="#fff" /><text>{{item.likes}}</text></view>
-              <view class="xiaoju-action" data-index="{{index}}" bindtap="onXiaojuSave"><icon name="bookmark" size="25" color="{{item.saved ? '#FFD93D' : '#fff'}}" fill="{{item.saved}}" /><text>{{item.saved ? '已收藏' : '收藏'}}</text></view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-    <view class="xiaoju-bottom-hint">— 滑动查看更多路线攻略 —</view>
-  </view>
-  <!-- 回到顶部按钮（仅热门模式） -->
-  <view class="back-to-top {{showBackToTop && viewMode === 'xiaoju' ? '' : 'hidden'}}" bindtap="scrollToTop">
-    <icon name="chevron-up" size="36" color="#D4890E" />
-  </view>
 
 </view>

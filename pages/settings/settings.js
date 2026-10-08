@@ -35,8 +35,7 @@ Page({
       settingGroups: [
         { title: '个人', items: [
           { label: '编辑资料', icon: 'user', url: '/pages/profile-edit/profile-edit' },
-          { label: '我的收藏', icon: 'bookmark', action: 'myFavorites' },
-          { label: '黑名单', icon: 'shield', url: '/pages/blocked-list/blocked-list' }
+          { label: '我的收藏', icon: 'bookmark', action: 'myFavorites' }
         ]},
         { title: '通用', items: [
           { label: '通知设置', icon: 'bell', action: 'toggleNotify', checked: notify, isSwitch: true },

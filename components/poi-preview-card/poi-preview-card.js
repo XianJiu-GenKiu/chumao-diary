@@ -96,6 +96,15 @@ Component({
       type: String,
       value: 'floating'
     },
+    /**
+     * 是否展示「添加到出毛日记」按钮。
+     * 公开展示型版本中地点库由运营方录入，因此此入口仅对管理员开放；
+     * 组件本身不判身份，由页面传入（页面从 manageReports whoami 探测）。
+     */
+    showAdd: {
+      type: Boolean,
+      value: false
+    },
     top: {
       type: Number,
       value: 0

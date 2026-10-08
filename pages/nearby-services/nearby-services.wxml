@@ -9,5 +9,5 @@
     <view class="service-list" wx:else><view wx:for="{{displayServices}}" wx:key="id" class="service-card" bindtap="openService" data-item="{{item}}"><view class="service-icon service-{{item.kind}}"><icon name="{{item.icon}}" size="34" color="#4B9B6A" /></view><view class="service-main"><view class="service-head"><text class="service-name">{{item.name}}</text><text class="service-distance">{{item.distance}}</text></view><text class="service-meta">{{item.meta}} · {{item.address}}</text><view class="service-tags"><text wx:for="{{item.tags}}" wx:key="*this">{{item}}</text></view></view><view class="service-go" catchtap="openMap" data-item="{{item}}"><icon name="navigation" size="28" color="#4B9B6A" /></view></view></view>
     <view class="nearby-tip"><icon name="info" size="26" color="#4B9B6A" /><text>周边地点来自腾讯地图实时检索，营业时间和入场规则请以现场为准。</text></view>
   </scroll-view>
-  <view class="nearby-bottom"><button class="secondary-btn" bindtap="openMap">在地图中查看</button><button class="primary-btn" bindtap="startRoute">加入小聚路线</button></view>
+  <view class="nearby-bottom"><button class="primary-btn" bindtap="openMap">在地图中查看</button></view>
 </view>

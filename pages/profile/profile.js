@@ -2,8 +2,9 @@ const app = getApp()
 const { createPager, stopRefresh, getFriendlyTime, bindDarkMode, unbindDarkMode, debugLog } = require('../../utils/common')
 
 // 每个 tab 独立的分页器
+// 注意：公开展示型版本已下线「动态」tab（用户发布内容属社交类目），只保留
+// 「收藏」「地点」两个纯个人事务的列表。
 const pagers = {
-  dynamic:  createPager({ cloudFn: 'getUserContent', dataKey: 'dynamicList',  buildParams: () => ({ tab: 'dynamic' }), transform: item => ({ ...item, createTimeText: item.createTimeText || getFriendlyTime(item.createdAt) }) }),
   favorite: createPager({ cloudFn: 'getUserContent', dataKey: 'favoriteList', buildParams: () => ({ tab: 'favorite' }), transform: item => ({ ...item, createTimeText: item.createTimeText || getFriendlyTime(item.createdAt) }) }),
   location: createPager({ cloudFn: 'getUserContent', dataKey: 'locationList', buildParams: () => ({ tab: 'location' }), transform: item => ({ ...item, createTimeText: item.createTimeText || getFriendlyTime(item.createdAt) }) })
 }
@@ -15,23 +16,18 @@ Page({
     isAdmin: false,
     loginLoading: false,
     showAgreementDialog: false,
-    stats: { postCount: 0, likeCount: 0, favoriteCount: 0, locationCount: 0, upCount: 0 },
-    unreadCount: 0,
-    followingCount: 0,
-    followerCount: 0,
+    stats: { favoriteCount: 0, locationCount: 0 },
     darkMode: false,
     tabs: [
-      { key: 'dynamic',   name: '动态' },
       { key: 'favorite',  name: '收藏' },
       { key: 'location',  name: '地点' }
     ],
-    activeTab: 'dynamic',
+    activeTab: 'favorite',
     activeTabIndex: 0,
     _initialized: false,
     errorMessage: '',
-    // 从 dynamic pager 初始化（其他 tab 字段会在 tab 切换时设置）
-    ...pagers.dynamic.initData(),
-    favoriteList: [],
+    // 从 favorite pager 初始化（location tab 字段会在 tab 切换时设置）
+    ...pagers.favorite.initData(),
     locationList: []
   },
 
@@ -62,8 +58,6 @@ Page({
     }
     if (isLoggedIn) {
       this.loadStats()
-      this.loadFollowStats()
-      this.loadUnreadCount()
       this.checkAdminAccess()
       this._loadCurrentTab(true)
     } else {
@@ -77,8 +71,6 @@ Page({
     if (userInfo) {
       this.setData({ userInfo, isLoggedIn: true, _initialized: true })
       this.loadStats()
-      this.loadFollowStats()
-      this.loadUnreadCount()
       this.checkAdminAccess()
       this._loadCurrentTab(true)
     } else {
@@ -89,11 +81,7 @@ Page({
 
   _resetAccountData() {
     this.setData({
-      stats: { postCount: 0, likeCount: 0, favoriteCount: 0, locationCount: 0, upCount: 0 },
-      unreadCount: 0,
-      followingCount: 0,
-      followerCount: 0,
-      dynamicList: [],
+      stats: { favoriteCount: 0, locationCount: 0 },
       favoriteList: [],
       locationList: [],
       page: 1,
@@ -103,40 +91,12 @@ Page({
     })
   },
 
-  async loadUnreadCount() {
-    try {
-      const res = await app.callCloud('getMessages', { page: 1, pageSize: 1, markRead: false })
-      if (res?.code === 0 && res.data) {
-        this.setData({ unreadCount: res.data.unreadTotal || 0 })
-      }
-    } catch (err) {
-      // 静默失败
-    }
-  },
-
   async loadStats() {
     try {
       const res = await app.callCloud('getUserStats')
       if (res?.data) this.setData({ stats: res.data })
     } catch (err) {
       console.error('获取统计数据失败:', err)
-    }
-  },
-
-  async loadFollowStats() {
-    try {
-      const [followingResult, followerResult] = await Promise.allSettled([
-        app.callCloud('getFollowList', { type: 'following', pageSize: 1 }),
-        app.callCloud('getFollowList', { type: 'followers', pageSize: 1 })
-      ])
-      const followingRes = followingResult.status === 'fulfilled' ? followingResult.value : null
-      const followerRes = followerResult.status === 'fulfilled' ? followerResult.value : null
-      this.setData({
-        followingCount: followingRes?.data?.total ?? this.data.followingCount,
-        followerCount: followerRes?.data?.total ?? this.data.followerCount
-      })
-    } catch (err) {
-      // 静默失败
     }
   },
 
@@ -173,40 +133,18 @@ Page({
 
   onItemTap(e) {
     const { type, id } = e.currentTarget.dataset
-    if (type === 'dynamic') {
-      // 把列表里的这条动态接力给详情页，详情接口异常时正文仍可阅读
-      const post = (this.data.dynamicList || []).find(item => item && item._id === id)
-      if (post) app.setPostCache(post)
-      wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
-    } else if (type === 'location') {
+    if (type === 'location' || type === 'favorite') {
       wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
     }
   },
 
-  /** 顶部数据栏：发布 / 关注 / 粉丝 / 获赞 / 收藏 */
+  /** 顶部数据栏：收藏 / 地点（均为纯个人事务，不含社交计数） */
   onStatsTap(e) {
     if (!this.data.isLoggedIn) return
     const key = e.currentTarget.dataset.key
     wx.vibrateShort({ type: 'light' })
-
-    // 关注 / 粉丝 → 名单页（可查看详细名单）
-    if (key === 'following' || key === 'followers') {
-      const openId = app.globalData.openId
-        || (this.data.userInfo && this.data.userInfo.openId)
-        || ''
-      wx.navigateTo({ url: `/pages/follow-list/follow-list?type=${key}&openId=${openId}` })
-      return
-    }
-
-    // 获赞 → 消息中心的「赞」列表（谁赞了你）
-    if (key === 'like') {
-      wx.navigateTo({ url: '/pages/messages/messages?type=like' })
-      return
-    }
-
-    // 发布 → 我的动态；收藏 → 我的收藏（本页 tab）
-    if (key === 'post') return this._gotoTab('dynamic')
     if (key === 'favorite') return this._gotoTab('favorite')
+    if (key === 'location') return this._gotoTab('location')
   },
 
   /** 切换到本页的某个 tab；已在该 tab 时滚动到列表 */
@@ -235,7 +173,7 @@ Page({
       title: isFavorite ? '取消收藏' : '删除内容',
       content: isFavorite
         ? '取消后该地点会从你的收藏列表移除，可随时重新收藏。'
-        : '删除后不可恢复，该内容下的评论与互动也会一并清理。',
+        : '删除后不可恢复，请确认。',
       confirmText: isFavorite ? '取消收藏' : '删除',
       confirmColor: '#E02020',
       success: res => {
@@ -257,7 +195,7 @@ Page({
         }
       } else {
         res = await app.callCloud('deleteContent', {
-          contentType: type === 'dynamic' ? 'post' : 'location',
+          contentType: 'location',
           contentId: id
         })
       }
@@ -275,8 +213,8 @@ Page({
   },
 
   _removeItemFromList(type, id) {
-    const listKeyMap = { dynamic: 'dynamicList', favorite: 'favoriteList', location: 'locationList' }
-    const statKeyMap = { dynamic: 'postCount', favorite: 'favoriteCount', location: 'locationCount' }
+    const listKeyMap = { favorite: 'favoriteList', location: 'locationList' }
+    const statKeyMap = { favorite: 'favoriteCount', location: 'locationCount' }
     const listKey = listKeyMap[type]
     if (!listKey) return
     const patch = {
@@ -293,10 +231,6 @@ Page({
     wx.navigateTo({ url: '/pages/settings/settings' })
   },
 
-  onMessagesTap() {
-    wx.navigateTo({ url: '/pages/messages/messages' })
-  },
-
   onCollectionsTap() {
     wx.navigateTo({ url: '/pages/collections/collections' })
   },
@@ -304,28 +238,23 @@ Page({
   async checkAdminAccess() {
     try {
       // 由服务端管理权限作唯一判断；前端只根据结果决定是否展示入口。
-      const res = await app.callCloud('manageReports', { action: 'list', page: 1, pageSize: 1 })
-      this.setData({ isAdmin: !!(res && res.code === 0) })
+      const res = await app.callCloud('manageReports', { action: 'whoami' })
+      const isAdmin = !!(res && res.code === 0 && res.data && res.data.isAdmin)
+      app.globalData.isAdmin = isAdmin
+      this.setData({ isAdmin })
     } catch (err) {
       // 普通用户无管理员权限属于预期状态，不输出错误日志。
+      app.globalData.isAdmin = false
       this.setData({ isAdmin: false })
     }
   },
 
-  onAdminReportsTap() {
-    wx.navigateTo({ url: '/pages/admin-reports/admin-reports' })
+  onAdminConsoleTap() {
+    wx.navigateTo({ url: '/pages/admin-console/admin-console' })
   },
 
   onLeaderboardTap() {
     wx.navigateTo({ url: '/pages/leaderboard/leaderboard' })
-  },
-
-  goToCreate() {
-    wx.navigateTo({ url: '/pages/post-create/post-create' })
-  },
-
-  goToUpload() {
-    wx.navigateTo({ url: '/pages/location-upload/location-upload' })
   },
 
   onEditProfile() {

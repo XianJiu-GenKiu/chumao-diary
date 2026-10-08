@@ -2,33 +2,21 @@
   "cloud": true,
   "pages": [
     "pages/discover/discover",
-    "pages/posts/posts",
+    "pages/featured/featured",
     "pages/profile/profile",
-    "pages/messages/messages",
     "pages/profile-edit/profile-edit",
     "pages/location-detail/location-detail",
     "pages/location-upload/location-upload",
-    "pages/post-create/post-create",
-    "pages/post-detail/post-detail",
     "pages/search/search",
-    "pages/tag-content/tag-content",
     "pages/settings/settings",
     "pages/agreement/agreement",
-    "pages/user-home/user-home",
-    "pages/follow-list/follow-list",
-    "pages/blocked-list/blocked-list",
-    "pages/admin-reports/admin-reports",
     "pages/collections/collections",
     "pages/route-plan/route-plan",
     "pages/seasonal/seasonal",
     "pages/leaderboard/leaderboard",
     "pages/share-card/share-card",
-    "pages/events/events",
-    "pages/event-detail/event-detail",
-    "pages/event-create/event-create",
-    "pages/xiaoju-create/xiaoju-create",
-    "pages/xiaoju-detail/xiaoju-detail",
-    "pages/nearby-services/nearby-services"
+    "pages/nearby-services/nearby-services",
+    "pages/admin-console/admin-console"
   ],
   "window": {
     "navigationBarTitleText": "出毛日记",
@@ -49,10 +37,10 @@
         "selectedIconPath": "images/tabbar/discover-active.png"
       },
       {
-        "pagePath": "pages/posts/posts",
-        "text": "动态",
-        "iconPath": "images/tabbar/posts.png",
-        "selectedIconPath": "images/tabbar/posts-active.png"
+        "pagePath": "pages/featured/featured",
+        "text": "精选",
+        "iconPath": "images/tabbar/featured.png",
+        "selectedIconPath": "images/tabbar/featured-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

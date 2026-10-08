@@ -105,10 +105,8 @@
           <text class="poi-name">{{item.name || '未命名地点'}}</text>
           <view class="poi-subline">
             <text class="poi-distance" wx:if="{{item.distance}}">{{item.distance}}</text>
-            <text class="poi-subsep" wx:if="{{item.distance && item.ratingCount}}">·</text>
-            <text class="poi-rating-count" wx:if="{{item.ratingCount}}">{{item.ratingCount}} 人评分</text>
-            <text class="poi-subsep" wx:if="{{!item.ratingCount && item.viewCount}}">·</text>
-            <text class="poi-rating-count" wx:if="{{!item.ratingCount && item.viewCount}}">{{item.viewCount}} 次浏览</text>
+            <text class="poi-subsep" wx:if="{{item.distance && item.viewCount}}">·</text>
+            <text class="poi-rating-count" wx:if="{{item.viewCount}}">{{item.viewCount}} 次浏览</text>
             <text class="poi-category-tag" wx:if="{{item.categoryName}}">{{item.categoryName}}</text>
           </view>
         </view>
@@ -125,33 +123,16 @@
         </view>
       </view>
 
-      <!-- 内部地点：评分与属性 -->
+      <!-- 内部地点：属性 -->
       <block wx:if="{{!item.isExternalPoi}}">
         <view class="poi-meta-row">
-          <view class="poi-stars" wx:if="{{item.rating}}">
-            <text class="poi-stars-filled" style="width: {{(item.rating / 5) * 100}}%">★★★★★</text>
-            <text class="poi-stars-empty">★★★★★</text>
-          </view>
-          <text class="poi-rating-text" wx:if="{{item.rating}}">{{item.rating}}</text>
-          <text class="poi-sep" wx:if="{{item.rating}}">·</text>
-
           <view class="poi-indoor-tag {{item.isIndoor ? 'indoor' : 'outdoor'}}">
             <icon name="{{item.isIndoor ? 'home' : 'sun'}}" size="26" />
             <text>{{item.isIndoor ? '室内' : '室外'}}</text>
           </view>
-
-          <view class="poi-stat" wx:if="{{item.checkinCount}}">
-            <icon name="check" size="26" />
-            <text>{{item.checkinCount}} 次打卡</text>
-          </view>
-
-          <view class="poi-stat" wx:if="{{item.seedCount}}">
-            <icon name="thumbs-up" size="26" />
-            <text>{{item.seedCount}} 种草</text>
-          </view>
         </view>
 
-        <!-- 热度条：把收藏 / 打卡 / 种草等互动量可视化 -->
+        <!-- 热度条：把收藏与浏览量可视化（不含打卡/种草/评分等跨用户聚合） -->
         <view class="poi-heat-row">
           <view class="poi-heat-head">
             <icon name="trending-up" size="26" color="#D4890E" />
@@ -170,7 +151,7 @@
         <icon name="{{item.collectionStatus === 'unresolved' ? 'info' : 'compass'}}" size="28" color="{{item.collectionStatus === 'unresolved' ? '#909090' : '#D4890E'}}" />
         <view class="poi-status-text-wrap">
           <text class="poi-status-title">{{item.collectionStatus === 'unresolved' ? '地图上暂无该地点信息' : '出毛日记暂未收录此地'}}</text>
-          <text class="poi-status-desc">{{item.collectionStatus === 'unresolved' ? '你可以在这里创建第一个地点' : '添加后可打卡、收藏并分享你的出毛日记'}}</text>
+          <text class="poi-status-desc">{{item.collectionStatus === 'unresolved' ? '你可以在这里创建第一个地点' : '添加后可收藏并分享给朋友'}}</text>
         </view>
       </view>
 
@@ -205,7 +186,7 @@
         <icon name="map" size="30" color="#D4890E" />
         <text>看周边</text>
       </view>
-      <view class="poi-btn primary" wx:if="{{item.canAddToDiary}}" catchtap="onAddToDiary">
+      <view class="poi-btn primary" wx:if="{{showAdd && item.canAddToDiary}}" catchtap="onAddToDiary">
         <icon name="plus" size="30" color="#fff" />
         <text>添加到出毛日记</text>
       </view>

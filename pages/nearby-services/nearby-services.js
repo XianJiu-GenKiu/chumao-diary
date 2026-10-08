@@ -104,6 +104,5 @@ Page({
     wx.openLocation({ latitude: Number(target.latitude), longitude: Number(target.longitude), name: target.name || '周边地点', address: target.address || '', scale: 16 })
   },
 
-  startRoute() { wx.navigateTo({ url: '/pages/xiaoju-create/xiaoju-create' }) },
   retry() { this.loadNearby() }
 })

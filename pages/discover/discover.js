@@ -50,7 +50,7 @@ function mergeCities(...groups) {
 }
 
 // ── 热度模型 ──
-// 只把「主动互动」计入高权重：收藏 / 打卡 / 种草 / 评分。
+// 只把「主动互动」计入高权重：收藏。
 // 浏览量用对数压缩，否则几千次浏览就能把热度顶满，所有地点都会恒显示「爆火」。
 const HEAT_VIEW_FACTOR = 6
 // 热度条满格对应的分数。互动数据是长尾分布，因此进度条用平方根映射：
@@ -58,16 +58,15 @@ const HEAT_VIEW_FACTOR = 6
 const HEAT_FULL_SCORE = 900
 
 /**
- * 计算地点热度：主动互动加权 + 浏览量对数压缩。
+ * 计算地点热度：收藏数加权 + 浏览量对数压缩。
  * 用于 POI 卡片展示「热度」与热度标签。
+ * 注：打卡数 / 种草数 / 评分数不再计入 —— 这三项是跨用户行为聚合，
+ * 公开展示型版本已下线对应功能，避免出现「他人在意我」的社交信号。
  */
 function computeHeat(loc) {
   const fav = Number(loc.favoriteCount) || 0
-  const checkin = Number(loc.checkinCount) || 0
-  const reaction = Number(loc.reactionUpCount) || Number(loc.likeCount) || 0
-  const ratings = Number(loc.ratingCount) || 0
   const views = Math.max(0, Number(loc.viewCount) || 0)
-  const interaction = fav * 4 + checkin * 3 + reaction * 2.5 + ratings * 2
+  const interaction = fav * 4
   const viewScore = views > 0 ? Math.log10(views + 1) * HEAT_VIEW_FACTOR : 0
   return Math.max(0, Math.round(interaction + viewScore))
 }
@@ -122,15 +121,8 @@ Page({
     showCityPanel: false,
     citySearchKeyword: '',
 
-    // 模式切换：地图 / 小聚（UI 框架阶段先使用本地演示数据）
-    viewMode: 'map',
-    xiaojuFilter: '推荐',
-    xiaojuFilters: ['推荐', '附近', '热门', '最新'],
-    xiaojuList: [
-      { id: 'demo-1', title: '黄昏公园 + 商场聚餐路线', summary: '公园拍摄 → 商场聚餐 → 地铁返程', cover: '/images/empty/empty-post.png', points: 3, duration: '约 5 小时', people: '适合 4-8 人', author: '毛毛A', likes: 86, saved: false, tags: ['半日拍摄', '地铁方便'] },
-      { id: 'demo-2', title: '古镇夜景半日路线', summary: '老街取景 → 河岸夜景 → 便利店补给', cover: '/images/empty/empty-post.png', points: 4, duration: '约 4 小时', people: '适合 2-6 人', author: '小鹿摄影组', likes: 64, saved: false, tags: ['夜景', '适合多人'] },
-      { id: 'demo-3', title: '雨天室内出毛备用路线', summary: '摄影棚拍摄 → 商场休息 → 地铁站返程', cover: '/images/empty/empty-post.png', points: 3, duration: '约 3 小时', people: '适合 2-4 人', author: '云朵', likes: 42, saved: false, tags: ['雨天备用', '换装友好'] }
-    ],
+    // 运营方身份（仅用于隐藏「添加到地点库」入口，真正防线在云函数 addLocation）
+    isAdmin: false,
 
     mapPanelExpanded: true,
     mapPanelDragOffset: 0,
@@ -138,9 +130,6 @@ Page({
     // FAB 跟随面板：面板可见高度（px）。首帧给一个保守初值，onReady 测量后立即校正。
     mapFabFollowOffset: 160,
     mapFabDragging: false,
-
-    // 回到顶部
-    showBackToTop: false,
 
     // 筛选条件：按名称长度从短到长排列，面板内按“场景 / 出毛需求”分区展示。
     sceneFilterOptions: [
@@ -201,13 +190,6 @@ Page({
     // 附近推荐
     nearbyLocations: [],
 
-    // 热门日记（手动分页，避免与 locationList pager 的 isLoading/hasMore 冲突）
-    hotPosts: [],
-    hotPage: 1,
-    hotHasMore: true,
-    hotLoading: false,
-    hotError: '',
-
     ...pager.initData()
   },
 
@@ -227,6 +209,7 @@ Page({
     this._loadCityCandidates()
     this._initLocation()
     this._measurePanelMetrics()
+    this._syncAdmin()
 
     const saved = wx.getStorageSync('currentSearchMarker')
     if (saved) {
@@ -344,15 +327,11 @@ Page({
   },
 
   onShow() {
-    const localXiaoju = (wx.getStorageSync('xiaojuDrafts') || [])
-      .filter(item => item.status === 'published')
-      .map(item => ({ ...item, points: Array.isArray(item.points) ? item.points.length : Number(item.points) || 0, people: item.people || '不限' }))
     this.setData({
       userInfo: app.globalData.userInfo,
       darkMode: app.globalData.darkMode || false,
-      xiaojuList: [...localXiaoju, ...this.data.xiaojuList.filter(item => !localXiaoju.some(local => local.id === item.id))]
+      isAdmin: !!app.globalData.isAdmin
     })
-    this._loadXiaojuList()
     // 同步全局城市（可能在后台已更新）
     if (app.globalData.cityReady && app.globalData.currentCity !== this.data.currentCity) {
       this.setData({
@@ -363,20 +342,22 @@ Page({
     this._fetchWeather()
   },
 
-  _loadXiaojuList() {
-    app.callCloud('xiaoju', { action: 'list', page: 1, pageSize: 30 }).then(res => {
-      if (!res || res.code !== 0 || !Array.isArray(res.data)) return
-      const cloudList = res.data.map(item => ({
-        ...item,
-        points: Array.isArray(item.points) ? item.points.length : Number(item.points || item.pointsCount) || 0,
-        people: item.people || '不限'
-      }))
-      const existing = this.data.xiaojuList || []
-      const merged = [...cloudList, ...existing.filter(item => !cloudList.some(cloudItem => cloudItem.id === item.id))]
-      this.setData({ xiaojuList: merged })
-    }).catch(err => {
-      console.warn('小聚云端列表加载失败，保留本地缓存:', err)
-    })
+  /**
+   * 探测当前用户是否运营方（管理员）。
+   * 结果只用于隐藏「添加到地点库」这类入口；真正的写入门禁在云函数 addLocation。
+   * 全局已探测过就直接复用，避免每个页面都打一次云函数。
+   */
+  _syncAdmin() {
+    if (typeof app.globalData.isAdmin === 'boolean') {
+      this.setData({ isAdmin: app.globalData.isAdmin })
+      return
+    }
+    if (!app.globalData.isLoggedIn) return
+    app.callCloud('manageReports', { action: 'whoami' }).then(res => {
+      const isAdmin = !!(res && res.code === 0 && res.data && res.data.isAdmin)
+      app.globalData.isAdmin = isAdmin
+      this.setData({ isAdmin })
+    }).catch(() => app.globalData.isAdmin === undefined && (app.globalData.isAdmin = false))
   },
 
   _initLocation() {
@@ -547,60 +528,8 @@ Page({
   },
 
   onPageScroll(e) {
-    this.setData({ showBackToTop: e.scrollTop > 600 })
+    // 保留空的滚动监听位：后续如需「回到顶部」等滚动联动效果在此扩展。
   },
-
-  scrollToTop() {
-    wx.pageScrollTo({ scrollTop: 0, duration: 300 })
-  },
-
-  // ── 模式切换 ──
-
-  onViewModeChange(e) {
-    const mode = e.detail.index === 0 ? 'map' : 'xiaoju'
-    if (mode === this.data.viewMode) return
-    // 切换模式时收起地图上的 POI 浮层，避免卡片残留在热门列表之上。
-    this.setData({
-      viewMode: mode,
-      mapPanelExpanded: false,
-      showPoiPreview: false,
-      showPoiMini: false,
-      selectedPoi: null
-    }, () => {
-      this._measureCustomNav()
-      this._syncFabOffset(false, 0)
-      if (mode === 'map') this._buildMapMarkers()
-      else wx.pageScrollTo({ scrollTop: 0, duration: 200 })
-    })
-  },
-  onXiaojuFilterTap(e) {
-    const filter = e.currentTarget.dataset.filter
-    if (!filter || filter === this.data.xiaojuFilter) return
-    this.setData({ xiaojuFilter: filter })
-    wx.vibrateShort({ type: 'light' })
-  },
-  onXiaojuTap(e) {
-    const item = e.currentTarget.dataset.item || {}
-    wx.navigateTo({ url: `/pages/xiaoju-detail/xiaoju-detail?id=${item.id || 'demo-1'}` })
-  },
-  onXiaojuSave(e) {
-    const index = Number(e.currentTarget.dataset.index)
-    const item = this.data.xiaojuList[index]
-    if (!item) return
-    this.setData({ [`xiaojuList[${index}].saved`]: !item.saved })
-    wx.showToast({ title: item.saved ? '已取消收藏' : '已收藏路线', icon: 'none' })
-  },
-  onXiaojuLike(e) {
-    const index = Number(e.currentTarget.dataset.index)
-    const item = this.data.xiaojuList[index]
-    if (!item) return
-    this.setData({ [`xiaojuList[${index}].likes`]: Number(item.likes || 0) + 1 })
-    wx.vibrateShort({ type: 'light' })
-  },
-  onCreateXiaoju() {
-    wx.navigateTo({ url: '/pages/xiaoju-create/xiaoju-create' })
-  },
-  preventBubble() {},
 
   // ── 筛选 ──
 
@@ -835,57 +764,18 @@ Page({
     })
   },
 
-  // ── 热门日记 ──
-
-  _loadHotPosts(refresh = false) {
-    if (this.data.hotLoading) return
-    const page = refresh ? 1 : this.data.hotPage
-    this.setData({ hotLoading: true, hotError: '' })
-
-    app.callCloud('getPosts', { sort: 'hot', page, pageSize: 10 }).then(result => {
-      if (result && result.code === 0 && result.data) {
-        const newPosts = result.data
-        this.setData({
-          hotPosts: refresh ? newPosts : [...this.data.hotPosts, ...newPosts],
-          hotPage: page + 1,
-          hotHasMore: newPosts.length >= 10,
-          hotLoading: false,
-          hotError: ''
-        })
-      } else {
-        this.setData({ hotLoading: false, hotError: '热门日记加载失败，请重试' })
-      }
-    }).catch(() => this.setData({ hotLoading: false, hotError: '热门日记加载失败，请重试' }))
-  },
-
-  onHotRetry() { this._loadHotPosts(true) },
-
   // ── 分页 ──
 
   onPullDownRefresh() {
-    if (this.data.viewMode === 'map') {
-      stopRefresh(pager.load(this, true).then(() => {
-        this._buildMapMarkers()
-        this.setData({ filteredCount: this.data.locationList.length })
-      }))
-    } else if (this.data.viewMode === 'hot') {
-      this._loadHotPosts(true)
-      wx.stopPullDownRefresh()
-    } else {
-      wx.stopPullDownRefresh()
-    }
-  },
-
-  onReachBottom() {
-    if (this.data.viewMode === 'hot' && this.data.hotHasMore && !this.data.hotLoading) {
-      this._loadHotPosts(false)
-    }
+    stopRefresh(pager.load(this, true).then(() => {
+      this._buildMapMarkers()
+      this.setData({ filteredCount: this.data.locationList.length })
+    }))
   },
 
   // ── 导航 ──
 
   onSearchTap() { wx.navigateTo({ url: '/pages/search/search' }) },
-  goEvents() { wx.navigateTo({ url: '/pages/events/events' }) },
   goSeasonal() { wx.navigateTo({ url: '/pages/seasonal/seasonal' }) },
 
   onLocationTap(e) {
@@ -937,14 +827,12 @@ Page({
       distance,
       favoriteCount: Number(loc.favoriteCount) || 0,
       isFavorited: !!loc.isFavorited,
-      checkinCount: Number(loc.checkinCount) || 0,
-      seedCount: Number(loc.reactionUpCount) || Number(loc.likeCount) || 0,
       viewCount: Number(loc.viewCount) || 0,
       heat,
       heatPercent: heatPercent(heat),
       heatLabel: badge.text,
       heatTone: badge.tone,
-      miniMeta: `${loc.categoryName || loc.category || loc.style || '地点'}${loc.rating ? ` · ${loc.rating} 分` : ''}`
+      miniMeta: `${loc.categoryName || loc.category || loc.style || '地点'}`
     }, 'internal')
 
     this.setData({
@@ -1196,16 +1084,6 @@ Page({
     })
   },
 
-  onDiaryTap(e) {
-    const id = e.detail.id
-    if (id) wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
-  },
-
-  onDiaryLocationTap(e) {
-    const id = e.detail.id
-    if (id) wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
-  },
-
   onNearbyServices(e) {
     const id = e && e.detail && e.detail.id
     const poi = this.data.selectedPoi || {}
@@ -1248,7 +1126,7 @@ Page({
       width: 44, height: 52,
       callout: { content: poi.name || (poi.address ? poi.address.substring(0, 20) : '') || '选中地点', fontSize: 14, borderRadius: 12, bgColor: '#D4890E', color: '#fff', padding: 10, display: 'ALWAYS' }
     }
-    this.setData({ searchMarkers: [marker], mapLatitude: poi.latitude, mapLongitude: poi.longitude, mapScale: 16, viewMode: 'map' })
+    this.setData({ searchMarkers: [marker], mapLatitude: poi.latitude, mapLongitude: poi.longitude, mapScale: 16 })
     this._buildMapMarkers()
     wx.setStorageSync('currentSearchMarker', marker)
     wx.showToast({ title: `已标注：${poi.name || '选中地点'}`, icon: 'none' })

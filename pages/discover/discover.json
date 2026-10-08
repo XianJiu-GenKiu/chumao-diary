@@ -4,8 +4,6 @@
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "segmented-control": "/components/segmented-control/segmented-control",
-    "poi-preview-card": "/components/poi-preview-card/poi-preview-card",
-    "hot-diary-card": "/components/hot-diary-card/hot-diary-card"
+    "poi-preview-card": "/components/poi-preview-card/poi-preview-card"
   }
 }

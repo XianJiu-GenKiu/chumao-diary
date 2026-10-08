@@ -13,18 +13,13 @@
   <!-- 数据统计 -->
   <view class="stats-row">
     <view class="stat-item">
-      <text class="stat-num">{{stats.postCount || 0}}</text>
-      <text class="stat-label">帖子</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-num">{{stats.likeCount || 0}}</text>
-      <text class="stat-label">获赞</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
       <text class="stat-num">{{stats.favoriteCount || 0}}</text>
       <text class="stat-label">收藏</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.locationCount || 0}}</text>
+      <text class="stat-label">地点</text>
     </view>
   </view>
 

@@ -242,8 +242,6 @@ Page({
 
     if (type === 'location') {
       wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
-    } else if (type === 'post') {
-      wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
     }
   },
 
