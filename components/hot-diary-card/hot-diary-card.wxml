@@ -1,0 +1,36 @@
+<!-- hot-diary-card 组件 -->
+<view class="diary-card" bindtap="onTap" style="animation-delay: {{index * 80}}ms;">
+  <!-- 图片区 -->
+  <view class="diary-card-image-wrap">
+    <image
+      class="diary-card-image {{imageLoaded ? 'loaded' : ''}}"
+      wx:if="{{item.images && item.images[0] && !imageError}}"
+      src="{{item.images[0]}}"
+      mode="widthFix"
+      lazy-load
+      bindload="onImageLoad"
+      binderror="onImageError"
+    />
+    <view class="diary-card-image-placeholder" wx:else>
+      <icon name="image" size="52" color="#B0B0B0" />
+    </view>
+  </view>
+  
+  <!-- 信息区 -->
+  <view class="diary-card-info">
+    <!-- 第一行：地点名称 + 星级评分 -->
+    <view class="diary-card-header">
+      <text class="diary-card-location" catchtap="onLocationTap" wx:if="{{item.locationName}}">{{item.locationName}}</text>
+      <text class="diary-card-location diary-card-no-location" wx:else>未关联地点</text>
+      <view class="diary-card-rating" wx:if="{{item.rating}}">
+        <text class="diary-card-star">★</text>
+        <text class="diary-card-rating-text">{{item.rating}}</text>
+      </view>
+    </view>
+    
+    <!-- 第二行：种草数 -->
+    <view class="diary-card-footer">
+      <view class="diary-card-seed"><icon name="thumbs-up" size="24" color="#D4890E" /> <text>{{item.likeCount || 0}} 种草</text></view>
+    </view>
+  </view>
+</view>

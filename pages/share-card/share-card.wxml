@@ -1,0 +1,33 @@
+<!-- 地点分享海报预览 -->
+<view class="page-share-card">
+  <view class="page-title">
+    <text class="title">{{type === 'event' ? '生成活动海报' : type === 'collection' ? '生成合集海报' : '生成地点海报'}}</text>
+    <text class="subtitle">保存图片后，可分享到任意社交平台</text>
+  </view>
+
+  <view class="card-preview-wrap">
+    <canvas type="2d" id="shareCanvas" class="share-canvas"></canvas>
+  </view>
+
+  <!-- 小程序码失败时必须明确告知：否则用户会保存一张扫不出结果的海报 -->
+  <view class="qr-warning" wx:if="{{qrError && !loadError}}">
+    <text class="qr-warning-title">扫码入口暂不可用</text>
+    <text class="qr-warning-desc">{{qrError}}。海报仍可保存，但对方无法扫码打开，建议稍后重试。</text>
+    <button class="qr-warning-retry" bindtap="retryLoad">重新生成</button>
+  </view>
+
+  <view class="action-btns">
+    <button class="btn-save" bindtap="saveToAlbum">保存海报</button>
+    <button class="btn-share" open-type="share">转发给微信好友</button>
+  </view>
+  <view class="share-error" wx:if="{{loadError}}">
+    <text>{{loadError}}</text>
+    <button bindtap="retryLoad">重新生成</button>
+  </view>
+  <text class="tip-text">{{type === 'event' ? '海报包含活动信息、报名人数和扫码入口' : '海报包含地点图片、拍摄建议和扫码入口'}}</text>
+
+  <view class="loading-mask" wx:if="{{isLoading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在设计你的地点海报…</text>
+  </view>
+</view>

@@ -1,0 +1,126 @@
+<!-- pages/user-home/user-home.wxml -->
+<view class="page page-user-home {{darkMode ? 'dark-theme' : ''}}">
+
+  <!-- 加载骨架 -->
+  <view class="skeleton-wrap" wx:if="{{loading}}">
+    <view class="skeleton-block" style="width:120rpx;height:120rpx;border-radius:50%;"></view>
+    <view class="skeleton-text" style="width:200rpx;height:32rpx;margin:20rpx 0;"></view>
+    <view class="skeleton-text" style="width:300rpx;height:24rpx;"></view>
+  </view>
+
+  <block wx:if="{{!loading && user}}">
+    <!-- 用户信息头部 -->
+    <view class="user-header">
+      <image class="user-avatar" src="{{user.avatar || '/images/tabbar/profile.png'}}" mode="aspectFill" />
+      <view class="user-info">
+        <text class="user-name">{{user.nickName}}</text>
+        <text class="user-fursuit" wx:if="{{user.fursuitName}}">兽设：{{user.fursuitName}}</text>
+        <text class="user-bio" wx:if="{{user.bio}}">{{user.bio}}</text>
+      </view>
+    </view>
+
+    <!-- 统计栏 -->
+    <view class="stats-row">
+      <view class="stats-item">
+        <text class="stats-num">{{stats.postCount || 0}}</text>
+        <text class="stats-label">动态</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-num">{{stats.locationCount || 0}}</text>
+        <text class="stats-label">地点</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" bindtap="goToFollowing">
+        <text class="stats-num">{{stats.followingCount || 0}}</text>
+        <text class="stats-label">关注</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" bindtap="goToFollowers">
+        <text class="stats-num">{{stats.followersCount || 0}}</text>
+        <text class="stats-label">粉丝</text>
+      </view>
+    </view>
+
+    <!-- 关注按钮 -->
+    <view class="action-row" wx:if="{{!isSelf}}">
+      <view class="follow-btn {{isFollowing ? 'following' : ''}}" bindtap="toggleFollow">
+        <icon name="{{isFollowing ? 'check' : 'user-plus'}}" size="28" color="{{isFollowing ? '#999' : '#fff'}}" />
+        <text>{{isFollowing ? '已关注' : '关注'}}</text>
+      </view>
+      <!-- 拉黑入口：UGC 规范要求的举报/删除/拉黑三项之一，与关注操作同层 -->
+      <view class="more-btn" bindtap="onMoreTap">
+        <icon name="more-horizontal" size="32" color="#666" />
+      </view>
+    </view>
+    <view class="blocked-banner" wx:if="{{isBlocked}}">
+      <text>你已屏蔽该用户，TA 发布的动态与地点对你不可见</text>
+      <text class="blocked-undo" bindtap="toggleBlock">取消屏蔽</text>
+    </view>
+
+    <!-- Tab 切换 -->
+    <view class="tab-bar">
+      <view class="tab-item {{activeTab === 'posts' ? 'active' : ''}}" bindtap="onTabTap" data-tab="posts">
+        <text>动态</text>
+      </view>
+      <view class="tab-item {{activeTab === 'locations' ? 'active' : ''}}" bindtap="onTabTap" data-tab="locations">
+        <text>地点</text>
+      </view>
+    </view>
+
+    <!-- 动态列表 -->
+    <view class="content-list" wx:if="{{activeTab === 'posts'}}">
+      <view class="post-card" wx:for="{{posts}}" wx:key="_id" data-id="{{item._id}}" bindtap="onPostTap">
+        <image class="post-cover" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images[0]}}" lazy-load />
+        <view class="post-cover post-placeholder" wx:else>
+          <icon name="file-text" size="48" color="#ddd" />
+        </view>
+        <view class="post-info">
+          <text class="post-text">{{item.content || '无文字内容'}}</text>
+          <view class="post-meta">
+            <view class="post-loc" wx:if="{{item.locationName}}">
+              <icon name="map-pin" size="16" color="#D4890E" />
+              <text>{{item.locationName}}</text>
+            </view>
+            <text class="post-time">{{item._createTimeText || ''}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-state" wx:if="{{posts.length === 0}}">
+        <icon name="file-text" size="80" color="#ddd" />
+        <text class="empty-text">暂无动态</text>
+      </view>
+
+      <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+        <text>加载更多</text>
+      </view>
+    </view>
+
+    <!-- 地点列表 -->
+    <view class="content-list" wx:if="{{activeTab === 'locations'}}">
+      <view class="loc-card" wx:for="{{locations}}" wx:key="_id" data-id="{{item._id}}" bindtap="onLocationTap">
+        <image class="loc-cover" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images[0]}}" lazy-load />
+        <view class="loc-cover loc-placeholder" wx:else>
+          <icon name="map-pin" size="48" color="#ddd" />
+        </view>
+        <view class="loc-info">
+          <text class="loc-name">{{item.name}}</text>
+          <view class="loc-meta">
+            <view class="loc-rating" wx:if="{{item.rating}}">
+              <icon name="star" size="16" color="#D4890E" fill="{{true}}" />
+              <text>{{item.rating}}</text>
+            </view>
+            <text class="loc-category" wx:if="{{item.categoryName || item.category}}">{{item.categoryName || item.category}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-state" wx:if="{{locations.length === 0}}">
+        <icon name="map-pin" size="80" color="#ddd" />
+        <text class="empty-text">暂无地点</text>
+      </view>
+    </view>
+  </block>
+
+</view>

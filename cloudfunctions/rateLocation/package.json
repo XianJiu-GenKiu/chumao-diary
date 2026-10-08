@@ -1,0 +1,9 @@
+{
+  "name": "rateLocation",
+  "version": "1.0.0",
+  "description": "用户对地点评分（聚合计算）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

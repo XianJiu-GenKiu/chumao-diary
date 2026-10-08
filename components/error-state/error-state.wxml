@@ -1,0 +1,1 @@
+<view class="error-state" wx:if="{{visible}}"><icon name="wifi-off" size="80" color="#c7c7c7" /><text class="error-message">{{message}}</text><view class="retry-button" bindtap="retry">重新加载</view></view>

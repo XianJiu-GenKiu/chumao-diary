@@ -1,0 +1,7 @@
+{
+  "name": "planRoute",
+  "version": "1.0.0",
+  "description": "调用腾讯位置服务 direction 接口，计算多点之间的真实路网路径与距离",
+  "main": "index.js",
+  "dependencies": { "wx-server-sdk": "~2.6.3" }
+}

@@ -1,0 +1,27 @@
+<view class="page {{darkMode ? 'dark' : ''}}">
+  <view class="state" wx:if="{{loading}}">加载中...</view>
+
+  <view class="state empty" wx:elif="{{error}}">
+    <text class="empty-title">{{error}}</text>
+    <text class="retry" bindtap="onRetry">重试</text>
+  </view>
+
+  <view class="state empty" wx:elif="{{!list.length}}">
+    <text class="empty-title">黑名单是空的</text>
+    <text class="empty-desc">在他人主页点右上角「⋯」，即可屏蔽该用户</text>
+  </view>
+
+  <view class="list" wx:else>
+    <view class="row" wx:for="{{list}}" wx:key="openId">
+      <image class="avatar" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+      <view class="avatar avatar-fallback" wx:else>
+        <icon name="users" size="34" color="#999999" />
+      </view>
+      <view class="info" data-openid="{{item.openId}}" bindtap="onUserTap">
+        <text class="name">{{item.nickname}}</text>
+        <text class="hint">点击查看主页</text>
+      </view>
+      <view class="unblock" data-openid="{{item.openId}}" data-name="{{item.nickname}}" bindtap="onUnblockTap">取消屏蔽</view>
+    </view>
+  </view>
+</view>

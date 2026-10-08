@@ -1,0 +1,143 @@
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+/* 设置页 */
+.page-settings {
+  padding: 0 32rpx 120rpx;
+  background: var(--color-bg-page, #F7F8FA);
+  min-height: 100vh;
+}
+
+/* ── 用户信息头部 ── */
+.settings-profile {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 24rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  margin-top: 24rpx;
+  box-shadow: var(--shadow-card, 0 2rpx 8rpx rgba(0,0,0,0.04));
+  animation: cm-slide-up 0.42s var(--ease-bezier) both;
+}
+.settings-profile:active {
+  background: var(--color-gray-50);
+  transform: translateY(2rpx) scale(0.992);
+}
+.profile-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: var(--color-gray-100);
+  flex-shrink: 0;
+}
+.profile-info {
+  flex: 1;
+  margin-left: 24rpx;
+}
+.profile-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.profile-id {
+  display: block;
+  font-size: 24rpx;
+  color: #909090;
+  margin-top: 4rpx;
+}
+
+/* ── 数据统计 ── */
+.stats-row {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  margin-top: 16rpx;
+  padding: 28rpx 0;
+  box-shadow: var(--shadow-card, 0 2rpx 8rpx rgba(0,0,0,0.04));
+}
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+.stat-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.stat-label {
+  font-size: 24rpx;
+  color: #909090;
+}
+.stat-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: var(--color-gray-100);
+}
+
+/* ── 分组 ── */
+.settings-group {
+  margin-top: 24rpx;
+}
+.settings-group-title {
+  font-size: 24rpx;
+  color: #909090;
+  padding: 0 16rpx 12rpx;
+}
+.settings-group-body {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-card, 0 2rpx 8rpx rgba(0,0,0,0.04));
+}
+.settings-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  transition: transform var(--duration-fast) var(--ease-spring), background-color var(--duration-fast) var(--ease-bezier);
+}
+.settings-item:active {
+  background: var(--color-gray-50);
+  transform: translateX(4rpx);
+}
+.settings-item-danger .s-label {
+  color: #E02020;
+}
+.settings-item-danger .s-icon {
+  opacity: 0.8;
+}
+.s-icon {
+  font-size: 32rpx;
+  margin-right: 20rpx;
+  width: 40rpx;
+  text-align: center;
+}
+.s-label {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+}
+.s-arrow {
+  font-size: 32rpx;
+  color: #C0C0C0;
+  font-weight: 300;
+}
+.s-switch {
+  transform: scale(0.8);
+  margin-left: 8rpx;
+}
+.s-tag {
+  font-size: 24rpx;
+  color: #909090;
+  background: var(--color-gray-100);
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+}
+.settings-divider {
+  height: 1rpx;
+  background: var(--color-gray-100);
+  margin: 0 24rpx;
+}

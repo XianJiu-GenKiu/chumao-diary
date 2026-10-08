@@ -1,0 +1,341 @@
+<!-- 地图探索页 - 对齐 Figma 设计 -->
+<view class="page page-discover {{darkMode ? 'dark-theme' : ''}}">
+
+  <!-- 自定义顶部导航栏 -->
+  <view class="custom-nav-bar" style="padding-top: {{statusBarHeight}}px;">
+    <!-- 状态栏占位 -->
+    <view class="status-bar-placeholder" style="height: {{statusBarHeight}}px;"></view>
+    <!-- 小程序标题 -->
+    <view class="app-title">
+      <text class="app-title-text">出毛日记</text>
+      <view class="nav-quick-actions">
+        <view class="nav-event-btn" bindtap="goEvents"><icon name="calendar" size="36" color="#D4890E" /></view>
+        <view class="nav-event-btn" bindtap="goSeasonal"><icon name="sun" size="36" color="#D4890E" /></view>
+      </view>
+    </view>
+    <!-- 导航栏内容 -->
+    <view class="nav-bar-content" style="height: {{navBarHeight}}px;">
+      <!-- 头像入口 -->
+      <view class="nav-avatar" bindtap="onAvatarTap">
+        <image
+          class="nav-avatar-img"
+          wx:if="{{userInfo && (userInfo.avatar || userInfo.avatarUrl)}}"
+          src="{{userInfo.avatar || userInfo.avatarUrl}}"
+          mode="aspectFill"
+        />
+        <view class="nav-avatar-default" wx:else>
+          <icon name="user" size="36" color="#999" />
+        </view>
+      </view>
+      <!-- 搜索框：文案始终单行显示，不换行、不撑高 -->
+      <view class="nav-search-bar" bindtap="onSearchTap">
+        <icon name="search" size="32" color="#999" class="nav-search-icon" />
+        <view class="nav-search-text-wrap">
+          <text class="nav-search-placeholder">搜地点 · 有换装间、人少景美…</text>
+        </view>
+      </view>
+      <!-- 城市选择器 + 定位 -->
+      <view class="nav-city-wrap" bindtap="onCityTap">
+        <icon name="map-pin" size="28" color="#D4890E" />
+        <text class="nav-city-name">{{currentCity}}</text>
+        <text class="nav-city-arrow">▼</text>
+      </view>
+    </view>
+
+  <!-- 固定在搜索栏底部的模式切换与筛选栏 -->
+  <view class="fixed-top-bar">
+    <!-- 模式切换：Segmented Control -->
+    <view class="mode-switch-wrap">
+      <segmented-control
+        items="{{['地图', '小聚']}}"
+        activeIndex="{{viewMode === 'map' ? 0 : 1}}"
+        bind:change="onViewModeChange"
+      />
+    </view>
+
+    <!-- 筛选栏（仅地图模式显示） -->
+    <view class="filter-section" wx:if="{{viewMode === 'map'}}">
+      <view class="filter-container">
+        <!-- 类别标签改为换行展示。
+             旧版是单行横向 scroll-view：430px 屏下 4 个标签共需 470px，可视区只有
+             332px，第 3 个就被裁掉一半、第 4 个完全看不见；又因为关掉了滚动条，
+             用户得不到「可以横向滑」的任何提示，只能认为筛选坏了。 -->
+        <view class="filter-list">
+          <block wx:for="{{quickFilterOptions}}" wx:key="key">
+            <view
+              class="filter-tag {{item.active ? 'active' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="onFilterTap"
+            >
+              <icon name="{{item.icon}}" size="22" color="{{item.active ? '#fff' : '#D4890E'}}" />
+              <text>{{item.name}}</text>
+            </view>
+          </block>
+        </view>
+        <!-- 全部按钮（固定在右边），点击展开面板，面板内含“清空筛选” -->
+        <view
+          class="filter-all-btn {{activeFilters.length === 0 ? 'active' : ''}}"
+          bindtap="onFilterAllTap"
+        >
+          <text>全部</text>
+          <text class="filter-all-arrow {{showFilterPanel ? 'up' : ''}}">▼</text>
+          <text class="filter-all-count" wx:if="{{activeFilters.length > 0}}">{{activeFilters.length}}</text>
+        </view>
+      </view>
+      <!-- 已选条件提示条 -->
+      <view class="filter-active-hint" wx:if="{{activeFilters.length > 0}}">
+        <text class="filter-active-text">已选 {{activeFilters.length}} 个类别 · 共 {{filteredCount}} 个地点</text>
+        <text class="filter-active-clear" bindtap="onFilterClearTap">清空</text>
+      </view>
+    </view>
+  </view>
+  </view>
+  <!-- 小聚内容从固定导航栏下方开始，保留手绘稿的连续卡片流结构 -->
+  <view class="nav-bar-spacer" wx:if="{{viewMode === 'xiaoju'}}" style="height: {{customNavHeight}}px;"></view>
+  <!-- 地图地点加载失败提示：避免加载失败时标点静默消失、用户无法判断原因 -->
+  <view class="map-load-error" wx:if="{{viewMode === 'map' && errorMessage}}" bindtap="onMapLoadRetry">
+    <icon name="info" size="30" color="#D4890E" />
+    <text class="map-load-error-text">{{errorMessage}}</text>
+    <text class="map-load-error-retry">重新加载</text>
+  </view>
+
+  <!-- 筛选浮层 -->
+  <view class="filter-panel-mask" wx:if="{{showFilterPanel}}" bindtap="closeFilterPanel"></view>
+  <view class="filter-panel {{showFilterPanel ? 'show' : ''}}" wx:if="{{showFilterPanel}}">
+    <view class="filter-panel-header">
+      <text class="filter-panel-title">选择筛选条件</text>
+      <text class="filter-panel-subtitle">可多选，选好后点 ✕ 关闭</text>
+      <text class="filter-panel-close" bindtap="closeFilterPanel">✕</text>
+    </view>
+    <view class="filter-panel-content">
+      <view class="filter-group-title"><icon name="image" size="26" color="#D4890E" /><text>场景筛选</text><text class="filter-group-hint">想拍什么</text></view>
+      <view class="filter-chip-grid">
+        <view wx:for="{{sceneFilterOptions}}" wx:key="key" class="filter-panel-item {{item.active ? 'active' : ''}}" data-key="{{item.key}}" bindtap="onFilterPanelTap">
+          <icon name="{{item.icon}}" size="28" color="{{item.active ? '#D4890E' : '#707070'}}" /><text class="filter-panel-item-name">{{item.name}}</text><text class="filter-panel-item-check" wx:if="{{item.active}}">✓</text>
+        </view>
+      </view>
+      <view class="filter-group-title needs"><icon name="paw" size="26" color="#D4890E" /><text>出毛需求</text><text class="filter-group-hint">希望地点具备什么</text></view>
+      <view class="filter-chip-grid">
+        <view wx:for="{{needFilterOptions}}" wx:key="key" class="filter-panel-item {{item.active ? 'active' : ''}}" data-key="{{item.key}}" bindtap="onFilterPanelTap">
+          <icon name="{{item.icon}}" size="28" color="{{item.active ? '#D4890E' : '#707070'}}" /><text class="filter-panel-item-name">{{item.name}}</text><text class="filter-panel-item-check" wx:if="{{item.active}}">✓</text>
+        </view>
+      </view>
+    </view>
+    <!-- 面板底部操作区：清空 + 完成，与页面其他胶囊按钮风格保持一致 -->
+    <view class="filter-panel-footer">
+      <view class="filter-panel-btn ghost {{activeFilters.length === 0 ? 'disabled' : ''}}" bindtap="onFilterClearTap">
+        <icon name="trash" size="28" color="{{activeFilters.length === 0 ? '#B0B0B0' : '#D4890E'}}" />
+        <text>清空筛选</text>
+        <text class="filter-panel-btn-count" wx:if="{{activeFilters.length > 0}}">{{activeFilters.length}}</text>
+      </view>
+      <view class="filter-panel-btn primary" bindtap="onFilterPanelConfirm">
+        <text wx:if="{{activeFilters.length > 0}}">完成，共 {{filteredCount}} 个地点</text>
+        <text wx:else>完成</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 城市选择浮层 -->
+  <view class="city-panel-mask" wx:if="{{showCityPanel}}" bindtap="closeCityPanel"></view>
+  <view class="city-panel {{showCityPanel ? 'show' : ''}}" wx:if="{{showCityPanel}}">
+    <view class="city-panel-header">
+      <text class="city-panel-title">选择城市</text>
+      <text class="city-panel-close" bindtap="closeCityPanel">✕</text>
+    </view>
+    <!-- 城市搜索栏 -->
+    <view class="city-search-bar">
+      <input
+        class="city-search-input"
+        placeholder="搜索城市..."
+        value="{{citySearchKeyword}}"
+        bindinput="onCitySearchInput"
+        bindconfirm="onCitySearchConfirm"
+        focus="{{showCityPanel}}"
+      />
+      <icon name="search" size="28" color="#999" class="city-search-icon" />
+    </view>
+    <view class="city-panel-subtitle" wx:if="{{!citySearchKeyword}}">
+      <view class="city-panel-subtitle-inner"><icon name="map-pin" size="24" color="#D4890E" /><text>当前定位：{{locatedCity || '定位中...'}}</text></view>
+    </view>
+    <view class="city-panel-content">
+      <!-- 无搜索结果提示 -->
+      <view class="city-empty-tip" wx:if="{{citySearchKeyword && filteredCityList.length === 0}}">
+        <text>未找到匹配的城市</text>
+      </view>
+      <view
+        class="city-panel-item {{currentCity === item.name ? 'active' : ''}}"
+        wx:for="{{filteredCityList}}"
+        wx:key="name"
+        data-name="{{item.name}}"
+        data-lat="{{item.lat}}"
+        data-lng="{{item.lng}}"
+        bindtap="onCitySelect"
+      >
+        <text class="city-panel-item-name">{{item.name}}</text>
+        <view class="city-panel-item-location" wx:if="{{locatedCity === item.name && !citySearchKeyword}}"><icon name="map-pin" size="20" color="#D4890E" /><text>定位</text></view>
+        <text class="city-panel-item-check" wx:if="{{currentCity === item.name}}">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 地图模式 -->
+  <view class="map-mode" wx:if="{{viewMode === 'map'}}">
+    <!-- 地图区域（高度随面板状态变化） -->
+    <view class="map-section">
+      <map
+        class="discover-map"
+        latitude="{{mapLatitude}}"
+        longitude="{{mapLongitude}}"
+        scale="{{mapScale}}"
+        markers="{{mapMarkers}}"
+        bindmarkertap="onMarkerTap"
+        bindregionchange="onMapRegionChange"
+        bindtap="onMapTap"
+        bindpoitap="onMapPoiTap"
+        enable-drag
+        enable-scroll
+        enable-zoom
+        show-location
+        show-scale
+      >
+        <!-- map 原生层之上的地点缩略浮层，必须使用 cover-view 才能稳定显示。 -->
+        <cover-view
+          class="map-poi-mini"
+          wx:if="{{showPoiMini && selectedPoi}}"
+          style="top: {{mapPoiMiniTop}}px; transform: scale({{poiMiniScale}});"
+          bindtap="onOpenPoiPreview"
+        >
+          <cover-image class="map-poi-mini-cover" wx:if="{{selectedPoi.previewImage}}" src="{{selectedPoi.previewImage}}" />
+          <cover-view class="map-poi-mini-cover map-poi-mini-placeholder" wx:else>地点</cover-view>
+          <cover-view class="map-poi-mini-content">
+            <cover-view class="map-poi-mini-name">{{selectedPoi.name || '未命名地点'}}</cover-view>
+            <cover-view class="map-poi-mini-meta">{{selectedPoi.miniMeta}}</cover-view>
+          </cover-view>
+          <cover-view class="map-poi-mini-arrow">详情</cover-view>
+        </cover-view>
+      </map>
+    </view>
+
+    <!-- 地图模式 FAB 浮动按钮：贴着环境栏上沿，并随面板一起滑动 -->
+    <view class="map-fab-wrap {{mapPanelExpanded ? 'panel-expanded' : 'collapsed'}} {{mapFabDragging ? 'dragging' : ''}}" style="--fab-panel-offset: {{mapFabFollowOffset}}px;">
+      <view class="map-fab-btn secondary map-fab-locate" bindtap="moveToMyLocation">
+        <icon name="map-pin" size="40" color="#D4890E" />
+      </view>
+    </view>
+
+    <!-- 浮动面板（附近动态） -->
+    <view class="float-panel {{mapPanelExpanded ? 'expanded' : 'collapsed'}} {{mapPanelDragging ? 'dragging' : ''}}" style="--panel-drag-offset: {{mapPanelDragOffset}}px;">
+      <!-- 拖拽手柄 -->
+      <view class="panel-handle"
+        catchtouchstart="onPanelTouchStart"
+        catchtouchmove="onPanelTouchMove"
+        catchtouchend="onPanelTouchEnd"
+        catchtouchcancel="onPanelTouchEnd"
+      >
+        <view class="handle-bar"></view>
+      </view>
+      <!-- 环境信息条：固定在面板顶部，不参与滚动，避免下划后被裁切 -->
+      <view class="env-bar"
+        bindtouchstart="onPanelTouchStart"
+        bindtouchmove="onPanelTouchMove"
+        bindtouchend="onPanelTouchEnd"
+        bindtouchcancel="onPanelTouchEnd"
+      >
+        <view class="env-item-sm">
+          <text class="env-val">{{weatherView.temperature || '—'}}</text>
+          <text class="env-lbl">温度</text>
+        </view>
+        <view class="env-dot"></view>
+        <view class="env-item-sm">
+          <text class="env-val">{{weatherView.humidity || '—'}}</text>
+          <text class="env-lbl">湿度</text>
+        </view>
+        <view class="env-dot"></view>
+        <view class="env-item-sm">
+          <text class="env-val">{{weatherView.wind || '—'}}</text>
+          <text class="env-lbl">风力</text>
+        </view>
+        <view class="env-dot"></view>
+        <view class="env-item-sm">
+          <text class="env-val">{{weatherView.condition || '—'}}</text>
+          <text class="env-lbl">天气</text>
+        </view>
+      </view>
+      <scroll-view class="panel-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <!-- 地点推荐列表：点击进入 POI 详情，可继续查看周边服务 -->
+        <view class="panel-post-card panel-location-card"
+          wx:for="{{nearbyLocations}}"
+          wx:key="_id"
+          data-id="{{item._id}}"
+          bindtap="onNearbyTap"
+        >
+          <image class="panel-post-cover" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images[0]}}" lazy-load />
+          <view class="panel-post-cover panel-post-placeholder" wx:else></view>
+          <view class="panel-post-info">
+            <text class="panel-location-name">{{item.name || '未命名地点'}}</text>
+            <text class="panel-post-text">{{item.serviceSummary}}</text>
+            <view class="panel-post-loc"><icon name="map-pin" size="20" color="#D4890E" /><text>{{item.address || '当前城市热门地点'}}</text></view>
+          </view>
+        </view>
+        <view class="panel-empty" wx:if="{{nearbyLocations.length === 0}}">
+          <text class="panel-empty-text">暂无地点推荐</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+    <!-- POI 预览卡片（地图模式点击 marker 后显示） -->
+  <poi-preview-card
+    item="{{selectedPoi}}"
+    visible="{{showPoiPreview}}"
+    placement="floating"
+    top="{{poiCardTop}}"
+    bind:viewDetail="onViewPoiDetail"
+    bind:navigate="onNavigateToPoi"
+    bind:favorite="onTogglePoiFavorite"
+    bind:nearbyServices="onNearbyServices"
+    bind:addToDiary="onAddExternalPoi"
+    bind:close="onClosePoiPreview"
+  />
+
+  <!-- 小聚路线攻略流：UI 框架阶段使用本地演示数据，后续替换为公开路线接口 -->
+  <view class="xiaoju-section" wx:if="{{viewMode === 'xiaoju'}}">
+    <view class="xiaoju-intro">
+      <view>
+        <text class="xiaoju-heading">小聚</text>
+        <text class="xiaoju-subheading">参考大家的出毛路线，规划下一次拍摄</text>
+      </view>
+      <view class="xiaoju-create-btn" bindtap="onCreateXiaoju"><icon name="plus-circle" size="32" color="#D4890E" /><text>创建</text></view>
+    </view>
+    <scroll-view class="xiaoju-filter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="xiaoju-filter-list">
+        <view wx:for="{{xiaojuFilters}}" wx:key="*this" class="xiaoju-filter {{item === xiaojuFilter ? 'active' : ''}}" data-filter="{{item}}" bindtap="onXiaojuFilterTap">{{item}}</view>
+      </view>
+    </scroll-view>
+    <view class="xiaoju-list">
+      <view class="xiaoju-card" wx:for="{{xiaojuList}}" wx:key="id" data-item="{{item}}" bindtap="onXiaojuTap">
+        <image class="xiaoju-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+        <view class="xiaoju-cover-shade"></view>
+        <view class="xiaoju-card-content">
+          <view class="xiaoju-tags"><text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="xiaoju-tag">{{tag}}</text></view>
+          <text class="xiaoju-title">{{item.title}}</text>
+          <text class="xiaoju-summary">{{item.summary}}</text>
+          <view class="xiaoju-route-meta"><text>📍 {{item.points}} 个点位</text><text>⏱ {{item.duration}}</text><text>{{item.people}}</text></view>
+          <view class="xiaoju-card-footer">
+            <view class="xiaoju-author"><view class="xiaoju-avatar"><icon name="user" size="24" color="#D4890E" /></view><text>{{item.author}}</text></view>
+            <view class="xiaoju-actions" catchtap="preventBubble">
+              <view class="xiaoju-action" data-index="{{index}}" bindtap="onXiaojuLike"><icon name="thumbs-up" size="25" color="#fff" /><text>{{item.likes}}</text></view>
+              <view class="xiaoju-action" data-index="{{index}}" bindtap="onXiaojuSave"><icon name="bookmark" size="25" color="{{item.saved ? '#FFD93D' : '#fff'}}" fill="{{item.saved}}" /><text>{{item.saved ? '已收藏' : '收藏'}}</text></view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="xiaoju-bottom-hint">— 滑动查看更多路线攻略 —</view>
+  </view>
+  <!-- 回到顶部按钮（仅热门模式） -->
+  <view class="back-to-top {{showBackToTop && viewMode === 'xiaoju' ? '' : 'hidden'}}" bindtap="scrollToTop">
+    <icon name="chevron-up" size="36" color="#D4890E" />
+  </view>
+
+</view>

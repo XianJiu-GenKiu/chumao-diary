@@ -1,0 +1,9 @@
+{
+  "name": "getNearbyMapPoi",
+  "version": "1.0.0",
+  "description": "根据地图点击坐标查询腾讯地图周边地点，并判断是否已被小程序收录",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

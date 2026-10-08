@@ -1,0 +1,98 @@
+<!-- pages/agreement/agreement.wxml -->
+<view class="page agreement-page {{darkMode ? 'dark-theme' : ''}}">
+  <view class="agreement-section">
+    <text class="agreement-title">用户协议</text>
+    <text class="agreement-update-time">最后更新：2026年7月22日</text>
+  </view>
+
+  <view class="agreement-content">
+    <view class="content-block">
+      <text class="block-title">一、服务说明</text>
+      <text class="block-text">出毛日记（以下简称"本应用"）是一款基于微信小程序的地点分享与外景拍摄记录工具。本应用提供地点发布、浏览、搜索、动态分享、评论互动等功能。使用本应用即表示您同意本协议的全部条款。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">二、用户行为规范</text>
+      <text class="block-text">1. 您发布的内容应遵守国家法律法规，不得包含违法、色情、暴力、歧视等不良信息。</text>
+      <text class="block-text">2. 您应对自己发布的内容（文字、图片等）拥有合法权利，不得侵犯他人知识产权、肖像权等合法权益。</text>
+      <text class="block-text">3. 不得发布虚假信息、垃圾广告或恶意骚扰其他用户。</text>
+      <text class="block-text">4. 本应用会对发布内容进行安全审核，违规内容将被拒绝发布或删除。</text>
+      <text class="block-text">5. 严禁利用本应用从事任何危害国家安全、社会公共利益的活动。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">三、内容管理</text>
+      <text class="block-text">1. 您可以随时编辑或删除自己发布的地点和动态。</text>
+      <text class="block-text">2. 如发现他人发布的内容存在违规情况，您可以通过"举报"功能向我们反馈。</text>
+      <text class="block-text">3. 本应用有权对违规内容进行删除、下架处理，情节严重者将被封禁账号。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">四、免责声明</text>
+      <text class="block-text">1. 本应用中的地点信息由用户自行上传，仅供参考，不构成任何推荐或建议。</text>
+      <text class="block-text">2. 前往任何地点时请遵守当地法律法规和场地规则，注意人身和财产安全。</text>
+      <text class="block-text">3. 本应用不对地点信息的准确性、完整性做出保证，不对因使用本应用信息而产生的任何后果承担责任。</text>
+      <text class="block-text">4. 外景拍摄受天气、季节等因素影响，请合理安排出行计划。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">五、知识产权</text>
+      <text class="block-text">1. 您发布的内容的知识产权归您所有。</text>
+      <text class="block-text">2. 您在发布内容时，即授权本应用在平台内展示和使用您的内容。</text>
+      <text class="block-text">3. 本应用的界面设计、图标、代码等知识产权归本应用所有，未经授权不得复制或使用。</text>
+    </view>
+  </view>
+
+  <view class="agreement-section">
+    <text class="agreement-title">隐私政策</text>
+    <text class="agreement-update-time">最后更新：2026年7月22日</text>
+  </view>
+
+  <view class="agreement-content">
+    <view class="content-block">
+      <text class="block-title">一、信息收集</text>
+      <text class="block-text">本应用在您使用过程中可能收集以下信息：</text>
+      <text class="block-text">1. 微信授权信息：包括您的昵称、头像等基本资料。</text>
+      <text class="block-text">2. 位置信息：用于展示附近的地点和提供基于位置的服务。您可以选择不授权位置信息。</text>
+      <text class="block-text">3. 您发布的内容：包括文字、图片、地点信息、评论等。</text>
+      <text class="block-text">4. 设备信息：如系统版本、屏幕尺寸等，用于优化应用体验。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">二、信息使用</text>
+      <text class="block-text">1. 收集的信息仅用于提供和优化本应用的服务功能。</text>
+      <text class="block-text">2. 我们不会将您的个人信息出售给第三方。</text>
+      <text class="block-text">3. 在以下情况下，我们可能会披露您的信息：经您同意、法律法规要求、保护公共利益或个人合法权益。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">三、信息存储与安全</text>
+      <text class="block-text">1. 您的信息存储在微信云开发平台，采用加密传输和安全存储机制。</text>
+      <text class="block-text">2. 我们采取合理的技术措施保护您的信息安全，防止未经授权的访问、使用或披露。</text>
+      <text class="block-text">3. 您可以随时通过删除自己发布的内容来管理个人信息。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">四、用户权利</text>
+      <text class="block-text">1. 您有权访问、更正、删除自己的个人信息。</text>
+      <text class="block-text">2. 您可以通过退出登录来停止使用本应用。</text>
+      <text class="block-text">3. 如需删除账号，请联系客服处理。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">五、未成年人保护</text>
+      <text class="block-text">1. 本应用不针对未成年人提供服务。</text>
+      <text class="block-text">2. 如未成年人使用本应用，应在监护人指导下进行。</text>
+      <text class="block-text">3. 监护人发现未成年人未经同意使用本应用，可联系我们删除相关信息。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">六、联系我们</text>
+      <text class="block-text">如对本协议或隐私政策有任何疑问，可通过"设置-意见反馈"与我们联系。</text>
+    </view>
+  </view>
+
+  <view class="agreement-footer">
+    <text class="footer-text">出毛日记 v0.2.0</text>
+  </view>
+</view>

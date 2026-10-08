@@ -1,0 +1,107 @@
+<!-- 活动详情页 -->
+<view class="page-event-detail {{darkMode ? 'dark-theme' : ''}}">
+
+  <!-- 封面 -->
+  <view class="event-hero">
+    <image
+      wx:if="{{event.cover}}"
+      src="{{event.cover}}"
+      mode="aspectFill"
+      class="hero-img"
+    />
+    <view wx:else class="hero-placeholder">
+      <icon name="calendar" size="72" color="rgba(255,255,255,0.25)" />
+    </view>
+
+    <view class="hero-overlay">
+      <view class="hero-status {{event.status}}">
+        {{event.status === 'upcoming' ? '即将开始' : event.status === 'ongoing' ? '进行中' : '已结束'}}
+      </view>
+      <view class="hero-title">{{event.name}}</view>
+    </view>
+  </view>
+
+  <!-- 基本信息 -->
+  <view class="info-section">
+    <view class="info-row">
+      <icon name="clock" size="32" color="#D4890E" />
+      <view class="info-content">
+        <text class="info-label">活动时间</text>
+        <text class="info-value">{{event.formattedTime}}</text>
+      </view>
+    </view>
+    <view class="info-row">
+      <icon name="map-pin" size="32" color="#D4890E" />
+      <view class="info-content">
+        <text class="info-label">活动地点</text>
+        <text class="info-value">{{event.location || '待定'}}</text>
+      </view>
+    </view>
+    <view class="info-row">
+      <icon name="users" size="32" color="#D4890E" />
+      <view class="info-content">
+        <text class="info-label">参与人数</text>
+        <text class="info-value">{{event.joinCount || 0}} / {{event.maxPeople || '不限'}} 人</text>
+      </view>
+    </view>
+    <view class="info-row" wx:if="{{event.creatorName}}">
+      <icon name="user" size="32" color="#D4890E" />
+      <view class="info-content">
+        <text class="info-label">发起人</text>
+        <text class="info-value">{{event.creatorName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 活动介绍 -->
+  <view class="desc-section" wx:if="{{event.description}}">
+    <view class="section-title">活动介绍</view>
+    <view class="desc-text">{{event.description}}</view>
+  </view>
+
+  <!-- 标签 -->
+  <view class="tags-section" wx:if="{{event.tags && event.tags.length > 0}}">
+    <text class="tag" wx:for="{{event.tags}}" wx:key="*this" wx:for-item="t">{{t}}</text>
+  </view>
+
+  <!-- 参与人员 -->
+  <view class="participants-section" wx:if="{{participants.length > 0}}">
+    <view class="section-title">参与人员 ({{event.joinCount || 0}})</view>
+    <view class="participants-grid">
+      <view class="participant-item" wx:for="{{participants}}" wx:key="_id">
+        <image src="{{item.avatarUrl || '/images/tabbar/profile.png'}}" mode="aspectFill" class="p-avatar" />
+        <text class="p-name">{{item.nickName || '匿名用户'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="bar-actions">
+      <view class="bar-action" bindtap="toggleLike">
+        <icon name="{{event.isLiked ? 'heart' : 'heart'}}" size="36" color="{{event.isLiked ? '#e74c3c' : '#999'}}" />
+        <text>{{event.likeCount || 0}}</text>
+      </view>
+      <view class="bar-action" bindtap="shareCard">
+        <icon name="share" size="36" color="#999" />
+        <text>分享</text>
+      </view>
+    </view>
+
+    <button
+      class="join-btn {{joined ? 'joined' : ''}} {{event.status === 'ended' ? 'disabled' : ''}}"
+      disabled="{{event.status === 'ended'}}"
+      bindtap="toggleJoin"
+    >
+      {{event.status === 'ended' ? '已结束' : joined ? '取消报名' : '我要参加'}}
+    </button>
+  </view>
+
+  <!-- 骨架屏 -->
+  <view class="skeleton" wx:if="{{loading}}">
+    <view class="sk-hero"></view>
+    <view class="sk-line"></view>
+    <view class="sk-line short"></view>
+    <view class="sk-line short"></view>
+  </view>
+</view>

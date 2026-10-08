@@ -1,54 +1,77 @@
 {
+  "cloud": true,
   "pages": [
-    "pages/index/index",
-    "pages/share/index",
-    "pages/message/index",
-    "pages/profile/index",
-    "pages/annotation/detail",
-    "pages/annotation/create",
-    "pages/group/detail",
-    "pages/group/create",
-    "pages/user/profile",
-    "pages/settings/index"
+    "pages/discover/discover",
+    "pages/posts/posts",
+    "pages/profile/profile",
+    "pages/messages/messages",
+    "pages/profile-edit/profile-edit",
+    "pages/location-detail/location-detail",
+    "pages/location-upload/location-upload",
+    "pages/post-create/post-create",
+    "pages/post-detail/post-detail",
+    "pages/search/search",
+    "pages/tag-content/tag-content",
+    "pages/settings/settings",
+    "pages/agreement/agreement",
+    "pages/user-home/user-home",
+    "pages/follow-list/follow-list",
+    "pages/blocked-list/blocked-list",
+    "pages/admin-reports/admin-reports",
+    "pages/collections/collections",
+    "pages/route-plan/route-plan",
+    "pages/seasonal/seasonal",
+    "pages/leaderboard/leaderboard",
+    "pages/share-card/share-card",
+    "pages/events/events",
+    "pages/event-detail/event-detail",
+    "pages/event-create/event-create",
+    "pages/xiaoju-create/xiaoju-create",
+    "pages/xiaoju-detail/xiaoju-detail",
+    "pages/nearby-services/nearby-services"
   ],
   "window": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "出毛地图",
+    "navigationBarTitleText": "出毛日记",
     "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#FAFAFA"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F5F5"
   },
   "tabBar": {
-    "color": "#636E72",
-    "selectedColor": "#FF6B4A",
-    "borderStyle": "white",
+    "color": "#909090",
+    "selectedColor": "#D4890E",
     "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
     "list": [
       {
-        "pagePath": "pages/index/index",
-        "text": "地图"
+        "pagePath": "pages/discover/discover",
+        "text": "发现",
+        "iconPath": "images/tabbar/discover.png",
+        "selectedIconPath": "images/tabbar/discover-active.png"
       },
       {
-        "pagePath": "pages/share/index",
-        "text": "共享"
+        "pagePath": "pages/posts/posts",
+        "text": "动态",
+        "iconPath": "images/tabbar/posts.png",
+        "selectedIconPath": "images/tabbar/posts-active.png"
       },
       {
-        "pagePath": "pages/message/index",
-        "text": "消息"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的"
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/tabbar/profile.png",
+        "selectedIconPath": "images/tabbar/profile-active.png"
       }
     ]
   },
+  "requiredPrivateInfos": ["getLocation", "chooseLocation"],
   "permission": {
     "scope.userLocation": {
-      "desc": "你的位置信息将用于地图展示和导航"
+      "desc": "你的位置信息将用于展示附近的地点和发现周边的精彩"
     }
   },
-  "requiredPrivateInfos": [
-    "getLocation",
-    "chooseLocation"
-  ],
-  "sitemapLocation": "sitemap.json"
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "icon": "/components/icon/icon"
+  }
 }

@@ -1,0 +1,65 @@
+@import './styles/design-tokens.wxss';
+@import './styles/brand-font.wxss';
+@import './components/common.wxss';
+page {
+  background: #F7F8FA;
+  font-family: var(--font-family-base);
+  color: #1A1A2E;
+  font-size: 28rpx;
+  line-height: var(--line-height-normal);
+  box-sizing: border-box;
+  /* 中文正文略放宽字距，避免密集笔画粘连；数字启用等宽避免跳动。 */
+  letter-spacing: var(--letter-spacing-wide);
+  font-feature-settings: 'tnum' 1, 'kern' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 统一所有页面的基础盒模型，避免独立页面出现默认 margin/padding 漂移。 */
+view, text, image, button, input, textarea, scroll-view {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 小程序标题使用品牌字体（站酷快乐体子集），营造活泼的探索感。 */
+.app-title .app-title-text {
+  font-family: var(--font-family-brand);
+}
+
+/* 标题类文字收紧字距并统一字重，形成稳定的品牌观感。 */
+.app-title text,
+.page-title,
+.title,
+.section-title,
+.empty-title,
+.user-nickname {
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+/* Fallback rules for legacy page styles that still use literal light colors. */
+.dark-theme { background: var(--color-bg-page); color: var(--color-text-primary); }
+.dark-theme .card,
+.dark-theme .post-card,
+.dark-theme .msg-item,
+.dark-theme .content-item,
+.dark-theme .collection-entry,
+.dark-theme .detail-section,
+.dark-theme .setting-group,
+.dark-theme .settings-group,
+.dark-theme .follow-item,
+.dark-theme .route-item { background-color: var(--color-bg-card) !important; }
+.dark-theme .page-title,
+.dark-theme .section-title,
+.dark-theme .post-text,
+.dark-theme .location-name,
+.dark-theme .user-nickname,
+.dark-theme .name,
+.dark-theme .title { color: var(--color-text-primary) !important; }
+.dark-theme .post-time,
+.dark-theme .item-time,
+.dark-theme .item-excerpt,
+.dark-theme .empty-desc,
+.dark-theme .address,
+.dark-theme .description { color: var(--color-text-secondary) !important; }

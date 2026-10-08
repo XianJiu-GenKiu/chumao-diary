@@ -1,0 +1,13 @@
+<view class="nearby-page">
+  <view class="nearby-nav"><view bindtap="goBack">‹</view><view><text class="nearby-title">{{locationName}}</text><text class="nearby-subtitle">拍摄地周边服务</text></view><view class="nearby-nav-more">⋯</view></view>
+  <view class="nearby-tabs"><text wx:for="{{categories}}" wx:key="*this" class="nearby-tab {{activeCategory === item ? 'active' : ''}}" data-category="{{item}}" bindtap="switchCategory">{{item}}</text></view>
+  <scroll-view scroll-y class="nearby-scroll">
+    <view class="nearby-summary"><view><text class="summary-title">先了解一下附近</text><text class="summary-desc">拍摄结束后，吃饭、休息和返程都可以在这里找到</text></view><view class="summary-weather">{{weather}}<text>适合出行</text></view></view>
+    <view class="nearby-loading" wx:if="{{loading}}">正在查询真实周边地点…</view>
+    <view class="nearby-empty" wx:elif="{{errorMessage}}"><text>{{errorMessage}}</text><button bindtap="retry">重新查询</button></view>
+    <view class="nearby-empty" wx:elif="{{displayServices.length === 0}}">附近暂未找到相关地点</view>
+    <view class="service-list" wx:else><view wx:for="{{displayServices}}" wx:key="id" class="service-card" bindtap="openService" data-item="{{item}}"><view class="service-icon service-{{item.kind}}"><icon name="{{item.icon}}" size="34" color="#4B9B6A" /></view><view class="service-main"><view class="service-head"><text class="service-name">{{item.name}}</text><text class="service-distance">{{item.distance}}</text></view><text class="service-meta">{{item.meta}} · {{item.address}}</text><view class="service-tags"><text wx:for="{{item.tags}}" wx:key="*this">{{item}}</text></view></view><view class="service-go" catchtap="openMap" data-item="{{item}}"><icon name="navigation" size="28" color="#4B9B6A" /></view></view></view>
+    <view class="nearby-tip"><icon name="info" size="26" color="#4B9B6A" /><text>周边地点来自腾讯地图实时检索，营业时间和入场规则请以现场为准。</text></view>
+  </scroll-view>
+  <view class="nearby-bottom"><button class="secondary-btn" bindtap="openMap">在地图中查看</button><button class="primary-btn" bindtap="startRoute">加入小聚路线</button></view>
+</view>

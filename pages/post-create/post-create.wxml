@@ -1,0 +1,157 @@
+<!-- 页面级样式通过 JSON 配置中的 style: wxss 加载，无需 import -->
+
+<view class="page page-create {{darkMode ? 'dark-theme' : ''}}">
+  <!-- 自定义导航栏：原生导航栏标题字号不可调（微信限制），
+       改为自定义后可将「发帖」放大到 40rpx（20px），
+       并保留返回按钮与状态栏高度自适应。 -->
+  <view class="create-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="create-nav-inner">
+      <view class="create-nav-back" bindtap="goBack"><text>‹</text></view>
+      <text class="create-nav-title">{{isEdit ? '编辑动态' : '发帖'}}</text>
+      <view class="create-nav-placeholder"></view>
+    </view>
+  </view>
+
+  <!-- 关联地点 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title"><icon name="map-pin" size="24" color="#D4890E" /> 关联地点</text>
+    </view>
+    <view class="location-picker" wx:if="{{!locationName}}" bindtap="chooseLocation">
+      <text class="location-placeholder">选择关联地点（可选）</text>
+    </view>
+    <view class="location-selected" wx:else>
+      <text class="location-name">{{locationName}}</text>
+      <view class="location-clear" bindtap="clearLocation"><icon name="x" size="24" color="#999" /></view>
+    </view>
+  </view>
+
+  <!-- 图片选择 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title"><icon name="image" size="24" color="#D4890E" /> 图片</text>
+      <text class="section-hint">{{images.length}}/{{maxImages}}</text>
+    </view>
+    <view class="image-grid">
+      <view class="image-item" wx:for="{{images}}" wx:key="*this">
+        <image class="image-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-index="{{index}}" />
+        <view class="image-remove" bindtap="removeImage" data-index="{{index}}"><icon name="x" size="28" color="#fff" /></view>
+      </view>
+      <view class="image-add" wx:if="{{images.length < maxImages}}" bindtap="chooseImage">
+        <text class="image-add-icon">+</text>
+        <text class="image-add-text">添加图片</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 文字内容 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title"><icon name="edit" size="24" color="#D4890E" /> 内容</text>
+    </view>
+    <view class="textarea-wrapper">
+      <textarea
+        class="textarea"
+        placeholder="分享你的外景拍摄故事..."
+        maxlength="{{maxContent}}"
+        value="{{content}}"
+        bindinput="onContentInput"
+        auto-height
+      />
+      <view class="textarea-count">{{contentLength}}/{{maxContent}}</view>
+    </view>
+  </view>
+
+  <!-- 心情选择 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title"><icon name="message-circle" size="30" color="#D4890E" />心情</view>
+    </view>
+    <view class="mood-grid">
+      <view
+        class="mood-item {{selectedMood === item.key ? 'mood-active' : ''}}"
+        wx:for="{{moods}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="selectMood"
+      >
+        <!-- 兽头图标是 emoji 风格彩色图形，自带配色，不传 color（选中态由底色与边框体现） -->
+        <icon class="mood-icon" name="{{item.icon}}" size="76" />
+        <text class="mood-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标签输入 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title"><icon name="tag" size="30" color="#D4890E" />标签</view>
+      <text class="section-hint">{{tags.length}}/5</text>
+    </view>
+    <view class="tag-list" wx:if="{{tags.length > 0}}">
+      <view class="tag tag-primary" wx:for="{{tags}}" wx:key="*this">
+        <text>#{{item}}</text>
+        <text class="tag-remove" data-index="{{index}}" bindtap="removeTag">✕</text>
+      </view>
+    </view>
+    <view class="tag-input-row">
+      <input
+        class="tag-input"
+        placeholder="输入标签，回车添加"
+        value="{{tagInput}}"
+        bindinput="onTagInput"
+        bindconfirm="addTag"
+      />
+      <view class="tag-add-btn btn btn-sm btn-outline" bindtap="addTag">添加</view>
+    </view>
+  </view>
+
+  <!-- 装备清单 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title"><icon name="clipboard" size="30" color="#D4890E" />装备清单</view>
+      <text class="section-hint">可选</text>
+    </view>
+    <view class="tag-list" wx:if="{{equipTags.length > 0}}">
+      <view class="tag tag-outline" wx:for="{{equipTags}}" wx:key="*this">
+        <text>{{item}}</text>
+        <text class="tag-remove" data-index="{{index}}" bindtap="removeEquipTag">✕</text>
+      </view>
+    </view>
+    <view class="tag-input-row">
+      <input class="tag-input" placeholder="如：佳能R5、35mm镜头" value="{{equipInput}}" bindinput="onEquipInput" bindconfirm="addEquipTag" />
+      <view class="tag-add-btn btn btn-sm btn-outline" bindtap="addEquipTag">添加</view>
+    </view>
+  </view>
+
+  <!-- 可见性设置 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title"><icon name="eye" size="30" color="#D4890E" />可见范围</view>
+    </view>
+    <view class="toggle-row">
+      <view class="toggle-item {{visibility === 'public' ? 'active' : ''}}" bindtap="setVisibility" data-val="public">
+        <text>公开</text>
+      </view>
+      <view class="toggle-item {{visibility === 'circle' ? 'active' : ''}}" bindtap="setVisibility" data-val="circle">
+        <text>仅自己可见</text>
+      </view>
+    </view>
+    <!-- 该说明此前被固定定位的发布栏遮挡，现改为独立说明块并预留底部空间 -->
+    <view class="visibility-note">
+      <icon name="info" size="28" color="#909090" />
+      <text class="visibility-note-text">当前版本没有圈子成员权限；选择后只有你自己能查看。</text>
+    </view>
+  </view>
+
+  <!-- 发布按钮 -->
+  <view class="publish-area">
+    <button
+      class="publish-btn btn btn-primary btn-block {{isPublishing ? 'btn-disabled' : ''}}"
+      bindtap="publish"
+      disabled="{{isPublishing}}"
+    >
+      {{isPublishing ? '发布中...' : '发布'}}
+    </button>
+  </view>
+</view>

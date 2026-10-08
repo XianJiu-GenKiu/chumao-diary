@@ -1,0 +1,74 @@
+<!-- pages/messages/messages.wxml -->
+<view class="page messages-page {{darkMode ? 'dark-theme' : ''}}">
+  <error-state visible="{{!!errorMessage && !loading && messages.length === 0}}" message="{{errorMessage}}" bind:retry="onRetry" />
+  <!-- 顶部 Tab 切换 -->
+  <view class="msg-tabs">
+    <view class="msg-tab {{currentTab === 'all' ? 'active' : ''}}" data-tab="all" bindtap="switchTab">
+      <text>全部</text>
+      <text class="tab-badge" wx:if="{{unreadTotal > 0}}">{{unreadTotal > 99 ? '99+' : unreadTotal}}</text>
+    </view>
+    <view class="msg-tab {{currentTab === 'comment' ? 'active' : ''}}" data-tab="comment" bindtap="switchTab">
+      <text>评论</text>
+      <text class="tab-badge" wx:if="{{unreadByType.comment > 0}}">{{unreadByType.comment}}</text>
+    </view>
+    <view class="msg-tab {{currentTab === 'like' ? 'active' : ''}}" data-tab="like" bindtap="switchTab">
+      <text>赞/踩</text>
+      <text class="tab-badge" wx:if="{{(unreadByType.like || 0) + (unreadByType.reaction || 0) > 0}}">{{(unreadByType.like || 0) + (unreadByType.reaction || 0)}}</text>
+    </view>
+    <view class="msg-tab {{currentTab === 'favorite' ? 'active' : ''}}" data-tab="favorite" bindtap="switchTab">
+      <text>收藏</text>
+      <text class="tab-badge" wx:if="{{unreadByType.favorite > 0}}">{{unreadByType.favorite}}</text>
+    </view>
+    <view class="msg-tab {{currentTab === 'system' ? 'active' : ''}}" data-tab="system" bindtap="switchTab">
+      <text>系统</text>
+      <text class="tab-badge" wx:if="{{unreadByType.system > 0}}">{{unreadByType.system}}</text>
+    </view>
+  </view>
+
+  <!-- 一键已读 -->
+  <view class="mark-read-bar" wx:if="{{unreadTotal > 0}}">
+    <text class="mark-read-text">{{unreadTotal}} 条未读消息</text>
+    <text class="mark-read-btn" bindtap="markAllRead">全部已读</text>
+  </view>
+
+  <!-- 消息列表 -->
+  <view class="msg-list" wx:if="{{messages.length > 0}}">
+    <view class="msg-item {{!item.isRead ? 'unread' : ''}}" wx:for="{{messages}}" wx:key="_id" data-msg="{{item}}" bindtap="onMessageTap">
+      <image class="msg-avatar" src="{{item.fromAvatar || '/images/tabbar/profile.png'}}" mode="aspectFill" lazy-load />
+      <view class="msg-content">
+        <view class="msg-top-row">
+          <text class="msg-name">{{item.fromName || '系统通知'}}</text>
+          <text class="msg-time">{{item.timeText}}</text>
+        </view>
+        <text class="msg-text">{{item.content}}</text>
+        <view class="msg-target" wx:if="{{item.targetName}}">
+          <text class="msg-target-text">{{item.targetName}}</text>
+        </view>
+      </view>
+      <view class="msg-type-icon">
+        <icon name="{{item.type === 'comment' ? 'message-circle' : item.type === 'like' ? 'thumbs-up' : item.type === 'favorite' ? 'star' : item.type === 'reaction' ? 'paw' : 'megaphone'}}" size="32" color="#D4890E" />
+      </view>
+      <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+      <text>加载更多</text>
+    </view>
+    <view class="load-more" wx:if="{{!hasMore && messages.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && !errorMessage && messages.length === 0}}">
+    <icon name="inbox" size="96" color="#ddd" />
+    <text class="empty-title">暂无消息</text>
+    <text class="empty-desc">点赞、评论、收藏的消息会显示在这里</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

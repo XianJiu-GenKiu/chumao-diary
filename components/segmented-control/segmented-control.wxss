@@ -1,0 +1,28 @@
+
+
+.segmented-control {
+  display: flex;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  padding: 6rpx;
+  gap: 4rpx;
+}
+
+.seg-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80rpx;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
+}
+
+.seg-item.active {
+  background: var(--color-bg-white);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-sm);
+}

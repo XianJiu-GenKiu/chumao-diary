@@ -1,0 +1,35 @@
+<view class="xj-create-page">
+  <view class="xj-create-nav"><view bindtap="goBack">‹</view><text>创建小聚</text><text class="nav-step">1/3</text></view>
+  <scroll-view scroll-y class="xj-create-scroll">
+    <view class="xj-section">
+      <view class="xj-section-title">路线基本信息</view>
+      <view class="xj-cover-upload" bindtap="chooseCover">
+        <image wx:if="{{cover}}" src="{{cover}}" mode="aspectFill" />
+        <view wx:else class="xj-cover-empty"><icon name="image" size="48" color="#D4890E" /><text>添加路线封面</text><text>建议使用拍摄地或路线合照</text></view>
+        <view class="xj-cover-edit" wx:if="{{cover}}">更换封面</view>
+      </view>
+      <view class="xj-field"><view class="xj-label">小聚标题 <text class="required">*</text></view><input value="{{title}}" maxlength="40" placeholder="例如：黄昏公园 + 商场聚餐路线" bindinput="onTitleInput" /></view>
+      <view class="xj-field"><view class="xj-label">一句话简介 <text class="required">*</text></view><textarea value="{{summary}}" maxlength="100" placeholder="说说这条路线适合谁、有什么亮点" bindinput="onSummaryInput" /></view>
+      <view class="xj-field"><view class="xj-label">路线标签 <text class="xj-muted">可多选</text></view><view class="xj-tags"><text wx:for="{{tagOptions}}" wx:key="name" class="xj-tag {{item.active ? 'active' : ''}}" data-tag="{{item.name}}" bindtap="toggleTag">{{item.name}}</text></view></view>
+    </view>
+    <view class="xj-section">
+      <view class="xj-section-title-row"><view class="xj-section-title">规划路线 <text class="xj-muted">{{points.length}} 个点位</text></view><text class="xj-link" bindtap="addPoint">＋ 添加地点</text></view>
+      <view class="xj-point-list">
+        <view wx:for="{{points}}" wx:key="id" class="xj-point">
+          <view class="xj-point-num">{{index + 1}}</view><view class="xj-point-main"><text class="xj-point-name">{{item.name}}</text><view class="xj-point-meta"><text>{{item.type}}</text><text>·</text><text>{{item.duration}}</text></view></view><view class="xj-point-delete" data-index="{{index}}" bindtap="removePoint">×</view>
+        </view>
+      </view>
+      <view class="xj-add-point-form" wx:if="{{isAddingPoint}}"><input focus="{{isAddingPoint}}" value="{{newPointName}}" placeholder="输入新的地点名称" bindinput="onNewPointInput" /><text bindtap="confirmAddPoint">添加</text><text bindtap="cancelAddPoint">取消</text></view>
+      <view class="xj-tip"><icon name="info" size="24" color="#D4890E" /><text>至少添加 2 个点位，优先选择已有地点，后续可自动生成路线地图。</text></view>
+    </view>
+    <view class="xj-section">
+      <view class="xj-section-title">给同行者的说明</view>
+      <view class="xj-field"><text class="xj-label">推荐理由</text><textarea value="{{reason}}" maxlength="500" placeholder="为什么推荐这条路线？拍摄顺序、光线和体验都可以写在这里" bindinput="onReasonInput" /></view>
+      <view class="xj-field"><text class="xj-label">出发前提醒</text><textarea value="{{notice}}" maxlength="300" placeholder="例如：周末人多，建议提前预约餐厅，夏天记得带水" bindinput="onNoticeInput" /></view>
+      <view class="xj-inline-fields"><view class="xj-field compact"><text class="xj-label">适合人数</text><input value="{{people}}" placeholder="4-8 人" bindinput="onPeopleInput" /></view><view class="xj-field compact"><text class="xj-label">人均预算</text><input value="{{budget}}" placeholder="100-200 元" bindinput="onBudgetInput" /></view></view>
+    </view>
+    <view class="xj-section xj-permission"><view class="xj-check-row" bindtap="togglePublish"><view class="xj-check {{publish ? 'checked' : ''}}">✓</view><view><text>公开发布</text><text class="xj-muted block">其他用户可以查看、点赞和收藏这条路线</text></view></view><view class="xj-check-row" bindtap="toggleCanStart"><view class="xj-check {{canStart ? 'checked' : ''}}">✓</view><view><text>允许基于此路线发起活动</text><text class="xj-muted block">别人可以快速复制路线创建正式活动</text></view></view></view>
+    <view class="xj-bottom-space"></view>
+  </scroll-view>
+  <view class="xj-submit-bar"><button bindtap="saveDraft">保存草稿</button><button class="primary" bindtap="publish">发布小聚</button></view>
+</view>

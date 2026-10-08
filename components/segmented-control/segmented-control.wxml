@@ -1,0 +1,11 @@
+<view class="segmented-control">
+  <view
+    class="seg-item {{activeIndex === index ? 'active' : ''}}"
+    wx:for="{{items}}"
+    wx:key="*this"
+    data-index="{{index}}"
+    bindtap="onItemTap"
+  >
+    {{item}}
+  </view>
+</view>

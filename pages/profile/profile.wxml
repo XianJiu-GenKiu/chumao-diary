@@ -1,0 +1,245 @@
+<view class="page page-profile {{darkMode ? 'dark-theme' : ''}}">
+  <view class="profile-header">
+    <view class="settings-btn" bindtap="onSettingsTap">
+      <icon name="settings" size="36" color="#666" />
+    </view>
+
+    <view class="message-btn" bindtap="onMessagesTap" wx:if="{{isLoggedIn}}">
+      <icon name="inbox" size="36" color="#666" />
+      <view class="message-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+    </view>
+
+    <view class="user-info" wx:if="{{isLoggedIn}}">
+      <view class="profile-cover-frame">
+        <image
+          class="profile-cover-img"
+          wx:if="{{userInfo.profileBg || userInfo.backgroundImage || userInfo.coverUrl}}"
+          src="{{userInfo.profileBg || userInfo.backgroundImage || userInfo.coverUrl}}"
+          mode="aspectFill"
+        />
+        <view class="profile-cover-shade"></view>
+      </view>
+      <image
+        class="user-avatar"
+        src="{{userInfo.avatar || userInfo.avatarUrl || '/images/tabbar/profile.png'}}"
+        mode="aspectFill"
+      />
+      <view class="profile-text-panel">
+        <text class="user-nickname">{{userInfo.nickname || '未设置昵称'}}</text>
+        <text class="user-signature" wx:if="{{userInfo.furName}}">兽设名：{{userInfo.furName}}</text>
+        <text class="user-signature" wx:if="{{userInfo.signature}}">个人简介：{{userInfo.signature}}</text>
+        <view class="profile-action-row">
+          <view class="edit-profile-btn" bindtap="onEditProfile">
+            <text>编辑资料</text>
+          </view>
+          <view class="logout-btn" bindtap="onLogoutTap">
+            <text>退出登录</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="user-info" wx:else>
+      <view class="profile-cover-frame">
+        <view class="profile-cover-shade"></view>
+      </view>
+      <image
+        class="user-avatar"
+        src="/images/tabbar/profile.png"
+        mode="aspectFill"
+      />
+      <view class="profile-text-panel">
+        <text class="user-nickname">尚未登录</text>
+        <text class="user-signature">登录后解锁更多功能</text>
+        <button
+          class="login-btn {{loginLoading ? 'disabled' : ''}}"
+          bindtap="onLoginTap"
+          disabled="{{loginLoading}}"
+          aria-label="上毛"
+        >
+          <text>{{loginLoading ? '登录中...' : '上毛'}}</text>
+        </button>
+      </view>
+    </view>
+
+    <view class="stats-row" wx:if="{{isLoggedIn}}">
+      <view class="stats-item" data-key="post" bindtap="onStatsTap" hover-class="stats-item-hover" hover-stay-time="80">
+        <text class="stats-num">{{stats.postCount || 0}}</text>
+        <text class="stats-label">发布</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" data-key="following" bindtap="onStatsTap" hover-class="stats-item-hover" hover-stay-time="80">
+        <text class="stats-num">{{followingCount || 0}}</text>
+        <text class="stats-label">关注</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" data-key="followers" bindtap="onStatsTap" hover-class="stats-item-hover" hover-stay-time="80">
+        <text class="stats-num">{{followerCount || 0}}</text>
+        <text class="stats-label">粉丝</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" data-key="like" bindtap="onStatsTap" hover-class="stats-item-hover" hover-stay-time="80">
+        <text class="stats-num">{{stats.likeCount || 0}}</text>
+        <text class="stats-label">获赞</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item" data-key="favorite" bindtap="onStatsTap" hover-class="stats-item-hover" hover-stay-time="80">
+        <text class="stats-num">{{stats.favoriteCount || 0}}</text>
+        <text class="stats-label">收藏</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="collection-entry" bindtap="onLeaderboardTap"><icon name="trending-up" size="28" color="#D4890E" /><text>热门排行榜</text><icon name="chevron-right" size="28" color="#bbb" /></view>
+  <view class="collection-entry" bindtap="onCollectionsTap"><icon name="bookmark" size="28" color="#D4890E" /><text>我的地点合集</text><icon name="chevron-right" size="28" color="#bbb" /></view>
+  <view class="collection-entry admin-entry" wx:if="{{isAdmin}}" bindtap="onAdminReportsTap"><icon name="shield" size="28" color="#D4890E" /><text>管理员中心</text><text class="admin-entry-desc">举报处理</text><icon name="chevron-right" size="28" color="#bbb" /></view>
+  <view class="tabs profile-tabs">
+    <view
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      {{item.name}}
+    </view>
+    <!-- 滑动指示器 -->
+    <view class="tab-indicator" style="transform: translateX({{activeTabIndex * 100}}%);">
+      <view class="tab-indicator-bar"></view>
+    </view>
+  </view>
+
+  <view class="profile-content">
+    <error-state visible="{{!!errorMessage && !isLoading && ((activeTab === 'dynamic' && dynamicList.length === 0) || (activeTab === 'favorite' && favoriteList.length === 0) || (activeTab === 'location' && locationList.length === 0))}}" message="{{errorMessage}}" bind:retry="onRetry" />
+    <view class="profile-skeleton" wx:if="{{isLoading && ((activeTab === 'dynamic' && dynamicList.length === 0) || (activeTab === 'favorite' && favoriteList.length === 0) || (activeTab === 'location' && locationList.length === 0))}}">
+      <view class="skeleton-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+        <view class="skeleton-line skeleton-title"></view>
+        <view class="skeleton-line skeleton-cover"></view>
+        <view class="skeleton-line skeleton-text"></view>
+        <view class="skeleton-line skeleton-text short"></view>
+      </view>
+    </view>
+    <block wx:if="{{activeTab === 'dynamic'}}">
+      <view
+        class="content-item card"
+        wx:for="{{dynamicList}}"
+        wx:key="_id"
+        data-type="dynamic"
+        data-id="{{item._id}}"
+        bindtap="onItemTap"
+      >
+        <view class="item-header">
+          <text class="item-title">{{item.title || item.content}}</text>
+          <text class="item-time">{{item.createTimeText || ''}}</text>
+        </view>
+        <image
+          class="item-cover"
+          wx:if="{{item.images && item.images.length > 0}}"
+          src="{{item.images[0]}}"
+          mode="aspectFill"
+        />
+        <text class="item-excerpt" wx:if="{{item.content}}">{{item.content}}</text>
+        <view class="item-stats">
+          <text class="stat-item">❤ {{item.likeCount || 0}}</text>
+          <text class="stat-item">评论 {{item.commentCount || 0}}</text>
+          <view class="item-delete" data-type="dynamic" data-id="{{item._id}}" catchtap="onDeleteTap" hover-class="item-delete-hover">删除</view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{activeTab === 'favorite'}}">
+      <view
+        class="content-item favorite-location-card card"
+        wx:for="{{favoriteList}}"
+        wx:key="_id"
+        data-type="location"
+        data-id="{{item._id}}"
+        bindtap="onItemTap"
+      >
+        <view class="item-header">
+          <text class="item-title">{{item.name}}</text>
+        </view>
+        <image
+          class="item-cover"
+          wx:if="{{item.coverUrl || (item.images && item.images.length > 0)}}"
+          src="{{item.coverUrl || item.images[0]}}"
+          mode="aspectFill"
+        />
+        <text class="item-excerpt" wx:if="{{item.address}}">{{item.address}}</text>
+        <view class="item-stats">
+          <text class="stat-item">已收藏</text>
+          <view class="item-delete" data-type="favorite" data-id="{{item._id}}" catchtap="onDeleteTap" hover-class="item-delete-hover">取消收藏</view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:elif="{{activeTab === 'location'}}">
+      <view
+        class="content-item card"
+        wx:for="{{locationList}}"
+        wx:key="_id"
+        data-type="location"
+        data-id="{{item._id}}"
+        bindtap="onItemTap"
+      >
+        <image
+          class="item-cover"
+          wx:if="{{item.coverUrl}}"
+          src="{{item.coverUrl}}"
+          mode="aspectFill"
+        />
+        <view class="item-body">
+          <view class="item-body-text">
+            <text class="item-title">{{item.name}}</text>
+            <text class="item-excerpt" wx:if="{{item.description}}">{{item.description}}</text>
+          </view>
+          <view class="item-delete" data-type="location" data-id="{{item._id}}" catchtap="onDeleteTap" hover-class="item-delete-hover">删除</view>
+        </view>
+      </view>
+    </block>
+
+    <view class="loading-more" wx:if="{{isLoading && ((activeTab === 'dynamic' && dynamicList.length > 0) || (activeTab === 'favorite' && favoriteList.length > 0) || (activeTab === 'location' && locationList.length > 0))}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+    <view class="no-more" wx:if="{{!isLoading && !hasMore && ((activeTab === 'dynamic' && dynamicList.length > 0) || (activeTab === 'favorite' && favoriteList.length > 0) || (activeTab === 'location' && locationList.length > 0))}}">
+      <text class="no-more-text">没有更多了</text>
+    </view>
+
+    <view class="empty-state" wx:if="{{!isLoading && !errorMessage && ((activeTab === 'dynamic' && dynamicList.length === 0) || (activeTab === 'favorite' && favoriteList.length === 0) || (activeTab === 'location' && locationList.length === 0))}}">
+      <block wx:if="{{activeTab === 'dynamic' && dynamicList.length === 0}}">
+        <icon name="file-text" size="80" color="#ddd" />
+        <text class="empty-title">还没有发布动态</text>
+        <text class="empty-desc">分享你的出毛故事，记录每一次精彩体验</text>
+        <view class="empty-action" bindtap="goToCreate">
+          <icon name="edit" size="28" color="#fff" />
+          <text>发布动态</text>
+        </view>
+      </block>
+      <block wx:elif="{{activeTab === 'favorite' && favoriteList.length === 0}}">
+        <icon name="bookmark" size="80" color="#ddd" />
+        <text class="empty-title">还没有收藏</text>
+        <text class="empty-desc">收藏感兴趣的地点，方便随时查看</text>
+      </block>
+      <block wx:elif="{{activeTab === 'location' && locationList.length === 0}}">
+        <icon name="map-pin" size="80" color="#ddd" />
+        <text class="empty-title">还没有添加地点</text>
+        <text class="empty-desc">发现好去处？分享给大家吧</text>
+        <view class="empty-action" bindtap="goToUpload">
+          <icon name="map-pin" size="28" color="#fff" />
+          <text>上传地点</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <view class="agreement-mask" wx:if="{{showAgreementDialog}}">
+    <view class="agreement-dialog" catchtap="noop">
+      <text class="agreement-dialog-title">用户协议与隐私政策</text>
+      <text class="agreement-dialog-content">欢迎使用出毛日记！登录即表示你同意《用户协议》和《隐私政策》。我们仅在你授权的范围内收集和使用信息。</text>
+      <view class="agreement-dialog-actions">
+        <button class="agreement-read-btn" bindtap="onAgreementRead">查看协议</button>
+        <button class="agreement-confirm-btn" bindtap="onAgreementConfirm">同意并登录</button>
+      </view>
+    </view>
+  </view>
+</view>

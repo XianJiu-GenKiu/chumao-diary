@@ -1,0 +1,10 @@
+{
+  "name": "getPosts",
+  "version": "1.0.0",
+  "description": "获取帖子列表云函数",
+  "main": "index.js",
+  "timeout": 10,
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

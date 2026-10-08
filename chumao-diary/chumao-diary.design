@@ -1,0 +1,84 @@
+{
+  "data": [
+    {
+      "id": "page-map-explore",
+      "title": "地图探索页",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1782733780000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/map-explore.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-figma-homepage",
+      "title": "Figma 首页-筛选",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1782754300000,
+      "canvasData": {
+        "x": 0,
+        "y": 704,
+        "group": 1
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/figma-homepage.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "森林公园外景",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1782733820000,
+      "canvasData": {
+        "x": 0,
+        "y": 1294
+      },
+      "devMetadata": {
+        "imageSrc": "assets/location-park.jpg"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "湖畔风光",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1782733820000,
+      "canvasData": {
+        "x": 420,
+        "y": 1294
+      },
+      "devMetadata": {
+        "imageSrc": "assets/location-lake.jpg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "古典园林",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1782733820000,
+      "canvasData": {
+        "x": 840,
+        "y": 1294
+      },
+      "devMetadata": {
+        "imageSrc": "assets/location-garden.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile",
+    "projectName": "出毛日记 · 小程序UI",
+    "designLibrary": null
+  }
+}

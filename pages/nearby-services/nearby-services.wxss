@@ -1,0 +1,73 @@
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+page { background: #F7F8FA; }
+.nearby-page { min-height: 100vh; color: #1A1A1A; }
+.nearby-nav { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 28rpx; background: #fff; border-bottom: 1rpx solid #F0F0F0; }
+.nearby-nav > view:first-child { width: 60rpx; color: #707070; font-size: 58rpx; font-weight: 200; line-height: 48rpx; }
+.nearby-title, .nearby-subtitle { display: block; text-align: center; }
+.nearby-title { font-size: 32rpx; font-weight: 600; }
+.nearby-subtitle { margin-top: 6rpx; color: #909090; font-size: 24rpx; }
+.nearby-nav-more { width: 60rpx; color: #909090; font-size: 42rpx; text-align: right; }
+.nearby-tabs { display: flex; gap: 18rpx; padding: 20rpx 24rpx; overflow-x: scroll; background: #fff; white-space: nowrap; }
+.nearby-tab { padding: 16rpx 28rpx; border-radius: 999rpx; color: #707070; background: #F0F0F0; font-size: 26rpx; }
+.nearby-tab.active { color: #fff; background: #D4890E; }
+.nearby-scroll { height: calc(100vh - 260rpx); }
+.nearby-summary { display: flex; justify-content: space-between; align-items: center; margin: 24rpx; padding: 24rpx; border-radius: 22rpx; background: #FFF7E6; }
+.summary-title { display: block; color: #60430F; font-size: 30rpx; font-weight: 600; }
+.summary-desc { display: block; max-width: 470rpx; margin-top: 8rpx; color: #9B7A3D; font-size: 24rpx; line-height: 1.4; }
+.summary-weather { color: #D4890E; font-size: 30rpx; font-weight: 600; text-align: right; }
+.summary-weather text { display: block; margin-top: 5rpx; color: #A47A31; font-size: 24rpx; font-weight: 400; }
+.service-list { margin: 0 24rpx; }
+.service-card { display: flex; align-items: center; gap: 18rpx; margin-bottom: 16rpx; padding: 22rpx 18rpx; border-radius: 20rpx; background: #fff; box-shadow: 0 2rpx 12rpx rgba(30,30,30,.04); }
+.service-icon { display: flex; align-items: center; justify-content: center; width: 76rpx; height: 76rpx; flex-shrink: 0; border-radius: 20rpx; background: #FFF7E6; }
+.service-mall { background: #F3ECFF; } .service-transport { background: #E8F5FC; } .service-supply { background: #F0FAE5; }
+.service-main { flex: 1; min-width: 0; }
+.service-head { display: flex; justify-content: space-between; gap: 12rpx; }
+.service-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 28rpx; font-weight: 600; }
+.service-distance { flex-shrink: 0; color: #D4890E; font-size: 24rpx; }
+.service-meta { display: block; margin-top: 7rpx; color: #707070; font-size: 26rpx; }
+.service-tags { display: flex; gap: 10rpx; margin-top: 12rpx; }
+.service-tags text { padding: 8rpx 14rpx; border-radius: 8rpx; color: #909090; background: #F7F8FA; font-size: 24rpx; }
+.nearby-tip { display: flex; gap: 10rpx; margin: 24rpx; color: #909090; font-size: 24rpx; line-height: 1.5; }
+.nearby-bottom { position: fixed; right: 0; bottom: 0; left: 0; display: flex; gap: 18rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); box-shadow: 0 -4rpx 18rpx rgba(0,0,0,.06); }
+.nearby-bottom button { flex: 1; height: 88rpx; margin: 0; border-radius: 999rpx; font-size: 28rpx; line-height: 88rpx; }
+.nearby-bottom button::after { border: 0; }
+.secondary-btn { color: #D4890E; background: #FFF7E6; }
+.primary-btn { color: #fff; background: #D4890E; }
+
+
+.nearby-loading,
+.nearby-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18rpx;
+  min-height: 260rpx;
+  margin: 0 24rpx;
+  color: #707070;
+  font-size: 26rpx;
+  text-align: center;
+}
+.nearby-empty button {
+  height: 80rpx;
+  margin: 0;
+  padding: 0 36rpx;
+  border: 0;
+  border-radius: 999rpx;
+  color: #4B9B6A;
+  background: #EEF8F0;
+  font-size: 26rpx;
+  line-height: 80rpx;
+}
+.nearby-empty button::after { border: 0; }
+.service-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #EEF8F0;
+}

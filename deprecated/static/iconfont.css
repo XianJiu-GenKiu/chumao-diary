@@ -1,0 +1,51 @@
+/* 出毛地图 - 图标字体（纯文本回退版） */
+/* 使用 emoji 和 unicode 符号替代图标字体，避免外部 CDN 依赖 */
+
+.iconfont {
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+}
+
+/* 地图相关 */
+.icon-map:before { content: '🗺'; }
+.icon-location:before { content: '📍'; }
+.icon-navigate:before { content: '🧭'; }
+.icon-compass:before { content: '🧭'; }
+
+/* 导航相关 */
+.icon-arrow-left:before { content: '‹'; }
+.icon-arrow-right:before { content: '›'; }
+.icon-arrow-up:before { content: '‹'; }
+.icon-arrow-down:before { content: '›'; }
+
+/* 功能相关 */
+.icon-search:before { content: '🔍'; }
+.icon-filter:before { content: '☰'; }
+.icon-add:before { content: '+'; }
+.icon-close:before { content: '✕'; }
+.icon-edit:before { content: '✎'; }
+.icon-delete:before { content: '✕'; }
+.icon-share:before { content: '↗'; }
+.icon-check:before { content: '✓'; }
+.icon-camera:before { content: '📷'; }
+.icon-heart:before { content: '♥'; }
+.icon-star:before { content: '★'; }
+.icon-star-empty:before { content: '☆'; }
+.icon-layer:before { content: '⊞'; }
+
+/* 社交相关 */
+.icon-friend:before { content: '👥'; }
+.icon-team:before { content: '👥'; }
+.icon-group:before { content: '👥'; }
+.icon-message:before { content: '💬'; }
+.icon-profile:before { content: '👤'; }
+.icon-user:before { content: '👤'; }
+.icon-qrcode:before { content: '⊞'; }
+.icon-settings:before { content: '⚙'; }
+.icon-help:before { content: '?'; }
+.icon-info:before { content: 'ⓘ'; }
+.icon-lock:before { content: '🔒'; }
+.icon-bell:before { content: '🔔'; }
+.icon-system:before { content: '⚡'; }
+.icon-message-empty:before { content: '📭'; }

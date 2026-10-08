@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "活动",
+  "usingComponents": {
+    "icon": "/components/icon/icon"
+  },
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 80
+}

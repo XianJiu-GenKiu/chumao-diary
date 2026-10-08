@@ -1,0 +1,30 @@
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+
+.page-share-card { min-height: 100vh; box-sizing: border-box; padding: 44rpx 28rpx 64rpx; background: linear-gradient(165deg, #152b29 0%, #0e1d22 100%); color: #fff; }
+.page-title { margin: 0 12rpx 32rpx; display: flex; flex-direction: column; gap: 10rpx; }
+.title { font-size: 36rpx; font-weight: 700; letter-spacing: 1rpx; }
+.subtitle, .tip-text { font-size: 24rpx; color: rgba(255,255,255,.62); }
+.card-preview-wrap { width: 100%; box-sizing: border-box; padding: 16rpx; border-radius: 28rpx; background: rgba(255,255,255,.08); box-shadow: 0 24rpx 56rpx rgba(0,0,0,.25); overflow: hidden; }
+/* 宽高必须与画布逻辑尺寸保持同比例：630x1000 的逻辑画布按 662x1051rpx 展示。
+   早期写成 `height: auto !important` 会让画布高度塌陷成一条细边，
+   海报看起来像“没有生成”。这里不再使用 !important 覆盖行内尺寸。 */
+.share-canvas { display: block; width: 100%; height: 1051rpx; border-radius: 18rpx; background: #27433d; }
+.action-btns { display: flex; gap: 20rpx; margin-top: 36rpx; }
+.btn-save, .btn-share { flex: 1; padding: 22rpx 12rpx; border: 0; border-radius: 999rpx; font-size: 28rpx; font-weight: 600; line-height: 1.25; }
+.btn-save::after, .btn-share::after { border: 0; }
+.btn-save { color: #16312a; background: #e7ad4b; }
+.btn-share { color: #fff; background: rgba(255,255,255,.14); }
+.share-error { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin-top: 22rpx; padding: 18rpx 20rpx; border-radius: 18rpx; background: rgba(255,255,255,.10); color: #ffd89a; font-size: 24rpx; }
+.share-error button { flex: none; margin: 0; padding: 14rpx 28rpx; border: 1rpx solid rgba(255,255,255,.28); border-radius: 999rpx; background: transparent; color: #fff; font-size: 26rpx; line-height: 1.5; }
+.share-error button::after { border: 0; }
+.qr-warning { display: flex; flex-direction: column; gap: 8rpx; margin-top: 22rpx; padding: 20rpx 22rpx; border-radius: 18rpx; border: 1rpx solid rgba(231,173,75,.45); background: rgba(231,173,75,.14); }
+.qr-warning-title { font-size: 26rpx; font-weight: 700; color: #ffd89a; }
+.qr-warning-desc { font-size: 24rpx; line-height: 1.5; color: rgba(255,255,255,.80); }
+.qr-warning-retry { align-self: flex-start; margin: 8rpx 0 0; padding: 14rpx 30rpx; border: 1rpx solid rgba(255,255,255,.28); border-radius: 999rpx; background: transparent; color: #fff; font-size: 26rpx; line-height: 1.5; }
+.qr-warning-retry::after { border: 0; }
+.tip-text { display: block; margin-top: 24rpx; text-align: center; }
+.loading-mask { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24rpx; background: rgba(8,18,20,.74); }
+.loading-spinner { width: 58rpx; height: 58rpx; box-sizing: border-box; border: 5rpx solid rgba(255,255,255,.22); border-top-color: #e7ad4b; border-radius: 50%; animation: spin .8s linear infinite; }
+.loading-text { font-size: 28rpx; color: #fff; }
+@keyframes spin { to { transform: rotate(360deg); } }

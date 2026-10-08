@@ -1,0 +1,10 @@
+{
+  "name": "post-create",
+  "type": "cloudfunction",
+  "permissions": {
+    "openapi": [
+      "security.msgSecCheck",
+      "security.imgSecCheck"
+    ]
+  }
+}

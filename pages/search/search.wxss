@@ -1,0 +1,392 @@
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+
+/* 搜索页 */
+.page-search {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+/* ── 自定义顶部导航栏 ── */
+.custom-nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--color-bg-white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.status-bar-placeholder {
+  width: 100%;
+}
+
+.nav-bar-content {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--page-padding);
+  gap: var(--space-3);
+}
+
+/* 返回按钮 */
+.nav-back {
+  flex-shrink: 0;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-back:active {
+  opacity: 0.7;
+}
+
+.nav-back-icon {
+  font-size: 36rpx;
+  color: var(--color-text-primary);
+}
+
+/* 导航栏占位 */
+.nav-bar-spacer {
+  width: 100%;
+}
+
+/* ── 搜索头部 ──────────────────────────────── */
+.search-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--page-padding);
+  background: var(--color-bg-white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-bar-wrap {
+  flex: 1;
+}
+
+.search-input-bar {
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-round);
+  padding: 0 var(--space-4);
+}
+
+.search-icon {
+  margin-right: var(--space-2);
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  height: 80rpx;
+  font-size: var(--text-base);
+  background: transparent;
+  border: none;
+  outline: none;
+  min-width: 0;
+}
+
+.clear-icon {
+  font-size: var(--text-sm);
+  color: var(--color-text-hint);
+  padding: var(--space-2);
+  flex-shrink: 0;
+}
+
+.search-cancel {
+  font-size: var(--text-base);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* ── 通用段落 ───────────────────────────────── */
+.search-section {
+  padding: var(--space-4) var(--page-padding);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.clear-btn {
+  font-size: var(--text-sm);
+  color: var(--color-text-hint);
+}
+
+/* ── 热门搜索标签 ───────────────────────────── */
+.hot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hot-tag {
+  padding: var(--space-2) var(--space-4) !important;
+}
+
+/* ── 搜索历史 ───────────────────────────────── */
+.history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.history-item {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.history-item:active {
+  background: var(--color-gray-200);
+}
+
+/* ── 搜索加载 ───────────────────────────────── */
+.search-loading {
+  padding: var(--space-3) var(--page-padding);
+}
+
+.search-skeleton-card {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.search-skeleton-cover,
+.search-skeleton-line {
+  background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 37%, #eef0f3 63%);
+  background-size: 400% 100%;
+  animation: search-shimmer 1.4s ease infinite;
+  border-radius: 8rpx;
+}
+
+.search-skeleton-cover { width: 180rpx; height: 140rpx; flex-shrink: 0; }
+.search-skeleton-info { flex: 1; padding-top: 8rpx; }
+.search-skeleton-line { height: 22rpx; width: 88%; margin-bottom: 18rpx; }
+.search-skeleton-line.title { height: 30rpx; width: 54%; }
+.search-skeleton-line.short { width: 42%; }
+
+@keyframes search-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* ── 搜索结果列表 ───────────────────────────── */
+.result-list {
+  padding: var(--space-2) var(--page-padding);
+}
+
+.result-item {
+  display: flex;
+  margin-bottom: var(--space-3);
+}
+
+.result-item:active {
+  opacity: 0.95;
+}
+
+.result-cover {
+  width: 180rpx;
+  height: 140rpx;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.result-info {
+  flex: 1;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: var(--space-1);
+}
+
+.result-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-type-badge {
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.result-author {
+  font-size: 24rpx;
+  color: var(--color-text-hint, #999);
+  margin-top: 4rpx;
+}
+
+.result-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.result-location {
+  font-size: var(--text-xs);
+  color: var(--color-text-hint);
+}
+
+/* ── 加载 / 空状态 ──────────────────────────── */
+.loading-more,
+.no-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-5) 0;
+}
+
+.loading-text,
+.no-more-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-hint);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: var(--space-3);
+}
+
+.empty-text {
+  font-size: var(--text-base);
+  color: var(--color-text-hint);
+  margin-bottom: var(--space-2);
+}
+
+.empty-hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-disabled);
+}
+
+/* ── 输入联想建议 ───────────────────────────── */
+.suggest-panel {
+  background: var(--color-bg-white);
+  border-top: 1rpx solid var(--color-divider);
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--page-padding);
+  gap: var(--space-3);
+  min-height: var(--touch-min);
+}
+
+.suggest-item:active {
+  background: var(--color-bg-hover);
+}
+
+.suggest-icon {
+  font-size: var(--font-size-md);
+  flex-shrink: 0;
+  color: var(--color-text-hint);
+}
+
+.suggest-name {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggest-addr {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2rpx;
+}
+
+.suggest-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.suggest-type {
+  flex-shrink: 0;
+}
+
+/* ── 搜索筛选 ── */
+.search-filters {
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+.search-filters .filter-scroll {
+  white-space: nowrap;
+}
+.search-filters .filter-list {
+  display: inline-flex;
+  gap: 16rpx;
+}
+.filter-chip {
+  display: inline-flex;
+  padding: 10rpx 28rpx;
+  border: 2rpx solid var(--color-border);
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.filter-chip.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}

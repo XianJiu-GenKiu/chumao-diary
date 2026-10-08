@@ -12,3 +12,16 @@ $RECYCLE.BIN/
 
 # Node.js
 node_modules/
+
+# 工具链备份与本地工具数据（体积大 / 非源码）
+toolchain-backup/
+.workbuddy/
+.trae/
+.reasonix/
+.kunsdd/
+.hermes/
+.hbuilderx/
+*.genie
+
+# 云函数本地依赖残留
+cloudfunctions/**/node_modules/

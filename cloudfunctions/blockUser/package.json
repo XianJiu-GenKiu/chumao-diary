@@ -1,0 +1,7 @@
+{
+  "name": "blockUser",
+  "version": "1.0.0",
+  "description": "拉黑/取消拉黑用户，并返回黑名单列表",
+  "main": "index.js",
+  "dependencies": { "wx-server-sdk": "~2.6.3" }
+}

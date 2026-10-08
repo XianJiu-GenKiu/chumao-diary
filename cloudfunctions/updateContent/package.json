@@ -1,0 +1,9 @@
+{
+  "name": "updateContent",
+  "version": "1.0.0",
+  "description": "编辑已发布的地点或动态（仅创建者可操作）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

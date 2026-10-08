@@ -1,9 +1,0 @@
-{
-  "extends": "@dcloudio/uni-app/types/sc.json",
-  "compilerOptions": {
-    "types": [
-      "@dcloudio/types/mp-weixin",
-      "@dcloudio/types/mp-qq"
-    ]
-  }
-}

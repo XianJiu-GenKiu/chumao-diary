@@ -1,0 +1,548 @@
+@import '../common.wxss';
+
+/*
+ * 说明：自定义组件默认样式隔离，组件内写 `.dark-theme` 后代选择器无法匹配
+ * 页面根节点的类名，因此深色模式一律通过设计令牌（var(--color-*)）实现。
+ * 令牌会从页面根节点继承进组件，切换 .dark-theme 时自动生效。
+ */
+
+/* ── 弹出容器 ── */
+.poi-sheet {
+  position: fixed;
+  left: 16rpx;
+  right: 16rpx;
+  /* 页面视口不含原生 tabBar，bottom: 0 即紧贴功能栏上沿 */
+  bottom: 0;
+  z-index: 1000;
+  background: var(--color-bg-white);
+  border-radius: 28rpx 28rpx 0 0;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(0);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out;
+  overflow: hidden;
+}
+
+.poi-sheet.show {
+  transform: translateY(0);
+}
+
+.poi-sheet.dragging {
+  transition: none;
+}
+
+/* ── 封面区域 ── */
+.poi-cover {
+  position: relative;
+  height: 300rpx;
+  background: linear-gradient(135deg, #1A2A44, #2D3A54);
+  overflow: hidden;
+}
+
+.poi-cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+/* 多图轮播容器，尺寸与单图封面保持一致 */
+.poi-cover-swiper {
+  width: 100%;
+  height: 300rpx;
+}
+
+/* 轮播指示点：当前页为琥珀色长条，其余为半透明白点。
+   与左下角类别标签、右下角图片数量同处底部一行，垂直居中对齐。 */
+.poi-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  z-index: 2;
+}
+
+.poi-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.55);
+  transition: all 0.22s ease-out;
+}
+
+.poi-dot.active {
+  width: 32rpx;
+  background: #fff;
+}
+
+.poi-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 底部渐变遮罩（叠在图片上，两种主题都用深色以保证文字可读） */
+.poi-cover-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 140rpx;
+  background: linear-gradient(transparent, rgba(26, 26, 46, 0.85));
+}
+
+/* 左上类别标签 */
+.poi-cover-category {
+  position: absolute;
+  bottom: 20rpx;
+  left: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 22rpx;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10rpx);
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: var(--font-weight-medium);
+  z-index: 2;
+}
+
+/* 右上热度徽标 */
+.poi-heat-badge {
+  position: absolute;
+  top: 60rpx;
+  right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 20rpx;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 107, 74, 0.9);
+  backdrop-filter: blur(10rpx);
+  z-index: 2;
+}
+
+.poi-heat-badge.tone-hot { background: rgba(232, 74, 62, 0.92); }
+.poi-heat-badge.tone-warm { background: rgba(240, 140, 40, 0.92); }
+.poi-heat-badge.tone-calm { background: rgba(75, 160, 110, 0.9); }
+.poi-heat-badge.tone-new { background: rgba(74, 144, 217, 0.9); }
+
+.poi-heat-label {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: var(--font-weight-semibold);
+}
+
+.poi-heat-value {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+}
+
+/* 图片数量角标 */
+.poi-cover-count {
+  position: absolute;
+  bottom: 20rpx;
+  right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 18rpx;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.42);
+  font-size: 24rpx;
+  color: #fff;
+  z-index: 2;
+}
+
+/* 拖拽手柄 */
+.poi-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.poi-handle-bar {
+  width: 72rpx;
+  height: 7rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-pill);
+}
+
+/* ── 信息区 ── */
+.poi-body {
+  padding: 26rpx 28rpx 0;
+}
+
+.poi-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.poi-title-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.poi-name {
+  display: block;
+  font-size: 42rpx;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 副信息行：距离 / 评分人数 / 浏览量 */
+.poi-subline {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8rpx;
+  margin-top: 8rpx;
+  overflow: hidden;
+}
+
+.poi-distance,
+.poi-rating-count {
+  font-size: 28rpx;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.poi-distance {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.poi-subsep {
+  font-size: 28rpx;
+  color: var(--color-border);
+}
+
+/* 收藏按钮：卡片内直接收藏，无需进入详情页 */
+.poi-fav-btn {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  min-width: 128rpx;
+  min-height: 100rpx;
+  padding: 12rpx 18rpx;
+  border-radius: 24rpx;
+  background: var(--color-primary-bg);
+  border: 2rpx solid var(--color-primary-light);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.poi-fav-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 用 hover-class 而不是 :active，小程序里按下反馈更稳定 */
+.poi-fav-hover {
+  transform: scale(0.94);
+  opacity: 0.86;
+}
+
+.poi-fav-btn.pending {
+  opacity: 0.6;
+}
+
+.poi-fav-text {
+  font-size: 26rpx;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.1;
+}
+
+.poi-fav-btn.active .poi-fav-text {
+  color: #fff;
+}
+
+.poi-fav-count {
+  font-size: 24rpx;
+  color: var(--color-text-hint);
+  line-height: 1.1;
+}
+
+.poi-fav-btn.active .poi-fav-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 元信息行 */
+.poi-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  flex-wrap: wrap;
+}
+
+/* 星级评分 - 叠层实现 */
+.poi-stars {
+  position: relative;
+  display: inline-flex;
+  letter-spacing: 4rpx;
+}
+
+.poi-stars-empty {
+  font-size: 30rpx;
+  color: var(--color-gray-300);
+}
+
+.poi-stars-filled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 30rpx;
+  color: #FFD93D;
+}
+
+.poi-rating-text {
+  font-size: 30rpx;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.poi-sep {
+  font-size: 28rpx;
+  color: var(--color-border);
+}
+
+/* 室内/室外标签 */
+.poi-indoor-tag {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 8rpx 18rpx;
+  border-radius: var(--radius-pill);
+  font-size: 26rpx;
+  font-weight: var(--font-weight-medium);
+}
+
+.poi-indoor-tag.indoor {
+  background: var(--color-secondary-bg);
+  color: var(--color-secondary);
+}
+
+.poi-indoor-tag.outdoor {
+  background: rgba(46, 204, 113, 0.12);
+  color: #27AE60;
+}
+
+/* 统计 */
+.poi-stat {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 18rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-100);
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+/* ── 热度条 ── */
+.poi-heat-row {
+  padding: 18rpx 20rpx;
+  margin-bottom: 16rpx;
+  border-radius: 20rpx;
+  background: var(--color-gray-50);
+}
+
+.poi-heat-head {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.poi-heat-title {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.poi-heat-num {
+  font-size: 30rpx;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.poi-heat-track {
+  width: 100%;
+  height: 12rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-200);
+  overflow: hidden;
+}
+
+.poi-heat-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #F0B04A, #D4890E);
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.poi-heat-fill.tone-hot { background: linear-gradient(90deg, #FF8A5B, #E84A3E); }
+.poi-heat-fill.tone-warm { background: linear-gradient(90deg, #F7C25A, #F08C28); }
+.poi-heat-fill.tone-calm { background: linear-gradient(90deg, #86D0A5, #4BA06E); }
+.poi-heat-fill.tone-new { background: linear-gradient(90deg, #7FB6E8, #4A90D9); }
+
+/* 地址 */
+.poi-address {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid var(--color-divider);
+  font-size: 28rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.poi-address-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poi-copy {
+  flex-shrink: 0;
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: 24rpx;
+}
+
+.poi-address:active {
+  opacity: 0.65;
+}
+
+/* ── 标签 / 设施 / 最佳时间 ── */
+.poi-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-wrap: wrap;
+  padding: 0 0 20rpx;
+}
+
+.poi-chip {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 8rpx 18rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-100);
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+}
+
+.poi-chip.facility {
+  background: rgba(91, 168, 26, 0.12);
+  color: #5BA81A;
+}
+
+.poi-chip.time {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+/* ── 双操作按钮 ── */
+.poi-actions {
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--color-divider);
+}
+
+.poi-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  height: 88rpx;
+  border-radius: var(--radius-pill);
+  font-size: 30rpx;
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.poi-btn::after { border: none; }
+
+.poi-btn.primary {
+  flex: 1.2;
+  background: var(--color-primary);
+  /* 琥珀底在两种主题下一致，因此文字固定白色而非随主题反转 */
+  color: #fff;
+}
+
+.poi-btn.secondary {
+  flex: 1;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary-light);
+}
+
+.poi-btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+
+/* ── POI 背景图与信息区融合 ── */
+.poi-cover { height: 440rpx; border-radius: 28rpx 28rpx 0 0; }
+.poi-cover-swiper { height: 440rpx; touch-action: pan-x; }
+.poi-cover-swiper swiper-item { height: 440rpx; touch-action: pan-x; }
+.poi-cover-img { width: 100%; height: 440rpx; }
+.poi-cover-gradient { height: 180rpx; z-index: 1; background: linear-gradient(to top, rgba(255,253,248,.98) 0%, rgba(255,253,248,.86) 24%, rgba(255,253,248,.46) 52%, rgba(255,253,248,.08) 82%, transparent 100%); backdrop-filter: blur(14rpx); -webkit-backdrop-filter: blur(14rpx); pointer-events: none; }
+.poi-cover-gradient::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 4rpx; border-radius: 999rpx; background: linear-gradient(90deg, transparent, rgba(75,155,106,.78) 30%, rgba(212,137,14,.82) 70%, transparent); opacity: .9; }
+.poi-cover-category, .poi-cover-count, .poi-dots { bottom: 24rpx; z-index: 2; }
+.poi-body { position: relative; z-index: 2; margin-top: -174rpx; padding-top: 20rpx; background: linear-gradient(to bottom, rgba(255,253,248,0) 0%, rgba(255,253,248,.60) 30%, rgba(255,253,248,.96) 74%, var(--color-bg-white) 100%); }
+.poi-meta-row { position: relative; z-index: 3; }
+.poi-sheet-card { position: relative; overflow: hidden; }
+.dark-theme .poi-cover-gradient { background: linear-gradient(to top, rgba(31,30,40,.98) 0%, rgba(31,30,40,.88) 24%, rgba(31,30,40,.52) 52%, rgba(31,30,40,.10) 82%, transparent 100%); }
+.dark-theme .poi-cover-gradient::before { background: linear-gradient(90deg, transparent, rgba(123,205,151,.8) 30%, rgba(240,176,74,.85) 70%, transparent); }
+.dark-theme .poi-body { background: linear-gradient(to bottom, rgba(31,30,40,0) 0%, rgba(31,30,40,.66) 30%, rgba(31,30,40,.96) 74%, var(--color-bg-white) 100%); }
+
+/* 地点类别：显示在距离信息后，避免被距离文字遮住 */
+.poi-category-tag { position: relative; z-index: 8; display: inline-flex; flex-shrink: 0; align-items: center; max-width: 230rpx; min-height: 56rpx; margin-left: 16rpx; padding: 8rpx 20rpx; box-sizing: border-box; overflow: hidden; border: 1rpx solid #F0C36A; border-radius: 999rpx; background: #FFF1D6; color: #A96800; font-size: 24rpx; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2rpx 8rpx rgba(168,104,0,.14); }
+
+
+/* 遮罩上边界下移到图片底边，避免在图片中部形成横向断线 */
+.poi-cover-gradient::before {
+  top: auto;
+  bottom: -2rpx;
+}
+
+/* 地点类别使用与收藏按钮同等级的卡片阴影，避免被背景吞没 */
+.poi-category-tag {
+  box-shadow: var(--shadow-md), 0 2rpx 8rpx rgba(168, 104, 0, 0.18);
+}

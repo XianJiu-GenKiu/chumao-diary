@@ -1,0 +1,57 @@
+<!-- pages/settings/settings.wxml -->
+<view class="page page-settings {{darkMode ? 'dark-theme' : ''}}">
+  <!-- 用户信息头部 -->
+  <view class="settings-profile" bindtap="onAvatarTap">
+    <image class="profile-avatar" src="{{userInfo.avatarUrl || userInfo.avatar || '/images/empty/avatar.png'}}" mode="aspectFill" />
+    <view class="profile-info">
+      <text class="profile-name">{{userInfo.nickName || userInfo.nickname || '毛毛用户'}}</text>
+      <text class="profile-id">点击更换头像；编辑资料请使用下方入口</text>
+    </view>
+    <text class="s-arrow">›</text>
+  </view>
+
+  <!-- 数据统计 -->
+  <view class="stats-row">
+    <view class="stat-item">
+      <text class="stat-num">{{stats.postCount || 0}}</text>
+      <text class="stat-label">帖子</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.likeCount || 0}}</text>
+      <text class="stat-label">获赞</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.favoriteCount || 0}}</text>
+      <text class="stat-label">收藏</text>
+    </view>
+  </view>
+
+  <!-- 动态设置分组 -->
+  <view class="settings-group" wx:for="{{settingGroups}}" wx:key="title">
+    <view class="settings-group-title">{{item.title}}</view>
+    <view class="settings-group-body">
+      <view
+        class="settings-item {{setting.danger ? 'settings-item-danger' : ''}}"
+        wx:for="{{item.items}}"
+        wx:for-item="setting"
+        wx:key="label"
+        data-item="{{setting}}"
+        bindtap="onSettingTap"
+      >
+        <icon name="{{setting.icon}}" size="36" color="{{setting.danger ? '#e74c3c' : '#D4890E'}}" />
+        <text class="s-label">{{setting.label}}</text>
+        <switch
+          wx:if="{{setting.action == 'toggleNotify' || setting.action == 'toggleDark'}}"
+          class="s-switch"
+          checked="{{setting.checked}}"
+          color="#D4890E"
+          catchchange="onSwitchChange"
+          data-item="{{setting}}"
+        />
+        <text class="s-arrow" wx:else>›</text>
+      </view>
+    </view>
+  </view>
+</view>

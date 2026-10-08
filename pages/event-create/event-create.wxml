@@ -1,0 +1,139 @@
+<!-- 创建活动页 -->
+<view class="page-event-create {{darkMode ? 'dark-theme' : ''}}">
+
+  <!-- 表单 -->
+  <view class="form-section">
+    <!-- 活动名称 -->
+    <view class="form-group">
+      <view class="form-label">活动名称 <text class="required">*</text></view>
+      <input
+        class="form-input"
+        placeholder="给活动取个名字吧"
+        placeholder-class="placeholder"
+        value="{{name}}"
+        bindinput="onNameInput"
+        maxlength="50"
+      />
+    </view>
+
+    <!-- 活动介绍 -->
+    <view class="form-group">
+      <view class="form-label">活动介绍</view>
+      <textarea
+        class="form-textarea"
+        placeholder="介绍一下活动内容、注意事项…"
+        placeholder-class="placeholder"
+        value="{{description}}"
+        bindinput="onDescInput"
+        maxlength="500"
+      />
+    </view>
+
+    <!-- 封面图 -->
+    <view class="form-group">
+      <view class="form-label">封面图</view>
+      <view class="cover-upload" bindtap="uploadCover">
+        <image wx:if="{{cover}}" src="{{cover}}" mode="aspectFill" class="cover-preview" />
+        <view wx:else class="cover-placeholder">
+          <icon name="image" size="48" color="#ccc" />
+          <text>点击上传封面图</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 活动时间 -->
+    <view class="form-group">
+      <view class="form-label">开始时间 <text class="required">*</text></view>
+      <picker
+        mode="multiSelector"
+        value="{{startTimeIndex}}"
+        range="{{startTimeRange}}"
+        data-range-type="start"
+        bindchange="onStartTimeChange"
+        bindcolumnchange="onTimeColumnChange"
+      >
+        <view class="form-picker {{startTime ? '' : 'placeholder'}}">
+          <icon name="clock" size="28" color="#909090" />
+          <text>{{startTime || '选择开始时间'}}</text>
+          <icon name="chevron-right" size="28" color="#ccc" />
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-group">
+      <view class="form-label">结束时间 <text class="required">*</text></view>
+      <picker
+        mode="multiSelector"
+        value="{{endTimeIndex}}"
+        range="{{endTimeRange}}"
+        data-range-type="end"
+        bindchange="onEndTimeChange"
+        bindcolumnchange="onTimeColumnChange"
+      >
+        <view class="form-picker {{endTime ? '' : 'placeholder'}}">
+          <icon name="clock" size="28" color="#909090" />
+          <text>{{endTime || '选择结束时间'}}</text>
+          <icon name="chevron-right" size="28" color="#ccc" />
+        </view>
+      </picker>
+    </view>
+
+    <!-- 活动地点 -->
+    <view class="form-group">
+      <view class="form-label">活动地点</view>
+      <view class="form-picker" bindtap="chooseLocation">
+        <icon name="map-pin" size="28" color="#909090" />
+        <text class="{{location ? '' : 'placeholder'}}">{{location || '选择活动地点（选填）'}}</text>
+        <icon name="chevron-right" size="28" color="#ccc" />
+      </view>
+    </view>
+
+    <!-- 人数限制 -->
+    <view class="form-group">
+      <view class="form-label">人数上限</view>
+      <view class="capacity-row">
+        <input
+          class="capacity-input"
+          type="number"
+          placeholder="不限"
+          placeholder-class="placeholder"
+          value="{{maxPeople}}"
+          bindinput="onMaxPeopleInput"
+        />
+        <text class="capacity-unit">人（留空表示不限）</text>
+      </view>
+    </view>
+
+    <!-- 活动标签 -->
+    <view class="form-group">
+      <view class="form-label">活动标签</view>
+      <view class="tags-input-wrap">
+        <view class="selected-tags">
+          <view class="s-tag" wx:for="{{selectedTags}}" wx:key="*this">
+            <text>{{item}}</text>
+            <view class="s-tag-close" data-tag="{{item}}" bindtap="removeTag">
+              <icon name="x" size="20" color="#999" />
+            </view>
+          </view>
+        </view>
+        <view class="tag-suggestions">
+          <text
+            wx:for="{{tagSuggestions}}"
+            wx:key="*this"
+            class="tag-option {{selectedTags.indexOf(item) > -1 ? 'selected' : ''}}"
+            data-tag="{{item}}"
+            bindtap="toggleTag"
+          >{{item}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-area">
+    <button class="submit-btn" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
+      发布活动
+    </button>
+    <text class="submit-tip">发布后其他用户可以看到并报名参加</text>
+  </view>
+</view>

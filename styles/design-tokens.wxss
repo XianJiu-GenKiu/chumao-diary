@@ -1,0 +1,234 @@
+/* ============================================================
+   出毛日记 · Design Tokens（对齐 Figma 修复清单）
+   ============================================================ */
+
+page {
+  /* ── 品牌色（对齐 Figma 修复清单，统一为 #D4890E） ── */
+  --color-primary: #D4890E;
+  --color-primary-light: #F5A623;
+  --color-primary-bg: #FFF7E6;
+
+  /* ── 辅助色 ── */
+  --color-secondary: #5BA81A;
+  --color-secondary-light: #7ED321;
+  --color-secondary-bg: #F0FAE5;
+  --color-accent: #FFD93D;
+
+  /* ── 功能色 ── */
+  --color-danger: #E02020;
+  --color-danger-light: #FF4D4F;
+  --color-danger-bg: #FFF1F0;
+  --color-warning: #C7850A;
+  --color-warning-light: #FAAD14;
+  --color-warning-bg: #FFFBE6;
+  --color-success: #4CAF50;
+  --color-info: #2196F3;
+  --color-map-bg: #E8F5FC;
+  --color-map-grid: rgba(130,140,148,0.5);
+  --color-card-water: #C6D9EB;
+  --color-card-urban: #D9D1C7;
+  --color-card-forest: #BFE0B8;
+
+  /* ── 灰阶（语义） ── */
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F0F0F0;
+  --color-gray-200: #E5E5E5;
+  --color-gray-300: #D0D0D0;
+  --color-gray-400: #B0B0B0;
+  --color-gray-500: #909090;
+  --color-gray-600: #707070;
+  --color-gray-700: #505050;
+  --color-gray-800: #333333;
+  --color-gray-900: #1A1A1A;
+
+  /* ── 文字色 ── */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #707070;
+  --color-text-hint: #909090;
+  --color-text-disabled: #B0B0B0;
+  --color-text-inverse: #FFFFFF;
+
+  /* ── 背景色 ── */
+  --color-bg-page: #F7F8FA;
+  --color-bg-card: #FFFFFF;
+  --color-bg-white: #FFFFFF;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  --color-bg-hover: #F0F0F0;
+
+  /* ── 边框 ── */
+  --color-border: #E5E5E5;
+  --color-border-light: #F0F0F0;
+  --color-divider: #F0F0F0;
+
+  /* ── 间距（px） ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── 间距（rpx） ── */
+  --spacing-xs: 4rpx;
+  --spacing-sm: 8rpx;
+  --spacing-md: 16rpx;
+  --spacing-lg: 24rpx;
+  --spacing-xl: 32rpx;
+  --spacing-xxl: 48rpx;
+
+  /* ── 页面边距 ── */
+  --page-padding: 32rpx;
+  --page-padding-sm: 24rpx;
+
+  /* ── 字体族（跟随系统字体，中文优先，数字使用等宽数字特性） ── */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'HarmonyOS Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-family-display: -apple-system, BlinkMacSystemFont, 'HarmonyOS Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  --font-family-num: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'HarmonyOS Sans SC', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  /* 品牌字体（站酷快乐体子集，见 styles/brand-font.wxss），用于小程序标题 */
+  --font-family-brand: 'ChumaoBrand', -apple-system, BlinkMacSystemFont, 'HarmonyOS Sans SC', 'PingFang SC', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+
+  /* ── 字号（px，供既有页面使用） ── */
+  --text-2xs: 12px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* ── 字号阶梯（rpx，统一为 24/26/28/30/32/36/40/44/48 九档） ──
+     下限 24rpx(12px)：低于此值在主流机型上难以辨认，仅允许装饰性符号例外。 */
+  --font-size-2xs: 24rpx;   /* 12px — 最小可读字号：角标、辅助标注 */
+  --font-size-xs: 24rpx;    /* 12px — 时间、辅助说明 */
+  --font-size-sm: 26rpx;    /* 13px — 次级说明、标签 */
+  --font-size-md: 28rpx;    /* 14px — 正文默认 */
+  --font-size-base: 30rpx;  /* 15px — 主要内容、列表标题 */
+  --font-size-lg: 32rpx;    /* 16px — 卡片标题 */
+  --font-size-xl: 36rpx;    /* 18px — 区块标题 */
+  --font-size-xxl: 40rpx;   /* 20px — 页面标题 */
+  --font-size-title: 44rpx; /* 22px — 主标题 */
+  --font-size-display: 48rpx; /* 24px — 品牌与数据强调 */
+
+  /* ── 字重（中文正文避免 300/700，保持柔和稳定的观感） ── */
+  --font-weight-light: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-medium: 500;
+  --font-semibold: 500;
+  --font-weight-semibold: 600;
+  --font-bold: 600;
+  --font-weight-bold: 600;
+  --font-weight-heavy: 700;
+
+  /* ── 行高 ── */
+  --line-height-tight: 1.3;
+  --leading-normal: 1.6;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.75;
+
+  /* ── 字距（中文正文略放宽，标题收紧以增强整体感） ── */
+  --letter-spacing-tight: -0.5rpx;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.5rpx;
+
+  /* ── 圆角（px） ── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-card: 16px;
+  --radius-round: 999px;
+  --radius-full: 999px;
+  --radius-pill: 15px;
+  --radius-button: 8px;
+
+  /* ── 阴影 ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+
+  /* ── 动画 ── */
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+  --ease-out: ease-out;
+  --ease-bezier: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --safe-bottom-space: calc(var(--tab-bar-height) + 32rpx);
+
+  /* ── 触控尺寸（rpx；88rpx=44px 满足最小触控标准） ──
+     --touch-sm   72rpx(36px)：次级胶囊/标签/chip 的最小高度
+     --touch-min  88rpx(44px)：主要按钮、图标按钮的最小触控
+     --touch-comfort 96rpx(48px)：主操作按钮的舒适高度 */
+  --touch-sm: 72rpx;
+  --touch-min: 88rpx;
+  --touch-comfort: 96rpx;
+
+  /* ── 状态栏 ── */
+  --status-bar-height: 0px;
+  --safe-area-bottom: 0px;
+
+  /* ── Tab Bar ── */
+  --tab-bar-height: 100rpx;
+  
+  /* ── 自定义导航栏高度 ── */
+  --nav-bar-height: 176rpx;
+}
+
+/* ============================================================
+   深色模式覆盖
+   通过在页面根 view 添加 .dark-theme 类触发
+   ============================================================ */
+.dark-theme {
+  --color-primary: #D4890E;
+  --color-primary-light: #E0A030;
+  --color-primary-bg: #3A2E15;
+
+  --color-secondary: #5BA0E8;
+  --color-secondary-bg: #1A2A3A;
+
+  --color-gray-50: #1E1E2E;
+  --color-gray-100: #252535;
+  --color-gray-200: #2A2A3E;
+  --color-gray-300: #3A3A50;
+  --color-gray-400: #5A5A70;
+  --color-gray-500: #7A7A90;
+  --color-gray-600: #9A9AB0;
+  --color-gray-700: #B0B0C0;
+  --color-gray-800: #D0D0DC;
+  --color-gray-900: #E8E8F0;
+
+  --color-text-primary: #E8E8F0;
+  --color-text-secondary: #A0A0B8;
+  --color-text-hint: #6A6A80;
+  --color-text-disabled: #4A4A60;
+  --color-text-inverse: #1A1A2E;
+
+  --color-bg-page: #121220;
+  --color-bg-card: #1E1E2E;
+  --color-bg-white: #1E1E2E;
+  --color-bg-hover: #2A2A3E;
+
+  --color-border: #2A2A3E;
+  --color-border-light: #252535;
+  --color-divider: #252535;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  background: #121220;
+  color: #E8E8F0;
+}

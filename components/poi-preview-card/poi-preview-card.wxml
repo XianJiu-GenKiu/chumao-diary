@@ -1,0 +1,218 @@
+<!--
+  POI 预览卡片
+  ─────────────────────────────────────────────────────────────
+  同一套模板同时渲染两类地点：
+  1. 小程序自有地点（collectionStatus = collected）：显示热度、打卡、收藏、查看详情
+  2. 腾讯地图外部地点（not_collected / unresolved）：显示来源与收录状态，
+     不显示虚假热度，主操作变为「添加到出毛日记」
+
+  结构说明：外层 .poi-sheet 负责定位与弹出/弹入动画，
+  内层 .poi-sheet-card 负责外观与拖拽位移，两层分离避免
+  动画的 transform 与拖拽的 transform 互相覆盖。
+-->
+<view
+  class="poi-sheet {{placement === 'floating' ? 'floating' : ''}} {{animState}}"
+  wx:if="{{item && mounted}}"
+  style="--poi-card-top: {{top}}px;"
+  catchtap="preventBubble"
+>
+  <view class="poi-sheet-card {{dragging ? 'dragging' : ''}}" style="transform: translateY({{dragOffset}}px);">
+
+    <!-- 封面区域：多图时可左右循环滑动。封面不接管卡片拖拽，避免抢占 swiper 横向手势 -->
+    <view class="poi-cover">
+      <block wx:if="{{gallery.length > 0}}">
+        <!-- 单图直接用 image，避免不必要的 swiper 开销 -->
+        <image
+          wx:if="{{gallery.length === 1}}"
+          class="poi-cover-img"
+          src="{{gallery[0]}}"
+          mode="aspectFill"
+          bindtap="onPreviewImage"
+        />
+        <!-- 多图：循环轮播 -->
+        <!--
+          current 只绑定 swiperCurrent，且仅在「换地点 / 重新打开」时程序化修改。
+          官方文档警告：若在 bindchange 里 setData 修改 current，会导致 setData 被不停调用
+          并干扰滑动。因此当前页索引另存为 currentImage（供指示点与全屏预览使用），
+          不回写 current，避免形成双向绑定回路。
+        -->
+        <swiper
+          wx:else
+          class="poi-cover-swiper"
+          circular
+          current="{{swiperCurrent}}"
+          bindchange="onGalleryChange"
+          duration="260"
+          easing-function="easeOutCubic"
+        >
+          <swiper-item wx:for="{{gallery}}" wx:for-item="imgUrl" wx:key="*this">
+            <image class="poi-cover-img" src="{{imgUrl}}" mode="aspectFill" bindtap="onPreviewImage" />
+          </swiper-item>
+        </swiper>
+      </block>
+      <!-- 外部地点没有图片，按分类显示占位图标，避免空白图区 -->
+      <view class="poi-cover-placeholder" wx:else>
+        <icon name="{{item.placeholderIcon || 'map-pin'}}" size="72" color="rgba(255,255,255,0.42)" />
+        <text class="poi-cover-placeholder-text" wx:if="{{item.isExternalPoi}}">{{item.categoryName}}</text>
+      </view>
+
+      <!-- 覆盖渐变 -->
+      <view class="poi-cover-gradient"></view>
+
+      <!-- 左上类别标签 -->
+      <view class="poi-cover-category" wx:if="{{item.categoryName}}">
+        <icon name="tag" size="24" color="#fff" />
+        <text>{{item.categoryName}}</text>
+      </view>
+
+      <!-- 右上徽标：内部地点显示热度，外部地点显示来源 -->
+      <view class="poi-heat-badge tone-{{item.heatTone}}" wx:if="{{!item.isExternalPoi}}">
+        <icon name="fire" size="26" color="#fff" />
+        <text class="poi-heat-label">{{item.heatLabel}}</text>
+        <text class="poi-heat-value">{{item.heat}}</text>
+      </view>
+      <view class="poi-source-badge" wx:else>
+        <icon name="map-pin" size="24" color="#fff" />
+        <text>{{item.sourceLabel}}</text>
+      </view>
+
+      <!-- 图片数量角标 -->
+      <view class="poi-cover-count" wx:if="{{item.imageCount > 1}}">
+        <icon name="image" size="22" color="#fff" />
+        <text>{{item.imageCount}} 张</text>
+      </view>
+
+      <!-- 轮播指示点 -->
+      <view class="poi-dots" wx:if="{{gallery.length > 1}}">
+        <view
+          wx:for="{{gallery}}"
+          wx:key="*this"
+          class="poi-dot {{currentImage === index ? 'active' : ''}}"
+        ></view>
+      </view>
+
+      <!-- 拖拽手柄 -->
+      <view class="poi-handle" catchtap="onClose">
+        <view class="poi-handle-bar"></view>
+      </view>
+    </view>
+
+    <!-- 信息区 -->
+    <view class="poi-body" catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd" catchtouchcancel="onTouchCancel">
+      <!-- 标题行：名称 + 收藏按钮（仅内部地点可收藏） -->
+      <view class="poi-title-row">
+        <view class="poi-title-main">
+          <text class="poi-name">{{item.name || '未命名地点'}}</text>
+          <view class="poi-subline">
+            <text class="poi-distance" wx:if="{{item.distance}}">{{item.distance}}</text>
+            <text class="poi-subsep" wx:if="{{item.distance && item.ratingCount}}">·</text>
+            <text class="poi-rating-count" wx:if="{{item.ratingCount}}">{{item.ratingCount}} 人评分</text>
+            <text class="poi-subsep" wx:if="{{!item.ratingCount && item.viewCount}}">·</text>
+            <text class="poi-rating-count" wx:if="{{!item.ratingCount && item.viewCount}}">{{item.viewCount}} 次浏览</text>
+            <text class="poi-category-tag" wx:if="{{item.categoryName}}">{{item.categoryName}}</text>
+          </view>
+        </view>
+        <view
+          wx:if="{{item.canFavorite}}"
+          class="poi-fav-btn {{item.isFavorited ? 'active' : ''}} {{favPending ? 'pending' : ''}}"
+          hover-class="poi-fav-hover"
+          hover-stay-time="80"
+          catchtap="onFavorite"
+        >
+          <icon name="{{item.isFavorited ? 'heart' : 'heart-outline'}}" size="36" color="{{item.isFavorited ? '#fff' : '#D4890E'}}" fill="{{item.isFavorited}}" />
+          <text class="poi-fav-text">{{item.isFavorited ? '已收藏' : '收藏'}}</text>
+          <text class="poi-fav-count">{{item.favoriteCount || 0}}</text>
+        </view>
+      </view>
+
+      <!-- 内部地点：评分与属性 -->
+      <block wx:if="{{!item.isExternalPoi}}">
+        <view class="poi-meta-row">
+          <view class="poi-stars" wx:if="{{item.rating}}">
+            <text class="poi-stars-filled" style="width: {{(item.rating / 5) * 100}}%">★★★★★</text>
+            <text class="poi-stars-empty">★★★★★</text>
+          </view>
+          <text class="poi-rating-text" wx:if="{{item.rating}}">{{item.rating}}</text>
+          <text class="poi-sep" wx:if="{{item.rating}}">·</text>
+
+          <view class="poi-indoor-tag {{item.isIndoor ? 'indoor' : 'outdoor'}}">
+            <icon name="{{item.isIndoor ? 'home' : 'sun'}}" size="26" />
+            <text>{{item.isIndoor ? '室内' : '室外'}}</text>
+          </view>
+
+          <view class="poi-stat" wx:if="{{item.checkinCount}}">
+            <icon name="check" size="26" />
+            <text>{{item.checkinCount}} 次打卡</text>
+          </view>
+
+          <view class="poi-stat" wx:if="{{item.seedCount}}">
+            <icon name="thumbs-up" size="26" />
+            <text>{{item.seedCount}} 种草</text>
+          </view>
+        </view>
+
+        <!-- 热度条：把收藏 / 打卡 / 种草等互动量可视化 -->
+        <view class="poi-heat-row">
+          <view class="poi-heat-head">
+            <icon name="trending-up" size="26" color="#D4890E" />
+            <text class="poi-heat-title">地点热度</text>
+            <text class="poi-heat-num">{{item.heat}}</text>
+          </view>
+          <view class="poi-heat-track">
+            <view class="poi-heat-fill tone-{{item.heatTone}}" style="width: {{item.heatPercent}}%;"></view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 外部地点：收录状态说明。
+           刻意不显示热度与互动数据，避免让用户误以为该地点已加入小程序。 -->
+      <view class="poi-status-row {{item.collectionStatus}}" wx:else>
+        <icon name="{{item.collectionStatus === 'unresolved' ? 'info' : 'compass'}}" size="28" color="{{item.collectionStatus === 'unresolved' ? '#909090' : '#D4890E'}}" />
+        <view class="poi-status-text-wrap">
+          <text class="poi-status-title">{{item.collectionStatus === 'unresolved' ? '地图上暂无该地点信息' : '出毛日记暂未收录此地'}}</text>
+          <text class="poi-status-desc">{{item.collectionStatus === 'unresolved' ? '你可以在这里创建第一个地点' : '添加后可打卡、收藏并分享你的出毛日记'}}</text>
+        </view>
+      </view>
+
+      <!-- 地址：内部地点可点击复制，外部地点仅展示 -->
+      <view class="poi-address" wx:if="{{item.address}}" bindtap="onCopyAddress">
+        <icon name="map-pin" size="28" color="#909090" />
+        <text class="poi-address-text">{{item.address}}</text>
+        <text class="poi-copy" wx:if="{{!item.isExternalPoi}}">复制</text>
+      </view>
+
+      <!-- 标签 / 设施 / 最佳时间（仅内部地点有） -->
+      <view class="poi-chip-row" wx:if="{{!item.isExternalPoi && (item.tags.length || item.facilities.length || item.bestTime)}}">
+        <text class="poi-chip" wx:for="{{item.tags}}" wx:for-item="tagName" wx:key="*this">{{tagName}}</text>
+        <view class="poi-chip facility" wx:for="{{item.facilities}}" wx:for-item="facilityName" wx:key="*this">
+          <icon name="check" size="22" color="#5BA81A" />
+          <text>{{facilityName}}</text>
+        </view>
+        <view class="poi-chip time" wx:if="{{item.bestTime}}">
+          <icon name="clock" size="22" color="#D4890E" />
+          <text>最佳 {{item.bestTime}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作区：内部地点=导航 + 周边服务 + 查看详情；外部地点=导航 + 添加到出毛日记 -->
+    <view class="poi-actions">
+      <view class="poi-btn secondary" wx:if="{{item.canNavigate}}" catchtap="onNavigate">
+        <icon name="navigation" size="32" color="#D4890E" />
+        <text>导航前往</text>
+      </view>
+      <view class="poi-btn secondary" wx:if="{{!item.isExternalPoi}}" catchtap="onNearbyServices">
+        <icon name="map" size="30" color="#D4890E" />
+        <text>看周边</text>
+      </view>
+      <view class="poi-btn primary" wx:if="{{item.canAddToDiary}}" catchtap="onAddToDiary">
+        <icon name="plus" size="30" color="#fff" />
+        <text>添加到出毛日记</text>
+      </view>
+      <view class="poi-btn primary" wx:elif="{{item.canViewDetail}}" catchtap="onViewDetail">
+        <text>查看详情</text>
+        <icon name="chevron-right" size="32" color="#fff" />
+      </view>
+    </view>
+  </view>
+</view>

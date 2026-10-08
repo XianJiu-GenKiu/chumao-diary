@@ -1,0 +1,9 @@
+{
+  "name": "post-favorite",
+  "version": "1.0.0",
+  "description": "帖子收藏/取消收藏云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

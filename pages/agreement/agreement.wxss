@@ -1,0 +1,67 @@
+/* pages/agreement/agreement.wxss */
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+
+.agreement-page {
+  min-height: 100vh;
+  background: var(--color-bg-page, #F7F8FA);
+  padding: 0 0 64rpx;
+}
+
+.agreement-section {
+  padding: 32rpx 32rpx 16rpx;
+}
+
+.agreement-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text-primary, #1A1A1A);
+}
+
+.agreement-update-time {
+  display: block;
+  font-size: 24rpx;
+  color: var(--color-text-hint, #999);
+  margin-top: 8rpx;
+}
+
+.agreement-content {
+  background: var(--color-bg-white, #fff);
+  padding: 24rpx 32rpx;
+  margin: 0 0 16rpx;
+}
+
+.content-block {
+  margin-bottom: 32rpx;
+}
+
+.content-block:last-child {
+  margin-bottom: 0;
+}
+
+.block-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text-primary, #1A1A1A);
+  margin-bottom: 12rpx;
+}
+
+.block-text {
+  display: block;
+  font-size: 26rpx;
+  color: var(--color-text-secondary, #666);
+  line-height: 1.8;
+  margin-bottom: 8rpx;
+}
+
+.agreement-footer {
+  text-align: center;
+  padding: 32rpx;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: var(--color-text-hint, #ccc);
+}

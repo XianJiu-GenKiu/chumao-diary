@@ -1,0 +1,245 @@
+<!-- pages/location-upload/location-upload.wxml -->
+<view class="page page-location-upload {{darkMode ? 'dark-theme' : ''}}">
+  <!-- 顶部提示 -->
+  <view class="upload-banner">
+    <icon name="map-pin" size="36" color="#D4890E" />
+    <text class="banner-text">分享你发现的优质外景拍摄地点</text>
+  </view>
+
+  <view class="stepper">
+    <view class="stepper-item {{currentStep >= index ? 'active' : ''}}" wx:for="{{steps}}" wx:key="*this">
+      <view class="stepper-dot">{{index + 1}}</view>
+      <text>{{item}}</text>
+    </view>
+  </view>
+
+  <block wx:if="{{currentStep === 0}}">
+
+  <!-- 地点名称 -->
+  <view class="form-section">
+    <text class="form-label">地点名称 <text class="required">*</text></text>
+    <view class="input-wrapper">
+      <input class="input" placeholder="例如：城市森林公园" value="{{name}}" bindinput="onNameInput" maxlength="30" />
+    </view>
+  </view>
+
+  <!-- 地点用途：决定它出现在地图地点还是“看周边”对应分类中 -->
+  <view class="form-section">
+    <text class="form-label">地点用途 <text class="required">*</text></text>
+    <view class="toggle-row">
+      <view class="toggle-item {{locationKind === 'shooting' ? 'active' : ''}}" data-kind="shooting" bindtap="onLocationKindTap">
+        <icon name="image" size="24" color="{{locationKind === 'shooting' ? '#D4890E' : '#999'}}" />
+        <text>出毛地点</text>
+      </view>
+      <view class="toggle-item {{locationKind === 'service' ? 'active' : ''}}" data-kind="service" bindtap="onLocationKindTap">
+        <icon name="home" size="24" color="{{locationKind === 'service' ? '#D4890E' : '#999'}}" />
+        <text>周边服务地点</text>
+      </view>
+    </view>
+    <text class="form-hint">周边服务地点会显示在对应的“看周边”分类中，并优先于腾讯地图结果。</text>
+  </view>
+
+  <!-- 地点类别 -->
+  <view class="form-section" wx:if="{{locationKind === 'shooting'}}">
+    <text class="form-label">地点类别 <text class="required">*</text></text>
+    <picker mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+      <view class="picker-wrapper">
+        <text class="{{categoryIndex >= 0 ? 'picker-value' : 'picker-placeholder'}}">
+          {{categoryIndex >= 0 ? categoryOptions[categoryIndex] : '请选择地点类别'}}
+        </text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="form-section" wx:if="{{locationKind === 'service'}}">
+    <text class="form-label">周边服务分类 <text class="required">*</text></text>
+    <picker mode="selector" range="{{serviceCategoryOptions}}" value="{{serviceCategoryIndex}}" bindchange="onServiceCategoryChange">
+      <view class="picker-wrapper">
+        <text class="{{serviceCategoryIndex >= 0 ? 'picker-value' : 'picker-placeholder'}}">
+          {{serviceCategoryIndex >= 0 ? serviceCategoryOptions[serviceCategoryIndex] : '请选择周边服务分类'}}
+        </text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 室内/室外 -->
+  <view class="form-section">
+    <text class="form-label">场景类型</text>
+    <view class="toggle-row">
+      <view class="toggle-item {{!isIndoor ? 'active' : ''}}" bindtap="setIndoor" data-val="false">
+        <icon name="compass" size="24" color="{{!isIndoor ? '#D4890E' : '#999'}}" />
+        <text>室外</text>
+      </view>
+      <view class="toggle-item {{isIndoor ? 'active' : ''}}" bindtap="setIndoor" data-val="true">
+        <icon name="home" size="24" color="{{isIndoor ? '#D4890E' : '#999'}}" />
+        <text>室内</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 场景风格 -->
+  <view class="form-section">
+    <text class="form-label">场景风格</text>
+    <view class="style-grid">
+      <view
+        class="style-item {{activeStyle === item.key ? 'active' : ''}}"
+        wx:for="{{styleOptions}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onStyleTap"
+      >
+        <icon name="{{styleIconMap[item.key]}}" size="34" color="{{activeStyle === item.key ? '#D4890E' : '#666'}}" />
+        <text class="style-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设施条件 -->
+  <view class="form-section">
+    <text class="form-label">设施条件</text>
+    <view class="facility-check-grid">
+      <view
+        class="facility-check {{item.checked ? 'active' : ''}}"
+        wx:for="{{facilityOptions}}"
+        wx:key="key"
+        data-index="{{index}}"
+        bindtap="toggleFacility"
+      >
+        <text>{{item.checked ? '☑' : '☐'}} {{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 推荐指数 -->
+  <view class="form-section">
+    <text class="form-label">推荐指数</text>
+    <view class="star-row">
+      <text
+        class="star {{index < rating ? 'star-filled' : 'star-empty'}}"
+        wx:for="{{[1,2,3,4,5]}}"
+        wx:key="*this"
+        data-value="{{index + 1}}"
+        bindtap="onRatingTap"
+      >★</text>
+      <text class="rating-text" wx:if="{{rating > 0}}">{{rating}}.0</text>
+    </view>
+  </view>
+
+  <!-- 标签 -->
+  <view class="form-section">
+    <text class="form-label">标签（最多5个）</text>
+    <view class="tag-input-row">
+      <view class="input-wrapper tag-input">
+        <input class="input" placeholder="输入标签，如：适合拍照" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" maxlength="10" />
+      </view>
+      <view class="btn btn-primary btn-sm" bindtap="addTag">添加</view>
+    </view>
+    <view class="tag-list" wx:if="{{tags.length > 0}}">
+      <view class="tag tag-primary tag-removable" wx:for="{{tags}}" wx:key="*this">
+        <text>{{item}}</text>
+        <text class="tag-remove" data-index="{{index}}" catchtap="removeTag">×</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 图片上传 -->
+  <view class="form-section">
+    <text class="form-label">实景图片（最多{{maxImages}}张）</text>
+    <view class="image-grid">
+      <view class="image-item" wx:for="{{images}}" wx:key="*this">
+        <image class="upload-image" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" />
+        <view class="image-remove" data-index="{{index}}" catchtap="removeImage">×</view>
+      </view>
+      <view class="image-add" wx:if="{{images.length < maxImages}}" bindtap="chooseImage">
+        <text class="add-icon">+</text>
+        <text class="add-text">添加图片</text>
+      </view>
+    </view>
+    <view class="visibility-hint">图片将跟随地点可见范围展示</view>
+  </view>
+
+  </block>
+
+  <!-- 地图选点 -->
+  <view class="form-section" wx:if="{{currentStep === 1}}">
+    <view class="location-row">
+      <text class="form-label">位置信息 <text class="required">*</text></text>
+      <view class="re-locate" bindtap="chooseOnMap"><icon name="map-pin" size="26" color="#D4890E" /><text>地图选点</text></view>
+    </view>
+    <view class="input-wrapper">
+      <input class="input" placeholder="搜索地址或地点名称" value="{{addressKeyword}}" bindinput="onAddressInput" maxlength="60" />
+    </view>
+    <view class="address-suggestions" wx:if="{{addressSuggestions.length > 0}}">
+      <view class="address-suggestion" wx:for="{{addressSuggestions}}" wx:key="_id" data-item="{{item}}" bindtap="onAddressSuggestionTap">
+        <text class="suggestion-name">{{item.name}}</text>
+        <text class="suggestion-address">{{item.address}}</text>
+      </view>
+    </view>
+    <map
+      class="upload-map"
+      wx:if="{{latitude}}"
+      latitude="{{latitude}}"
+      longitude="{{longitude}}"
+      scale="16"
+      markers="{{mapMarkers}}"
+      show-location
+      bindtap="chooseOnMap"
+    />
+    <view class="location-display">
+      <icon name="map-pin" size="24" color="#D4890E" />
+      <text class="location-text" wx:if="{{address}}">{{address}}</text>
+      <text class="location-text placeholder" wx:else>点击上方地图选择位置</text>
+    </view>
+    <view class="weather-display" wx:if="{{weatherInfo}}">
+      <icon name="cloud-sun" size="24" color="#D4890E" />
+      <text class="weather-text">{{weatherInfo.temperature}} · {{weatherInfo.condition}}</text>
+    </view>
+  </view>
+
+  <!-- 详细描述 -->
+  <view class="form-section" wx:if="{{currentStep === 2}}">
+    <text class="form-label">详细描述</text>
+    <view class="textarea-wrapper">
+      <textarea class="textarea" placeholder="描述这个地点的特色、最佳拍摄时间、注意事项等..." value="{{description}}" bindinput="onDescInput" maxlength="500" />
+      <view class="textarea-count">{{description.length}}/500</view>
+    </view>
+  </view>
+
+  <view class="form-section" wx:if="{{currentStep === 2}}">
+    <text class="form-label">出毛建议</text>
+    <view class="input-wrapper">
+      <input class="input" placeholder="最佳拍摄时间，如：日落前 1 小时" value="{{bestTime}}" bindinput="onBestTimeInput" maxlength="30" />
+    </view>
+    <view class="input-wrapper field-gap">
+      <input class="input" placeholder="推荐季节，如：春秋" value="{{season}}" bindinput="onSeasonInput" maxlength="30" />
+    </view>
+    <view class="textarea-wrapper field-gap">
+      <textarea class="textarea notice-textarea" placeholder="注意事项：门票、换装限制、避坑提示等" value="{{notice}}" bindinput="onNoticeInput" maxlength="300" />
+      <view class="textarea-count">{{notice.length}}/300</view>
+    </view>
+  </view>
+
+  <view class="form-section" wx:if="{{currentStep === 2}}">
+    <text class="form-label">可见范围</text>
+    <view class="toggle-row">
+      <view class="toggle-item {{visibility === 'public' ? 'active' : ''}}" data-value="public" bindtap="setVisibility">公开</view>
+      <view class="toggle-item {{visibility === 'circle' ? 'active' : ''}}" data-value="circle" bindtap="setVisibility">仅自己可见</view>
+    </view>
+    <text class="form-hint">低成本版暂不提供好友圈，选择“仅自己可见”后只有你能查看。</text>
+  </view>
+
+  <view class="step-actions">
+    <view class="btn btn-outline step-btn" wx:if="{{currentStep > 0}}" bindtap="onPrevStep">上一步</view>
+    <view class="btn btn-primary step-btn" wx:if="{{currentStep < 2}}" bindtap="onNextStep">下一步</view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-area" wx:if="{{currentStep === 2}}">
+    <view class="btn btn-primary btn-block {{submitting ? 'btn-disabled' : ''}}" bindtap="submit">
+      <text wx:if="{{!submitting}}">发布地点</text>
+      <text wx:else>发布中...</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+{
+  "name": "comment-create",
+  "type": "cloudfunction",
+  "permissions": {
+    "openapi": [
+      "security.msgSecCheck",
+      "security.imgSecCheck"
+    ]
+  }
+}

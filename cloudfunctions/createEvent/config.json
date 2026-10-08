@@ -1,0 +1,10 @@
+{
+  "name": "createEvent",
+  "type": "cloudfunction",
+  "permissions": {
+    "openapi": [
+      "security.msgSecCheck",
+      "security.imgSecCheck"
+    ]
+  }
+}

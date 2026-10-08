@@ -1,0 +1,1117 @@
+@import '../../components/common.wxss';
+@import '../../styles/design-tokens.wxss';
+
+/* ── 页面 ── */
+.page-discover {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  padding-bottom: calc(var(--tab-bar-height) + 32rpx);
+}
+
+/* ── 自定义顶部导航栏 ── */
+.custom-nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--color-bg-white);
+  box-shadow: 0 1px 4px rgba(131, 68, 68, 0.04);
+}
+
+.status-bar-placeholder {
+  width: 100%;
+}
+
+/* 小程序标题 */
+.app-title {
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.app-title .app-title-text {
+  font-family: 'ChumaoBrand', var(--font-family-display);
+  font-size: 50rpx;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-primary);
+  letter-spacing: 6rpx;
+  /* 字距会在末字后追加空白，补一个左内距让标题真正居中 */
+  padding-left: 6rpx;
+  line-height: 1.1;
+  /* 品牌字体首屏可能尚未就绪，先用系统字体保证不出现空白。 */
+  font-display: swap;
+}
+
+.nav-quick-actions {
+  position: absolute;
+  right: var(--page-padding);
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.nav-bar-content {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--page-padding);
+  gap: var(--space-3);
+}
+
+/* 头像 */
+.nav-avatar {
+  flex-shrink: 0;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.nav-avatar:active {
+  opacity: 0.8;
+}
+
+.nav-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.nav-avatar-default {
+  width: 100%;
+  height: 100%;
+  background: var(--color-gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-avatar-icon {
+  font-size: 36rpx;
+}
+
+/* 搜索框 */
+.nav-search-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 64rpx;
+  min-width: 0;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-round);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  transition: background var(--duration-fast) var(--ease-out);
+  overflow: hidden;
+}
+
+.nav-search-bar:active {
+  background: var(--color-gray-200);
+}
+
+.nav-search-icon {
+  font-size: var(--text-sm);
+  margin-right: var(--space-2);
+}
+
+.nav-search-placeholder {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-hint);
+  /* 无论文案多长都保持单行，超出部分省略，排版不再换行 */
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+/* 文案包裹层负责裁剪，避免 flex 子项被挤压换行 */
+.nav-search-text-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* 城市选择器 */
+.nav-city-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 190rpx;
+  padding: var(--space-1) 0 var(--space-1) var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast);
+}
+
+.nav-city-wrap:active {
+  background: var(--color-gray-100);
+}
+
+/* 活动入口 */
+.nav-event-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(212, 137, 14, 0.1);
+  flex-shrink: 0;
+  margin-left: 4rpx;
+}
+
+.nav-event-btn:active {
+  opacity: 0.7;
+  transform: scale(0.92);
+}
+
+.nav-city-name {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  max-width: 120rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-medium);
+}
+
+.nav-city-arrow {
+  font-size: 24rpx;
+  color: var(--color-text-hint);
+  transition: transform var(--duration-fast);
+}
+
+/* 导航栏占位 */
+.nav-bar-spacer {
+  width: 100%;
+}
+
+/* ── 固定顶部栏（模式切换 + 筛选栏） ── */
+.fixed-top-bar {
+  position: relative;
+  width: 100%;
+  background: var(--color-bg-white);
+  border-top: 1rpx solid var(--color-divider);
+}
+
+/* ── 模式切换 ── */
+.mode-switch-wrap {
+  padding: var(--space-2) var(--page-padding);
+  background: var(--color-bg-white);
+}
+
+/* ── 筛选栏 ── */
+.filter-section {
+  background: var(--color-bg-white);
+  padding: var(--space-2) 0;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.filter-tag {
+  display: inline-block;
+  padding: 0 var(--space-3);
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-100);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.filter-tag.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+
+
+/* 筛选栏容器 */
+.filter-container {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--page-padding);
+  background: var(--color-bg-white);
+}
+
+/* 类别标签区：换行展示，保证所有类别一眼看全。
+   旧版是单行横向 scroll-view + overflow:hidden，430px 屏下 4 个标签共需 470px、
+   可视区只有 332px，第 3 个标签被裁一半、第 4 个完全看不到；
+   而 page 级只留了 318px 给标签（「全部」按钮占 72px），单行永远放不下 4 个。 */
+.filter-list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 全部按钮（固定在右边） */
+.filter-all-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 var(--space-3);
+  margin-left: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-pill);
+  transition: all var(--duration-fast);
+}
+
+.filter-all-btn.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+
+.filter-all-arrow {
+  font-size: 24rpx;
+  margin-left: var(--space-1);
+  transition: transform var(--duration-fast);
+}
+
+.filter-all-arrow.up {
+  transform: rotate(180deg);
+}
+
+/* 已选数量角标，和“全部”按钮风格一致 */
+.filter-all-count {
+  min-width: 28rpx;
+  height: 28rpx;
+  margin-left: 6rpx;
+  padding: 0 6rpx;
+  border-radius: 999rpx;
+  background: var(--color-bg-white);
+  color: var(--color-primary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 28rpx;
+  text-align: center;
+}
+
+/* 已选条件提示条 */
+.filter-active-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 var(--page-padding) var(--space-2);
+  padding: 10rpx var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-bg);
+}
+
+.filter-active-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-active-clear {
+  flex-shrink: 0;
+  padding: 4rpx var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-white);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.filter-active-clear:active {
+  opacity: 0.7;
+}
+
+/* 筛选面板底部操作区：清空 + 查看结果 */
+.filter-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--color-divider);
+  background: var(--color-bg-white);
+}
+
+/* 面板头部：标题旁的说明文字，提示可多选、需自行关闭 */
+.filter-panel-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+  margin-left: var(--space-2);
+  flex: 1;
+  text-align: right;
+  padding-right: var(--space-2);
+}
+
+/* 已选计数徽标，紧贴「清空筛选」按钮 */
+.filter-panel-btn-count {
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 6rpx;
+  border-radius: 999rpx;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 28rpx;
+  text-align: center;
+}
+
+.filter-panel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  height: 80rpx;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.filter-panel-btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.filter-panel-btn.ghost {
+  flex: 1;
+  background: var(--color-gray-100);
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary-bg);
+}
+
+.filter-panel-btn.ghost.disabled {
+  color: var(--color-text-disabled);
+  border-color: var(--color-divider);
+  pointer-events: none;
+}
+
+.filter-panel-btn.primary {
+  flex: 1.4;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* 筛选浮层遮罩 */
+.filter-panel-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1200;
+  animation: cm-fade-in var(--duration-fast) var(--ease-bezier);
+}
+
+/* 筛选浮层 */
+.filter-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  z-index: 1201;
+  transform: translateY(100%);
+  transition: transform var(--duration-normal) var(--ease-emphasized), opacity var(--duration-normal) var(--ease-bezier);
+  max-height: 70vh;
+}
+
+.filter-panel.show {
+  transform: translateY(0);
+}
+
+.filter-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.filter-panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.filter-panel-close {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-gray-100);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.filter-panel-close:active {
+  transform: scale(0.92);
+  background: var(--color-gray-200);
+}
+
+.filter-panel-content {
+  padding: var(--space-3);
+  overflow-y: auto;
+  max-height: calc(70vh - 280rpx);
+}
+
+.filter-panel-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast);
+}
+
+.filter-panel-item:active {
+  background: var(--color-gray-100);
+}
+
+.filter-panel-item.active {
+  background: var(--color-primary-bg);
+}
+
+.filter-panel-item-icon {
+  font-size: var(--font-size-lg);
+  margin-right: var(--space-3);
+}
+
+.filter-panel-item-name {
+  flex: 1;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.filter-panel-item.active .filter-panel-item-name {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.filter-panel-item-check {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── 城市选择浮层 ── */
+.city-panel-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1200;
+  animation: cm-fade-in var(--duration-fast) var(--ease-bezier);
+}
+
+.city-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  z-index: 1201;
+  transform: translateY(100%);
+  transition: transform var(--duration-normal) var(--ease-emphasized), opacity var(--duration-normal) var(--ease-bezier);
+  max-height: 70vh;
+}
+
+.city-panel.show {
+  transform: translateY(0);
+}
+
+.city-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.city-panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.city-panel-close {
+  font-size: var(--font-size-xl);
+  color: var(--color-text-hint);
+  padding: var(--space-2);
+}
+
+/* 城市搜索栏 */
+.city-search-bar {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-page);
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.city-search-input {
+  flex: 1;
+  height: 80rpx;
+  padding: 0 var(--space-3);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  border: 1rpx solid var(--color-divider);
+}
+
+.city-search-icon {
+  font-size: var(--font-size-lg);
+  margin-left: var(--space-2);
+}
+
+.city-empty-tip {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-hint);
+  font-size: var(--font-size-sm);
+}
+
+.city-panel-subtitle {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.city-panel-content {
+  padding: var(--space-2) 0;
+  overflow-y: auto;
+  max-height: calc(70vh - 160rpx);
+}
+
+.city-panel-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  transition: background var(--duration-fast);
+}
+
+.city-panel-item:active {
+  background: var(--color-gray-100);
+}
+
+.city-panel-item.active {
+  background: var(--color-primary-bg);
+}
+
+.city-panel-item-name {
+  flex: 1;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.city-panel-item.active .city-panel-item-name {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.city-panel-item-location {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+  margin-right: var(--space-2);
+}
+
+.city-panel-item-check {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── 地图模式容器 ── */
+.map-mode {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  /* 折叠态需要完整露出「拖拽手柄 32rpx + 环境栏 108rpx + 间距 12rpx」，
+     否则环境栏文字会被裁切（原值 120rpx 不足，是文字被遮住的根因）。 */
+  --float-panel-collapsed-height: 156rpx;
+  --float-panel-expanded-height: max(400rpx, calc(100vh - 880rpx));
+  --panel-handle-height: 32rpx;
+  --map-action-gap: 48rpx;
+}
+
+/* 地图区域（固定高度，面板覆盖其上） */
+.map-section {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.discover-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* 选中地点的小号信息浮层。缩放比例由 mapScale 驱动。 */
+.map-poi-mini {
+  position: absolute;
+  left: 32rpx;
+  width: calc(100% - 64rpx);
+  /* top 由 JS 依据导航栏实测高度注入，避免被顶部栏遮挡 */
+  height: 104rpx;
+  padding: 12rpx 16rpx;
+  box-sizing: border-box;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  z-index: 80;
+  transform-origin: center bottom;
+  transition: transform 180ms ease-out, opacity 180ms ease-out;
+  overflow: hidden;
+}
+.map-poi-mini-cover { width: 80rpx; height: 80rpx; border-radius: 14rpx; flex-shrink: 0; }
+.map-poi-mini-placeholder { display: flex; align-items: center; justify-content: center; background: var(--color-primary-bg); }
+.map-poi-mini-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.map-poi-mini-name { font-size: 28rpx; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-poi-mini-meta { font-size: 24rpx; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-poi-mini-arrow { font-size: 24rpx; color: var(--color-primary); padding-left: 8rpx; }
+.dark-theme .map-poi-mini { background: rgba(35, 35, 48, 0.96); }
+.dark-theme .map-poi-mini-name { color: #fff; }
+
+/* ── 浮动面板（附近动态） ── */
+.float-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* 面板锁死在底部功能栏上沿，任何拖拽都不会与功能栏脱离 */
+  bottom: 0;
+  background: var(--color-bg-white);
+  border-radius: 32rpx 32rpx 0 0;
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: var(--float-panel-expanded-height);
+  --panel-drag-offset: 0px;
+  transform: translateY(var(--panel-drag-offset));
+  transition: transform 0.36s var(--ease-emphasized), box-shadow 0.36s var(--ease-bezier);
+}
+.float-panel.collapsed {
+  transform: translateY(calc(var(--float-panel-expanded-height) - var(--float-panel-collapsed-height) + var(--panel-drag-offset)));
+}
+.float-panel.expanded {
+  transform: translateY(var(--panel-drag-offset));
+}
+.float-panel.dragging {
+  transition: none;
+}
+
+/* 拖拽手柄 */
+.panel-handle {
+  flex-shrink: 0;
+  height: 32rpx;
+  padding: 12rpx 0 8rpx;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  cursor: grab;
+}
+.handle-bar {
+  width: 64rpx;
+  height: 8rpx;
+  background: var(--color-gray-300);
+  border-radius: 999rpx;
+}
+
+/* 面板可滚动内容 */
+.panel-scroll {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 环境信息条 */
+.env-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+  height: 108rpx;
+  box-sizing: border-box;
+  padding: 12rpx 24rpx;
+  margin: 0 24rpx 12rpx;
+  background: var(--color-gray-50);
+  border-radius: var(--radius-md);
+}
+.env-item-sm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+}
+.env-val {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.env-lbl {
+  font-size: 24rpx;
+  color: var(--color-text-hint);
+}
+.env-dot {
+  width: 4rpx;
+  height: 24rpx;
+  background: var(--color-divider);
+}
+
+/* 附近动态卡片 */
+.panel-post-card {
+  display: flex;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+.panel-post-card:active {
+  background: var(--color-gray-50);
+}
+.panel-post-cover {
+  width: 160rpx;
+  height: 120rpx;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+.panel-post-placeholder {
+  background: var(--color-gray-200);
+}
+.panel-post-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 0;
+}
+.panel-post-user {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.panel-post-avatar {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+}
+.panel-post-name {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.panel-post-text {
+  font-size: 26rpx;
+  color: var(--color-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.panel-post-loc {
+  font-size: 24rpx;
+  color: var(--color-text-hint);
+}
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 0;
+}
+.panel-empty-text {
+  font-size: 26rpx;
+  color: var(--color-text-hint);
+}
+
+
+.map-fab-wrap {
+  position: fixed;
+  right: 32rpx;
+  /* 页面视口不含原生 tabBar，bottom: 0 就是功能栏上沿。
+     位置完全由面板可见高度驱动（--fab-panel-offset），始终贴着环境栏上沿。 */
+  bottom: var(--fab-panel-offset, 200rpx);
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  z-index: 80;
+  --fab-panel-offset: 200rpx;
+  transition: bottom 0.36s var(--ease-emphasized);
+  animation: cm-pop-in 0.44s var(--ease-spring) both;
+}
+
+/* 面板展开 / 折叠时 FAB 始终跟随到面板上沿；拖拽过程中去掉过渡以获得跟手感 */
+.map-fab-wrap.dragging {
+  transition: none;
+}
+
+.map-fab-btn {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: var(--color-bg-white);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--duration-fast) var(--ease-spring), background-color var(--duration-fast) var(--ease-bezier), box-shadow var(--duration-fast) var(--ease-bezier);
+}
+
+.map-fab-btn.secondary {
+  background: var(--color-bg-white);
+}
+
+.map-fab-locate { order: 1; }
+
+.map-fab-btn:active {
+  transform: scale(0.92);
+}
+
+/* ── 热门日记模式 ── */
+.hot-diary-section {
+  padding: var(--space-3) var(--page-padding);
+}
+
+/* 瀑布流容器 */
+.waterfall-container {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.waterfall-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── FAB 浮动按钮 ── */
+.fab-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(var(--tab-bar-height) + 24rpx);
+  z-index: 100;
+  animation: cm-pop-in 0.44s var(--ease-spring) both;
+}
+
+.fab-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 112rpx;
+  background: var(--color-primary);
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-bezier);
+}
+
+.fab-btn:active .fab-content {
+  transform: scale(0.92);
+}
+
+.fab-icon {
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
+}
+
+.fab-text {
+  font-size: 24rpx;
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* ── 回到顶部按钮 ── */
+.back-to-top {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(var(--tab-bar-height) + 176rpx);
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: var(--color-bg-white);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  transition: opacity 0.3s var(--ease-bezier), transform 0.3s var(--ease-emphasized);
+}
+.back-to-top.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20rpx);
+}
+.back-to-top:active {
+  opacity: 0.8;
+  transform: scale(0.92);
+}
+.loading-more,
+.no-more,
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) 0;
+}
+
+.loading-text,
+.no-more-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-hint);
+}
+
+.empty-state {
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) 0;
+}
+
+.empty-illustration {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  height: 120rpx;
+  margin-bottom: var(--space-4);
+  background: var(--color-primary-bg, #FFF7E6);
+  border-radius: 50%;
+}
+
+.empty-illustration-dots {
+  position: absolute;
+  right: -10rpx;
+  bottom: 0;
+  display: flex;
+  gap: 6rpx;
+  color: var(--color-primary, #D4890E);
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: var(--space-3);
+}
+
+.empty-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-hint);
+  margin-bottom: var(--space-5);
+  text-align: center;
+  padding: 0 var(--space-6);
+}
+
+.empty-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 18rpx 40rpx;
+  background: var(--color-primary, #D4890E);
+  color: #fff;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-button, 24px);
+  box-shadow: 0 4px 16px rgba(212, 137, 14, 0.3);
+}
+
+.empty-action:active {
+  opacity: 0.85;
+  transform: scale(0.97);
+}
+
+/* ── 小聚路线攻略流 ── */
+.xiaoju-section { min-height: calc(100vh - 260rpx); padding: 24rpx 32rpx calc(var(--tab-bar-height) + 80rpx); background: var(--color-bg-page); }
+.xiaoju-intro { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }
+.xiaoju-heading { display: block; color: var(--color-text-primary); font-size: 40rpx; font-weight: 600; line-height: 1.2; }
+.xiaoju-subheading { display: block; margin-top: 8rpx; color: var(--color-text-hint); font-size: var(--font-size-xs); }
+.xiaoju-create-btn { display: flex; align-items: center; gap: 8rpx; height: 88rpx; padding: 0 28rpx; border: 1rpx solid var(--color-primary-bg); border-radius: var(--radius-pill); background: var(--color-bg-white); color: var(--color-primary); font-size: var(--font-size-md); font-weight: 600; box-shadow: var(--shadow-sm); }
+.xiaoju-create-btn:active { transform: scale(.96); }
+.xiaoju-filter-scroll { width: 100%; margin-bottom: 20rpx; white-space: nowrap; }
+.xiaoju-filter-list { display: inline-flex; gap: 16rpx; }
+.xiaoju-filter { height: 72rpx; padding: 0 28rpx; border-radius: var(--radius-pill); background: var(--color-bg-white); color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 72rpx; box-shadow: var(--shadow-sm); }
+.xiaoju-filter.active { background: var(--color-primary); color: #fff; font-weight: 600; }
+.xiaoju-card { position: relative; min-height: 420rpx; margin-bottom: 24rpx; overflow: hidden; border-radius: 28rpx; background: var(--color-card-forest); box-shadow: var(--shadow-md); }
+.xiaoju-cover { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.xiaoju-cover-shade { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(20,24,32,.04) 12%, rgba(20,24,32,.2) 45%, rgba(20,24,32,.9) 100%); }
+.xiaoju-card-content { position: relative; z-index: 1; min-height: 420rpx; display: flex; flex-direction: column; justify-content: flex-end; padding: 28rpx; box-sizing: border-box; color: #fff; }
+.xiaoju-tags { display: flex; gap: 10rpx; margin-bottom: 12rpx; }
+.xiaoju-tag { padding: 6rpx 14rpx; border-radius: var(--radius-pill); background: rgba(255,255,255,.22); color: #fff; font-size: var(--font-size-2xs); }
+.xiaoju-title { display: block; color: #fff; font-size: 36rpx; font-weight: 600; line-height: 1.35; }
+.xiaoju-summary { display: block; margin-top: 8rpx; color: rgba(255,255,255,.88); font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xiaoju-route-meta { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; color: rgba(255,255,255,.9); font-size: var(--font-size-xs); }
+.xiaoju-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid rgba(255,255,255,.22); }
+.xiaoju-author, .xiaoju-actions, .xiaoju-action { display: flex; align-items: center; }
+.xiaoju-author { gap: 10rpx; color: #fff; font-size: var(--font-size-sm); }
+.xiaoju-avatar { display: flex; align-items: center; justify-content: center; width: 44rpx; height: 44rpx; border-radius: 50%; background: #fff; }
+.xiaoju-actions { gap: 20rpx; }
+.xiaoju-action { gap: 8rpx; min-height: 72rpx; justify-content: center; color: #fff; font-size: var(--font-size-sm); }
+.xiaoju-bottom-hint { padding: 12rpx 0 32rpx; color: var(--color-text-hint); font-size: var(--font-size-xs); text-align: center; }
+
+/* ── 场景 / 出毛需求分区筛选 ── */
+.filter-tag { display: inline-flex; align-items: center; gap: 8rpx; }
+.filter-group-title { display: flex; align-items: center; gap: 10rpx; padding: 6rpx 8rpx 18rpx; color: var(--color-text-primary); font-size: var(--font-size-md); font-weight: 600; }
+.filter-group-title.needs { margin-top: 22rpx; padding-top: 20rpx; border-top: 1rpx solid var(--color-divider); }
+.filter-group-hint { margin-left: auto; color: var(--color-text-hint); font-size: var(--font-size-xs); font-weight: 400; }
+.filter-chip-grid { display: flex; flex-wrap: wrap; gap: 16rpx 14rpx; }
+.filter-chip-grid .filter-panel-item { flex: 0 0 calc(33.333% - 10rpx); box-sizing: border-box; min-height: 88rpx; justify-content: flex-start; padding: 12rpx; border: 1rpx solid var(--color-divider); background: var(--color-gray-50); }
+.filter-chip-grid .filter-panel-item.active { border-color: var(--color-primary); background: var(--color-primary-bg); }
+.filter-chip-grid .filter-panel-item-name { margin-left: 8rpx; font-size: var(--font-size-xs); text-align: left; }
+.filter-chip-grid .filter-panel-item-check { margin-left: auto; font-size: var(--font-size-sm); }
+
+
+/* ── 地图筛选快捷标签配色 ──
+   注意：这里原先还有一段 .filter-scroll / .filter-list 覆盖，给滚动区加了
+   padding-right: 132rpx 来「避开右侧全部按钮」。但「全部」是 flex 兄弟节点、
+   本来就自己占位，那 132rpx 等于白扔——现在标签改为换行，不再需要。 */
+.filter-tag {
+  background: #EEF8F0;
+  border: 1rpx solid #B8DFC2;
+  color: #3F855A;
+  box-shadow: none;
+}
+.filter-tag.active {
+  background: #4B9B6A;
+  border-color: #4B9B6A;
+  color: #fff;
+}

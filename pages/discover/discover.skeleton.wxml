@@ -1,0 +1,68 @@
+<!--
+此文件为开发者工具生成，生成时间: 2026/6/24下午3:56:58
+使用方法：
+在 D:\出毛日记\pages\discover\discover.wxml 引入模板
+
+```
+<import src="discover.skeleton.wxml"/>
+<template is="skeleton" wx:if="{{loading}}" />
+```
+
+在 D:\出毛日记\pages\discover\discover.wxss 中引入样式
+```
+@import "./discover.skeleton.wxss";
+```
+
+更多详细信息可以参考文档：https://developers.weixin.qq.com/miniprogram/dev/devtools/skeleton.html
+-->
+<template name="skeleton">
+  <view class="sk-container">
+    <view class="page page-discover">
+      <view class="search-bar">
+        <view class="search-bar-inner">
+          <text class="search-icon sk-transparent sk-text-16-6667-684 sk-text">🔍</text>
+          <text class="search-placeholder sk-transparent sk-text-16-6667-999 sk-text">搜索地点、活动…</text>
+        </view>
+      </view>
+      <scroll-view enhanced="true" scroll-x="true" class="category-tabs">
+        <view class="category-tab active sk-transparent sk-text-16-6667-742 sk-text" data-key="all" style="scroll-snap-align: none;">
+          全部
+        </view>
+        <view class="category-tab sk-transparent sk-text-16-6667-693 sk-text" data-key="forest" style="scroll-snap-align: none;">
+          森林
+        </view>
+        <view class="category-tab sk-transparent sk-text-16-6667-826 sk-text" data-key="cafe" style="scroll-snap-align: none;">
+          咖啡厅
+        </view>
+        <view class="category-tab sk-transparent sk-text-16-6667-935 sk-text" data-key="culture" style="scroll-snap-align: none;">
+          文化
+        </view>
+        <view class="category-tab sk-transparent sk-text-16-6667-891 sk-text" data-key="sport" style="scroll-snap-align: none;">
+          运动
+        </view>
+        <view class="category-tab sk-transparent sk-text-16-6667-301 sk-text" data-key="food" style="scroll-snap-align: none;">
+          美食
+        </view>
+      </scroll-view>
+      <view class="view-toggle">
+        <view class="toggle-btn active" data-mode="list">
+          <text class="toggle-icon sk-transparent sk-text-16-6667-995 sk-text">📋</text>
+          <text class="toggle-label sk-transparent sk-text-16-6667-671 sk-text">列表</text>
+        </view>
+        <view class="toggle-btn" data-mode="map">
+          <text class="toggle-icon sk-transparent sk-text-16-6667-429 sk-text">🗺️</text>
+          <text class="toggle-label sk-transparent sk-text-16-6667-376 sk-text">地图</text>
+        </view>
+      </view>
+      <view class="location-list">
+        <view class="empty-state">
+          <text class="empty-icon sk-transparent sk-text-16-6667-852 sk-text">📍</text>
+          <text class="empty-text sk-transparent sk-text-16-6667-542 sk-text">暂无地点，快去探索吧</text>
+        </view>
+      </view>
+      <view class="fab-btn">
+        <text class="fab-icon sk-transparent sk-text-0-0000-450 sk-text">+</text>
+      </view>
+    </view>
+  </view>
+</template>

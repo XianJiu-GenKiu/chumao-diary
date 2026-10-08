@@ -1,76 +1,174 @@
 {
-  "description": "出毛地图 - 探索与发现，地图位置标注分享平台",
-  "packOptions": {
-    "ignore": []
-  },
   "setting": {
-    "urlCheck": false,
     "es6": true,
-    "enhance": true,
     "postcss": true,
+    "compileWorklet": false,
     "minified": true,
-    "newFeature": false,
-    "coverView": true,
-    "nodeModules": false,
-    "autoAudits": false,
-    "showShadowRootInWxmlPanel": true,
-    "scopeDataCheck": false,
     "uglifyFileName": false,
-    "checkInvalidKey": true,
-    "checkSiteMap": true,
     "uploadWithSourceMap": true,
-    "compileHotReLoad": false,
-    "lazyloadPlaceholderEnable": false,
-    "useMultiFrameRuntime": true,
-    "useApiHook": true,
-    "useApiHostProcess": true,
+    "enhance": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    },
-    "enableEngineNative": false,
-    "useIsolateContext": true,
-    "userConfirmedBundleSwitch": false,
-    "packNpmManually": false,
-    "packNpmRelationList": [],
-    "minifyWXSS": true,
-    "disableUseStrict": false,
-    "minifyWXML": true,
-    "showES6CompileOption": false,
-    "useCompilerPlugins": false
+    }
   },
   "compileType": "miniprogram",
-  "libVersion": "2.19.4",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "**/node_modules/**",
+        "type": "glob"
+      },
+      {
+        "value": "toolchain-backup/**",
+        "type": "glob"
+      },
+      {
+        "value": "scripts/**",
+        "type": "glob"
+      },
+      {
+        "value": "deprecated/**",
+        "type": "glob"
+      },
+      {
+        "value": ".git/**",
+        "type": "glob"
+      },
+      {
+        "value": ".github/**",
+        "type": "glob"
+      },
+      {
+        "value": ".hbuilderx/**",
+        "type": "glob"
+      },
+      {
+        "value": ".kunsdd/**",
+        "type": "glob"
+      },
+      {
+        "value": ".agents/**",
+        "type": "glob"
+      },
+      {
+        "value": "流程审计-2026-09-27/**",
+        "type": "glob"
+      },
+      {
+        "value": "新的小程序设计逻辑",
+        "type": "glob"
+      },
+      {
+        "value": "*.bat",
+        "type": "glob"
+      },
+      {
+        "value": "mcp_config_example.json",
+        "type": "glob"
+      },
+      {
+        "value": "心情图标-emoji风格预览.png",
+        "type": "glob"
+      },
+      {
+        "value": "兽头心情图标-v2预览.png",
+        "type": "glob"
+      },
+      {
+        "value": "cloudfunctions-shared/**",
+        "type": "glob"
+      },
+      {
+        "value": "chumao-diary/**",
+        "type": "glob"
+      },
+      {
+        "value": "交付文件/**",
+        "type": "glob"
+      },
+      {
+        "value": "ui-preview/**",
+        "type": "glob"
+      },
+      {
+        "value": "wechat-devtools-bridge/**",
+        "type": "glob"
+      },
+      {
+        "value": ".trae/**",
+        "type": "glob"
+      },
+      {
+        "value": ".reasonix/**",
+        "type": "glob"
+      },
+      {
+        "value": ".uploads/**",
+        "type": "glob"
+      },
+      {
+        "value": ".hermes/**",
+        "type": "glob"
+      },
+      {
+        "value": ".workbuddy/**",
+        "type": "glob"
+      },
+      {
+        "value": "*.docx",
+        "type": "glob"
+      },
+      {
+        "value": "*.md",
+        "type": "glob"
+      },
+      {
+        "value": "figma-screenshot-首页.png",
+        "type": "glob"
+      }
+    ],
+    "include": []
+  },
   "appid": "wx0000000000000000",
-  "projectname": "出毛地图",
-  "debugOptions": {
-    "hidedInDevtools": []
+  "cloudfunctionRoot": "cloudfunctions/",
+  "watchOptions": {
+    "ignore": [
+      "toolchain-backup/**",
+      "scripts/**",
+      "deprecated/**",
+      ".git/**",
+      ".github/**",
+      ".hbuilderx/**",
+      ".kunsdd/**",
+      "流程审计-2026-09-27/**",
+      ".reasonix/**",
+      ".uploads/**",
+      ".agents/**",
+      ".trae/**",
+      ".workbuddy/**",
+      "node_modules/**",
+      "chumao-diary/**",
+      "ui-preview/**",
+      "wechat-devtools-bridge/**",
+      "交付文件/**",
+      "*.docx",
+      "*.md"
+    ]
   },
-  "scripts": {},
-  "staticServerOptions": {
-    "baseURL": "",
-    "servePath": ""
-  },
-  "isGameTourist": false,
-  "condition": {
-    "search": {
-      "list": []
-    },
-    "conversation": {
-      "list": []
-    },
-    "game": {
-      "list": []
-    },
-    "plugin": {
-      "list": []
-    },
-    "gamePlugin": {
-      "list": []
-    },
-    "miniprogram": {
-      "list": []
-    }
-  }
+  "editorSetting": {},
+  "libVersion": "3.16.1",
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
 }

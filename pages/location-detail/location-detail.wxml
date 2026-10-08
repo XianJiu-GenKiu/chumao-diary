@@ -1,0 +1,326 @@
+<!-- pages/location-detail/location-detail.wxml -->
+<view class="page page-location-detail {{darkMode ? 'dark-theme' : ''}}" wx:if="{{!loading}}">
+  <view class="detail-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="detail-nav-inner">
+      <view class="detail-nav-back" bindtap="goBack"><text>‹</text></view>
+      <text class="detail-nav-title">地点详情</text>
+      <view class="detail-nav-placeholder"></view>
+    </view>
+  </view>
+  <!-- 顶部轮播图 -->
+  <view class="swiper-wrap">
+    <swiper class="banner-swiper" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#D4890E" autoplay circular bindchange="onSwiperChange">
+      <swiper-item wx:for="{{images}}" wx:key="*this">
+        <image class="banner-image" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" lazy-load />
+      </swiper-item>
+    </swiper>
+    <view class="swiper-counter">{{currentSwiper + 1}}/{{images.length}}</view>
+  </view>
+
+  <!-- 地点信息 -->
+  <view class="detail-section location-info-card">
+    <view class="location-title-row">
+      <view class="location-title-block">
+        <text class="location-kicker">出毛地点</text>
+        <text class="location-name">{{location.name}}</text>
+      </view>
+      <view class="more-btn" bindtap="showActionMenu">
+        <text class="more-icon">⋯</text>
+      </view>
+    </view>
+    <view class="location-meta-row">
+      <view class="indoor-badge {{location.indoor ? 'indoor' : 'outdoor'}}">
+        <icon name="home" size="24" color="{{location.indoor ? '#5BA81A' : '#D4890E'}}" wx:if="{{location.indoor}}" />
+        <icon name="compass" size="24" color="{{location.indoor ? '#5BA81A' : '#D4890E'}}" wx:else />
+        <text>{{location.indoor ? '室内' : '室外'}}</text>
+      </view>
+      <view class="rating-badge" bindtap="showRatingDialog">
+        <view class="rating-stars-display">
+          <view class="rating-star-slot" wx:for="{{ratingStars}}" wx:key="i">
+            <icon name="star" size="32" color="#e0e0e0" fill="{{true}}" />
+            <view class="rating-star-fill {{item.on === 1 ? 'full' : item.on === 0.5 ? 'half' : ''}}">
+              <icon name="star" size="32" color="#D4890E" fill="{{true}}" />
+            </view>
+          </view>
+        </view>
+        <text class="rating-value">{{location.rating}}</text>
+        <text class="rating-count" wx:if="{{location.ratingCount}}">({{location.ratingCount}} 人评价)</text>
+      </view>
+    </view>
+    <text class="location-category">{{location.categoryName || location.category || ''}}</text>
+    <view class="address-row" wx:if="{{location.address}}" bindtap="copyAddress">
+      <icon name="map-pin" size="24" color="#999" />
+      <text class="address-text">{{location.address}}</text>
+      <text class="copy-address">复制</text>
+    </view>
+    <view class="tag-list">
+      <text class="tag tag-outline" wx:for="{{location.tags}}" wx:key="*this" data-tag="{{item}}" bindtap="onTagTap">{{item}}</text>
+    </view>
+
+    <!-- 各维度评分展示 -->
+    <view class="dim-scores" wx:if="{{dimRatingAvgs && dimRatingAvgs.facilities}}">
+      <view class="dim-score-item" wx:for="{{['facilities','scenery','transport','safety','amenities']}}" wx:key="*this">
+        <text class="dim-score-label">{{dimLabels[item]}}</text>
+        <view class="dim-score-bar-wrap">
+          <view class="dim-score-bar" style="width: {{(dimRatingAvgs[item] || 0) * 20}}%;"></view>
+        </view>
+        <text class="dim-score-value">{{dimRatingAvgs[item] || 0}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 周边设施层 -->
+  <view class="detail-section" wx:if="{{location.facilities && location.facilities.length > 0}}">
+    <text class="section-title">周边设施</text>
+    <view class="facility-tags">
+      <view class="facility-tag" wx:for="{{location.facilities}}" wx:key="key">
+        <icon name="check" size="20" color="#5BA81A" />
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+    <view class="best-time" wx:if="{{location.bestTime}}">
+      <icon name="info" size="20" color="#D4890E" />
+      <text class="best-time-text">最佳拍摄：{{location.bestTime}}</text>
+    </view>
+    <view class="best-time" wx:if="{{location.season}}">
+      <icon name="info" size="20" color="#5BA81A" />
+      <text class="best-time-text">推荐季节：{{location.season}}</text>
+    </view>
+  </view>
+
+  <!-- 天气信息卡片 -->
+  <view class="card weather-card" wx:if="{{location.weather}}">
+    <view class="card-header">天气信息</view>
+    <view class="card-body weather-grid">
+      <view class="weather-item">
+        <text class="weather-label">温度</text>
+        <text class="weather-value">{{location.weather.temperature}}</text>
+      </view>
+      <view class="weather-item">
+        <text class="weather-label">天气</text>
+        <text class="weather-value">{{location.weather.condition}}</text>
+      </view>
+      <view class="weather-item">
+        <text class="weather-label">湿度</text>
+        <text class="weather-value">{{location.weather.humidity}}</text>
+      </view>
+      <view class="weather-item">
+        <text class="weather-label">风力</text>
+        <text class="weather-value">{{location.weather.wind}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 描述文字 -->
+  <view class="detail-section" wx:if="{{location.description}}">
+    <text class="section-title">简介</text>
+    <text class="desc-text">{{location.description}}</text>
+  </view>
+  <view class="detail-section" wx:if="{{location.notice}}">
+    <text class="section-title">注意事项</text>
+    <text class="desc-text">{{location.notice}}</text>
+  </view>
+
+  <!-- 地图位置展示 -->
+  <view class="detail-section" wx:if="{{location.latitude}}">
+    <text class="section-title">位置</text>
+    <map class="detail-map" latitude="{{mapLatitude || location.latitude}}" longitude="{{mapLongitude || location.longitude}}" scale="15" markers="{{mapMarkers}}" bindcallouttap="openMap" show-location>
+      <cover-view class="detail-map-locate-btn" bindtap="focusCurrentLocation">⌖</cover-view>
+    </map>
+    <view class="map-nav-btn" bindtap="openMap">
+      <text>打开导航</text>
+    </view>
+  </view>
+
+  <!-- 相关帖子 -->
+  <view class="detail-section" wx:if="{{posts.length > 0}}">
+    <text class="section-title">相关帖子</text>
+    <view class="post-list">
+      <view class="post-item" wx:for="{{posts}}" wx:key="_id" bindtap="goToPost" data-id="{{item._id}}">
+        <image class="post-cover" src="{{item.coverImage || item.coverUrl || (item.images && item.images[0]) || ''}}" mode="aspectFill" wx:if="{{item.coverImage || item.coverUrl || (item.images && item.images.length > 0)}}" lazy-load />
+        <view class="post-info">
+          <text class="post-title">{{item.title || item.content}}</text>
+          <text class="post-author">{{item.authorName}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 热门出毛评价 -->
+  <view class="detail-section hot-reviews" wx:if="{{hotReviews.length > 0}}">
+    <view class="section-header-row">
+      <view class="section-title"><icon name="fire" size="30" color="#D4890E" />热门出毛评价</view>
+      <text class="view-all" bindtap="toggleAllReviews" wx:if="{{hotReviews.length > 3}}">
+        {{showAllReviews ? '收起' : '查看全部'}}
+      </text>
+    </view>
+    <view class="hot-review-list">
+      <view
+        class="hot-review-card"
+        wx:for="{{showAllReviews ? hotReviews : hotReviews.slice(0, 3)}}"
+        wx:key="_id"
+        data-id="{{item.postId}}"
+        bindtap="goToPost"
+      >
+        <image class="review-avatar" src="{{item.authorAvatar || '/images/tabbar/profile.png'}}" mode="aspectFill" lazy-load />
+        <view class="review-body">
+          <text class="review-name">{{item.authorName || '匿名'}}</text>
+          <text class="review-text">{{item.content}}</text>
+        </view>
+        <image class="review-thumb" wx:if="{{item.images && item.images[0]}}" src="{{item.images[0]}}" mode="aspectFill" lazy-load />
+      </view>
+    </view>
+  </view>
+
+  <!-- 用户评论 -->
+  <view class="detail-section comment-section">
+    <text class="section-title">用户评论 ({{comments.length}})</text>
+    <view class="comment-list" wx:if="{{comments.length > 0}}">
+      <view class="comment-item" wx:for="{{comments}}" wx:key="_id">
+        <image class="comment-avatar" src="{{item.authorAvatar}}" wx:if="{{item.authorAvatar}}" lazy-load />
+        <view class="comment-avatar-placeholder" wx:else><icon name="user" size="32" color="#ccc" /></view>
+        <view class="comment-body">
+          <view class="comment-header">
+            <text class="comment-name">{{item.authorName}}</text>
+            <text class="comment-time">{{item._createTimeText || item.createdAt || ''}}</text>
+          </view>
+          <text class="comment-text">{{item.content}}</text>
+          <!-- 回复列表 -->
+          <view class="reply-list" wx:if="{{item.replies && item.replies.length > 0}}">
+            <view class="reply-item" wx:for="{{item.replies}}" wx:for-item="reply" wx:key="_id">
+              <text class="reply-name">{{reply.authorName}}</text>
+              <text class="reply-text">{{reply.content}}</text>
+            </view>
+          </view>
+          <!-- 评论操作 -->
+          <view class="comment-actions">
+            <view class="comment-action" data-id="{{item._id}}" data-index="{{index}}" bindtap="onCommentLikeTap">
+              <icon name="heart" size="24" color="{{item.isLiked ? '#D4890E' : '#ccc'}}" fill="{{item.isLiked}}" />
+              <text class="comment-like-count" wx:if="{{item.likeCount > 0}}">{{item.likeCount}}</text>
+            </view>
+            <view class="comment-action" data-name="{{item.authorName}}" data-id="{{item._id}}" bindtap="onReplyTap">
+              <text>回复</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-comments" wx:else>
+      <icon name="message-circle" size="64" color="#D0D0D0" />
+      <text class="empty-comments-title">还没有评论</text>
+      <text class="empty-comments-desc">出毛体验如何？来说说你的感受吧</text>
+      <view class="empty-comments-action" bindtap="goToComment">写第一条评论</view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="bottom-action" bindtap="toggleReaction" data-type="up">
+      <icon name="thumbs-up" size="36" color="{{reactionUp ? '#D4890E' : '#999'}}" fill="{{reactionUp}}" />
+      <text class="action-text">种草 {{reactionUpCount}}</text>
+    </view>
+    <view class="bottom-action" bindtap="toggleReaction" data-type="down">
+      <icon name="thumbs-down" size="36" color="{{reactionDown ? '#D4890E' : '#999'}}" fill="{{reactionDown}}" />
+      <text class="action-text">踩雷 {{reactionDownCount}}</text>
+    </view>
+    <view class="bottom-action" bindtap="toggleFavorite">
+      <icon name="heart" size="36" color="{{location.isFavorited ? '#D4890E' : '#999'}}" fill="{{location.isFavorited}}" />
+      <text class="action-text">{{location.isFavorited ? '已收藏' : '收藏'}}</text>
+    </view>
+    <view class="bottom-action" bindtap="goToComment">
+      <icon name="message-circle" size="36" color="#999" />
+      <text class="action-text">评论</text>
+    </view>
+    <view class="bottom-action" bindtap="checkIn"><icon name="check" size="36" color="{{checkedIn ? '#D4890E' : '#999'}}" /><text class="action-text">{{checkedIn ? '已签到' : '签到'}} {{checkinCount}}</text></view>
+    <view class="bottom-action" bindtap="addToCollection"><icon name="bookmark" size="36" color="#999" /><text class="action-text">加入合集</text></view>
+    <button class="bottom-action share-btn" open-type="share">
+      <icon name="share" size="36" color="#999" />
+      <text class="action-text">分享</text>
+    </button>
+  </view>
+
+  <!-- 评论输入框 -->
+  <view class="comment-input-bar">
+    <text class="reply-hint" wx:if="{{replyTo}}">回复 {{replyTo.name}} <text class="reply-cancel" bindtap="cancelReply">取消</text></text>
+    <view class="comment-input-row">
+      <input class="comment-input" placeholder="{{replyTo ? '回复' + replyTo.name + '...' : '写评论...'}}" value="{{newComment}}" bindinput="onCommentInput" />
+      <view class="comment-clear-btn" wx:if="{{newComment}}" bindtap="clearComment">
+        <icon name="x" size="28" color="#999" />
+      </view>
+      <view class="comment-send-btn {{newComment ? 'active' : ''}}" bindtap="submitComment">
+        <text>发送</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位（避免被固定操作栏遮挡） -->
+  <view class="bottom-placeholder"></view>
+
+  <!-- "我来出毛"按钮 -->
+  <view class="go-shoot-btn" bindtap="goShoot">
+    <icon name="camera" size="32" color="#fff" />
+    <text>我来出毛</text>
+  </view>
+
+  <!-- 评分弹窗（多维度评分） -->
+  <view class="rating-modal-mask" wx:if="{{showRatingModal}}" bindtap="closeRatingModal"></view>
+  <scroll-view class="rating-modal" scroll-y wx:if="{{showRatingModal}}" catchtap="preventBubble">
+    <text class="rating-modal-title">为这个地点评分</text>
+    <text class="rating-modal-sub" wx:if="{{myRating}}">你已评过 {{myRating}} 星，可更新评分</text>
+
+    <!-- 各维度评分行 -->
+    <view class="dim-rating-row" wx:for="{{['facilities','scenery','transport','safety','amenities']}}" wx:key="*this">
+      <view class="dim-rating-info">
+        <text class="dim-rating-label">{{dimLabels[item]}}</text>
+        <text class="dim-rating-hint">{{dimHints[item]}}</text>
+      </view>
+      <view class="dim-rating-stars">
+        <view
+          class="dim-star {{myDimRatingsTemp[item] >= star ? 'active' : ''}}"
+          wx:for="{{[1,2,3,4,5]}}"
+          wx:for-item="star"
+          wx:key="*this"
+          bindtap="setDimRatingTemp"
+          data-dim="{{item}}"
+          data-val="{{star}}"
+        >
+          <icon name="star" size="44" color="{{myDimRatingsTemp[item] >= star ? '#D4890E' : '#e0e0e0'}}" fill="{{myDimRatingsTemp[item] >= star}}" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 综合评分预览（支持半星） -->
+    <view class="overall-preview" wx:if="{{allDimsRated}}">
+      <text class="overall-preview-label">综合评分</text>
+      <view class="overall-preview-stars">
+        <view class="rating-star-slot overall-star-slot" wx:for="{{previewStars}}" wx:key="i">
+          <icon name="star" size="32" color="#e0e0e0" fill="{{true}}" />
+          <view class="rating-star-fill {{item.on === 1 ? 'full' : item.on === 0.5 ? 'half' : ''}}">
+            <icon name="star" size="32" color="#D4890E" fill="{{true}}" />
+          </view>
+        </view>
+      </view>
+      <text class="overall-preview-value">{{computedOverall}} 分</text>
+    </view>
+
+    <view class="rating-modal-actions">
+      <view class="rating-modal-cancel" bindtap="closeRatingModal">取消</view>
+      <view class="rating-modal-confirm" bindtap="submitRating">确认评分</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 加载状态（骨架屏） -->
+<view class="loading-wrap" wx:if="{{loading}}">
+  <view class="skeleton-block" style="width: 100%; height: 480rpx; border-radius: 0;"></view>
+  <view class="detail-section">
+    <view class="skeleton-block skeleton-text" style="width: 50%; height: 36rpx;"></view>
+    <view class="skeleton-block skeleton-text" style="width: 30%; height: 24rpx; margin-top: 12rpx;"></view>
+    <view class="skeleton-block skeleton-text" style="width: 80%; margin-top: 16rpx;"></view>
+  </view>
+  <view class="detail-section">
+    <view class="skeleton-block skeleton-text" style="width: 40%; height: 28rpx;"></view>
+    <view class="skeleton-block skeleton-text" style="width: 100%; margin-top: 12rpx;"></view>
+    <view class="skeleton-block skeleton-text" style="width: 90%;"></view>
+  </view>
+</view>

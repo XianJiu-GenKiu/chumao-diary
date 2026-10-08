@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图探索 — 出毛日记</title>
+    <style id="theme-vars">
+/* ============================================================
+   出毛日记 · Brand CSS
+   探险家风格 — 珊瑚橙主色 + 天空蓝辅助
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Brand Identity ── */
+  --brand-primary: #FF6B4A;
+  --brand-primary-light: #FF8A6E;
+  --brand-primary-dark: #E5533A;
+  --brand-primary-bg: #FFF0EC;
+  --brand-secondary: #4A90D9;
+  --brand-secondary-light: #6BA5E3;
+  --brand-secondary-bg: #EBF3FC;
+  --brand-accent: #FFD93D;
+  --brand-accent-dark: #F0C830;
+
+  /* ── State Colors ── */
+  --state-success: #00B894;
+  --state-warning: #FDCB6E;
+  --state-error: #E17055;
+  --state-info: #4A90D9;
+
+  /* ── Neutrals ── */
+  --neutral-50: #FAFAFA;
+  --neutral-100: #F5F5F5;
+  --neutral-200: #EEEEEE;
+  --neutral-300: #E0E0E0;
+  --neutral-400: #BDBDBD;
+  --neutral-500: #9E9E9E;
+  --neutral-600: #757575;
+  --neutral-700: #616161;
+  --neutral-800: #424242;
+  --neutral-900: #2D3436;
+
+  /* ── Semantic Text ── */
+  --text-primary: #2D3436;
+  --text-secondary: #636E72;
+  --text-hint: #9E9E9E;
+  --text-disabled: #BDBDBD;
+  --text-inverse: #FFFFFF;
+  --text-link: #4A90D9;
+
+  /* ── Semantic Backgrounds ── */
+  --bg-page: #F7F8FA;
+  --bg-card: #FFFFFF;
+  --bg-overlay: rgba(0, 0, 0, 0.45);
+  --bg-hover: #F5F5F5;
+  --bg-active: #EEEEEE;
+
+  /* ── Borders ── */
+  --border-default: #E5E5E5;
+  --border-light: #F0F0F0;
+  --border-focus: #FF6B4A;
+
+  /* ── Spacing Scale (4px base) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Typography Scale ── */
+  --font-family: 'Noto Sans SC', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  --font-size-2xs: 10px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ── Radius Scale ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadow (static: alpha ≤ 0.05) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  /* ── Floating Layer Shadows (alpha > 0.05 allowed) ── */
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.1);
+
+  /* ── Motion ── */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ── Touch Targets ── */
+  --touch-min: 44px;
+  --touch-comfort: 48px;
+
+  /* ── Z-Index Scale ── */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-overlay: 100;
+  --z-sheet: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-fab: 50;
+}
+
+/* ── Typography Utilities ── */
+.font-xs { font-size: var(--font-size-xs); }
+.font-sm { font-size: var(--font-size-sm); }
+.font-base { font-size: var(--font-size-base); }
+.font-md { font-size: var(--font-size-md); }
+.font-lg { font-size: var(--font-size-lg); }
+.font-xl { font-size: var(--font-size-xl); }
+.font-2xl { font-size: var(--font-size-2xl); }
+.font-3xl { font-size: var(--font-size-3xl); }
+
+/* ── Color Utilities ── */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-hint { color: var(--text-hint); }
+.text-brand { color: var(--brand-primary); }
+.text-inverse { color: var(--text-inverse); }
+.bg-page { background-color: var(--bg-page); }
+.bg-card { background-color: var(--bg-card); }
+.bg-brand { background-color: var(--brand-primary); }
+
+/* ── Spacing Utilities ── */
+.p-0 { padding: 0; }
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.px-4 { padding-left: var(--space-4); padding-right: var(--space-4); }
+.py-2 { padding-top: var(--space-2); padding-bottom: var(--space-2); }
+.py-3 { padding-top: var(--space-3); padding-bottom: var(--space-3); }
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+
+/* ── Radius Utilities ── */
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* ── Shadow Utilities ── */
+.shadow-card { box-shadow: var(--shadow-card); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* ── Layout Utilities ── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-1 { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.overflow-hidden { overflow: hidden; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.sticky { position: sticky; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Animation Utilities ── */
+.animate-fade-in { animation: fadeIn var(--duration-normal) var(--ease-out) forwards; }
+.animate-fade-up { animation: fadeUp var(--duration-normal) var(--ease-out) forwards; opacity: 0; }
+.animate-bounce-in { animation: bounceIn 0.4s var(--ease-bounce) forwards; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-scale-in { animation: scaleIn var(--duration-fast) var(--ease-out) forwards; }
+.transition-all { transition: all var(--duration-fast) var(--ease-default); }
+.transition-transform { transition: transform var(--duration-fast) var(--ease-default); }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes markerPop {
+  0% { transform: scale(0) translateY(10px); }
+  60% { transform: scale(1.1) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* ── Stagger Delays ── */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 60ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 180ms; }
+.stagger-5 { animation-delay: 240ms; }
+
+/* ── Touch Feedback ── */
+.press-scale { transition: transform var(--duration-fast) var(--ease-default); }
+.press-scale:active { transform: scale(0.97); }
+.press-opacity { transition: opacity var(--duration-fast) var(--ease-default); }
+.press-opacity:active { opacity: 0.7; }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-primary: var(--brand-primary);
+    --color-secondary: var(--brand-secondary);
+    --color-accent: var(--brand-accent);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- ════════ Status Bar ════════ -->
+  <div class="status-bar">
+    <span class="status-time">9:45</span>
+    <div class="status-icons">
+      <!-- Signal -->
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor" aria-hidden="true">
+        <rect x="0" y="9" width="3" height="3" rx="0.5"></rect>
+        <rect x="4.5" y="6" width="3" height="6" rx="0.5"></rect>
+        <rect x="9" y="3" width="3" height="9" rx="0.5"></rect>
+        <rect x="13.5" y="0" width="3" height="12" rx="0.5"></rect>
+      </svg>
+      <!-- WiFi -->
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">
+        <path d="M8 10.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM4.13 8.37a5.58 5.58 0 017.74 0l-.88.88a4.33 4.33 0 00-5.98 0l-.88-.88zM1.69 5.93a9.05 9.05 0 0112.62 0l-.88.88a7.8 7.8 0 00-10.86 0l-.88-.88z"></path>
+      </svg>
+      <!-- Battery -->
+      <svg width="27" height="13" viewBox="0 0 27 13" fill="currentColor" aria-hidden="true">
+        <rect x="0.5" y="0.5" width="22" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1"></rect>
+        <rect x="23.5" y="3.5" width="2.5" height="5.5" rx="1" opacity="0.4"></rect>
+        <rect x="2" y="2" width="17" height="9" rx="1"></rect>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ════════ WeChat Nav Bar ════════ -->
+  <header class="nav-bar">
+    <div class="nav-left"></div>
+    <div class="nav-title">出毛日记</div>
+    <div class="nav-capsule" aria-label="小程序菜单">
+      <button class="capsule-btn" aria-label="更多">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="3.5" cy="8" r="1.5"></circle>
+          <circle cx="8" cy="8" r="1.5"></circle>
+          <circle cx="12.5" cy="8" r="1.5"></circle>
+        </svg>
+      </button>
+      <span class="capsule-divider" aria-hidden="true"></span>
+      <button class="capsule-btn" aria-label="关闭">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <line x1="3.5" y1="3.5" x2="10.5" y2="10.5"></line>
+          <line x1="10.5" y1="3.5" x2="3.5" y2="10.5"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════ Scrollable Content ════════ -->
+  <div class="content-scroll">
+
+    <!-- ── Search Section ── -->
+    <div class="search-section">
+      <div class="search-bar" data-dom-id="search-bar">
+        <span class="search-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="7" cy="7" r="5"></circle>
+            <line x1="10.8" y1="10.8" x2="14" y2="14"></line>
+          </svg>
+        </span>
+        <span class="search-placeholder">搜索地点、活动…</span>
+        <button class="filter-btn" aria-label="筛选">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="2" y1="4" x2="14" y2="4"></line>
+            <line x1="4" y1="8" x2="12" y2="8"></line>
+            <line x1="6" y1="12" x2="10" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="filter-tags" data-dom-id="filter-tag">
+        <span class="filter-tag active">遮阳</span>
+        <span class="filter-tag">厕所</span>
+        <span class="filter-tag">人流量少</span>
+        <span class="filter-tag">可换装</span>
+        <span class="filter-tag">适合拍照</span>
+      </div>
+    </div>
+
+    <!-- ── Map Area ── -->
+    <div class="map-wrapper">
+      <div class="map-area">
+
+        <!-- Terrain patches -->
+        <div class="terrain-patch park-1"></div>
+        <div class="terrain-patch park-2"></div>
+        <div class="terrain-patch park-3"></div>
+        <div class="terrain-water"></div>
+        <div class="terrain-built"></div>
+
+        <!-- Road network -->
+        <div class="road road-h1"></div>
+        <div class="road road-h2"></div>
+        <div class="road road-h3"></div>
+        <div class="road road-v1"></div>
+        <div class="road road-v2"></div>
+        <div class="road road-v3"></div>
+        <div class="road road-d1"></div>
+
+        <!-- Coral markers (4-5) -->
+        <div class="marker coral" data-dom-id="map-marker"
+             style="width:13px;height:13px;top:48px;left:75px;animation-delay:80ms;"></div>
+        <div class="marker coral" data-dom-id="map-marker"
+             style="width:14px;height:14px;top:95px;left:210px;animation-delay:160ms;"></div>
+        <div class="marker coral selected" data-dom-id="map-marker"
+             style="width:22px;height:22px;top:168px;left:148px;animation-delay:240ms;">
+          <div class="marker-info">
+            城市森林公园 <span class="star">&#9733;</span> 4.5
+          </div>
+        </div>
+        <div class="marker coral" data-dom-id="map-marker"
+             style="width:12px;height:12px;top:250px;left:85px;animation-delay:320ms;"></div>
+        <div class="marker coral" data-dom-id="map-marker"
+             style="width:14px;height:14px;top:72px;left:295px;animation-delay:400ms;"></div>
+
+        <!-- Blue markers (2) -->
+        <div class="marker blue" data-dom-id="map-marker"
+             style="width:12px;height:12px;top:190px;left:42px;animation-delay:200ms;"></div>
+        <div class="marker blue" data-dom-id="map-marker"
+             style="width:13px;height:13px;top:280px;left:260px;animation-delay:360ms;"></div>
+
+        <!-- Yellow markers (2) -->
+        <div class="marker yellow" data-dom-id="map-marker"
+             style="width:12px;height:12px;top:130px;left:305px;animation-delay:280ms;"></div>
+        <div class="marker yellow" data-dom-id="map-marker"
+             style="width:10px;height:10px;top:300px;left:170px;animation-delay:440ms;"></div>
+
+        <!-- Compass indicator -->
+        <div class="map-compass" aria-hidden="true">N</div>
+
+        <!-- Location button -->
+        <button class="map-location-btn" aria-label="定位到当前位置">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="10" cy="10" r="5.5"></circle>
+            <circle cx="10" cy="10" r="1.5" fill="currentColor" stroke="none"></circle>
+            <line x1="10" y1="2.5" x2="10" y2="5"></line>
+            <line x1="10" y1="15" x2="10" y2="17.5"></line>
+            <line x1="2.5" y1="10" x2="5" y2="10"></line>
+            <line x1="15" y1="10" x2="17.5" y2="10"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Environment Dashboard ── -->
+    <div class="env-dashboard">
+      <div class="env-item">
+        <div class="env-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--brand-primary)" stroke-width="1.3" stroke-linecap="round">
+            <rect x="6" y="1.5" width="6" height="11" rx="3"></rect>
+            <circle cx="9" cy="11.5" r="2.5"></circle>
+            <line x1="9" y1="5" x2="9" y2="9"></line>
+          </svg>
+        </div>
+        <span class="env-value">28&deg;</span>
+        <span class="env-label">温度</span>
+      </div>
+      <div class="env-item">
+        <div class="env-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--brand-secondary)" stroke-width="1.3">
+            <path d="M9 2.5L5 9a4 4 0 108 0L9 2.5z"></path>
+            <path d="M7 10.5c0 0 0.5 1.5 2 1.5s2-1.5 2-1.5" stroke-linecap="round"></path>
+          </svg>
+        </div>
+        <span class="env-value">65%</span>
+        <span class="env-label">湿度</span>
+      </div>
+      <div class="env-item">
+        <div class="env-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--text-secondary)" stroke-width="1.3" stroke-linecap="round">
+            <path d="M2 6h10"></path>
+            <path d="M4 9.5h8"></path>
+            <path d="M6 13h6"></path>
+          </svg>
+        </div>
+        <span class="env-value">3级</span>
+        <span class="env-label">风力</span>
+      </div>
+      <div class="env-item">
+        <div class="env-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--brand-accent-dark)" stroke-width="1.3" stroke-linecap="round">
+            <circle cx="9" cy="9" r="3"></circle>
+            <line x1="9" y1="2" x2="9" y2="4"></line>
+            <line x1="9" y1="14" x2="9" y2="16"></line>
+            <line x1="2" y1="9" x2="4" y2="9"></line>
+            <line x1="14" y1="9" x2="16" y2="9"></line>
+            <line x1="4.1" y1="4.1" x2="5.5" y2="5.5"></line>
+            <line x1="12.5" y1="12.5" x2="13.9" y2="13.9"></line>
+            <line x1="4.1" y1="13.9" x2="5.5" y2="12.5"></line>
+            <line x1="12.5" y1="5.5" x2="13.9" y2="4.1"></line>
+          </svg>
+        </div>
+        <span class="env-value">中等</span>
+        <span class="env-label">紫外线</span>
+      </div>
+    </div>
+
+    <!-- ── Nearby Locations ── -->
+    <div class="nearby-section">
+      <div class="nearby-header">
+        <h2 class="nearby-title">附近推荐</h2>
+        <a href="#" class="nearby-more">查看更多 ›</a>
+      </div>
+      <div class="nearby-scroll">
+        <div class="location-card" data-dom-id="location-card" style="animation-delay:80ms;">
+          <img class="card-thumb" src="../assets/location-park.jpg" alt="城市森林公园户外场景">
+          <div class="card-body">
+            <div class="card-name">城市森林公园</div>
+            <div class="card-meta">
+              <span class="card-rating">&#9733; 4.5</span>
+              <span class="card-distance">1.2km</span>
+            </div>
+          </div>
+        </div>
+        <div class="location-card" data-dom-id="location-card" style="animation-delay:160ms;">
+          <img class="card-thumb" src="../assets/location-lake.jpg" alt="月湖湿地公园湖景">
+          <div class="card-body">
+            <div class="card-name">月湖湿地公园</div>
+            <div class="card-meta">
+              <span class="card-rating">&#9733; 4.3</span>
+              <span class="card-distance">2.8km</span>
+            </div>
+          </div>
+        </div>
+        <div class="location-card" data-dom-id="location-card" style="animation-delay:240ms;">
+          <img class="card-thumb" src="../assets/location-garden.jpg" alt="社区花园绿地景色">
+          <div class="card-body">
+            <div class="card-name">社区花园绿地</div>
+            <div class="card-meta">
+              <span class="card-rating">&#9733; 4.7</span>
+              <span class="card-distance">0.8km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-scroll -->
+
+  <!-- ════════ FAB Button ════════ -->
+  <button class="fab" data-dom-id="fab-publish" aria-label="发布动态">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" pointer-events="none">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <!-- ════════ Tab Bar ════════ -->
+  <nav class="tab-bar">
+    <button class="tab-item active" data-dom-id="tab-explore" aria-label="地图探索">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+        <line x1="8" y1="2" x2="8" y2="18"></line>
+        <line x1="16" y1="6" x2="16" y2="22"></line>
+      </svg>
+      <span class="tab-label">地图探索</span>
+    </button>
+    <button class="tab-item" data-dom-id="tab-zone" aria-label="出毛专区">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span class="tab-label">出毛专区</span>
+    </button>
+    <button class="tab-item" data-dom-id="tab-profile" aria-label="我的">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      <span class="tab-label">我的</span>
+    </button>
+  </nav>
+
+</div><!-- /phone-frame -->
+
+
+    <style>
+    /* ── Reset ── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: #ECECEC;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Phone Frame ── */
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--bg-page);
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      height: 44px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      position: relative;
+      z-index: var(--z-sticky);
+    }
+
+    .status-time {
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.02em;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-primary);
+    }
+
+    /* ── WeChat Nav Bar ── */
+    .nav-bar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-light);
+      position: relative;
+      z-index: var(--z-sticky);
+    }
+
+    .nav-left {
+      width: 88px;
+      flex-shrink: 0;
+    }
+
+    .nav-title {
+      flex: 1;
+      text-align: center;
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+      word-break: keep-all;
+    }
+
+    .nav-capsule {
+      width: 88px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-default);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .capsule-btn {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background-color 120ms var(--ease-default);
+    }
+
+    .capsule-btn:active {
+      background: var(--bg-active);
+    }
+
+    .capsule-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border-default);
+      flex-shrink: 0;
+    }
+
+    /* ── Scrollable Content ── */
+    .content-scroll {
+      padding-bottom: 90px;
+    }
+
+    /* ── Search Section ── */
+    .search-section {
+      padding: var(--space-3) var(--space-4) var(--space-3);
+      background: var(--bg-card);
+    }
+
+    .search-bar {
+      height: 44px;
+      border-radius: var(--radius-full);
+      background: var(--neutral-100);
+      display: flex;
+      align-items: center;
+      padding: 0 6px 0 var(--space-4);
+      gap: var(--space-2);
+      transition: background-color 150ms var(--ease-default);
+    }
+
+    .search-bar:focus-within {
+      background: var(--neutral-200);
+    }
+
+    .search-icon {
+      color: var(--text-hint);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-placeholder {
+      flex: 1;
+      font-size: var(--font-size-base);
+      color: var(--text-hint);
+      line-height: 1;
+    }
+
+    .filter-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: background-color 120ms var(--ease-default), transform 120ms var(--ease-default);
+    }
+
+    .filter-btn:active {
+      transform: scale(0.94);
+      background: var(--bg-active);
+    }
+
+    /* ── Filter Tags ── */
+    .filter-tags {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .filter-tags::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-tag {
+      height: 30px;
+      padding: 0 var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 200ms var(--ease-default), color 200ms var(--ease-default), border-color 200ms var(--ease-default);
+      border: 1px solid transparent;
+      flex-shrink: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .filter-tag.active {
+      background: var(--brand-primary);
+      color: var(--text-inverse);
+      border-color: var(--brand-primary);
+    }
+
+    .filter-tag:not(.active) {
+      background: var(--neutral-100);
+      color: var(--text-secondary);
+      border-color: var(--border-light);
+    }
+
+    .filter-tag:not(.active):active {
+      background: var(--neutral-200);
+    }
+
+    /* ── Map Area ── */
+    .map-wrapper {
+      padding: var(--space-3) var(--space-4) 0;
+    }
+
+    .map-area {
+      position: relative;
+      height: 320px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: linear-gradient(155deg, #E6EEE4 0%, #D6E4D2 50%, #CCDEC8 100%);
+    }
+
+    /* Terrain patches */
+    .terrain-patch {
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .terrain-patch.park-1 {
+      top: 50px;
+      left: 30px;
+      width: 90px;
+      height: 65px;
+      background: rgba(168, 208, 156, 0.35);
+      border-radius: 45% 55% 50% 50%;
+    }
+
+    .terrain-patch.park-2 {
+      top: 160px;
+      left: 110px;
+      width: 130px;
+      height: 100px;
+      background: rgba(160, 204, 148, 0.28);
+      border-radius: 40% 60% 55% 45%;
+    }
+
+    .terrain-patch.park-3 {
+      bottom: 40px;
+      right: 20px;
+      width: 80px;
+      height: 55px;
+      background: rgba(168, 208, 156, 0.22);
+      border-radius: 55% 45% 40% 60%;
+    }
+
+    /* Water feature */
+    .terrain-water {
+      position: absolute;
+      top: 230px;
+      left: 50px;
+      width: 80px;
+      height: 40px;
+      background: rgba(74, 144, 217, 0.18);
+      border-radius: 50% 40% 55% 45%;
+    }
+
+    /* Built area */
+    .terrain-built {
+      position: absolute;
+      top: 80px;
+      right: 60px;
+      width: 60px;
+      height: 45px;
+      background: rgba(200, 200, 200, 0.2);
+      border-radius: var(--radius-sm);
+    }
+
+    /* Road network */
+    .road {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .road-h1 { top: 110px; left: 0; width: 100%; height: 2.5px; }
+    .road-h2 { top: 210px; left: 15px; width: 80%; height: 2px; }
+    .road-h3 { top: 270px; left: 80px; width: 60%; height: 1.5px; }
+    .road-v1 { top: 0; left: 130px; width: 2.5px; height: 100%; }
+    .road-v2 { top: 30px; left: 240px; width: 2px; height: 75%; }
+    .road-v3 { top: 60px; left: 320px; width: 1.5px; height: 55%; }
+    .road-d1 {
+      top: 60px;
+      left: 50px;
+      width: 140px;
+      height: 2px;
+      transform: rotate(22deg);
+      transform-origin: left center;
+    }
+
+    /* ── Map Markers ── */
+    .marker {
+      position: absolute;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 2;
+      opacity: 0;
+      animation: markerPop 450ms var(--ease-bounce) forwards;
+      transition: transform 150ms var(--ease-default);
+    }
+
+    .marker::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+    }
+
+    .marker.coral {
+      background: var(--brand-primary);
+      color: var(--brand-primary);
+      box-shadow: 0 2px 6px rgba(255, 107, 74, 0.35);
+    }
+
+    .marker.blue {
+      background: var(--brand-secondary);
+      color: var(--brand-secondary);
+      box-shadow: 0 2px 6px rgba(74, 144, 217, 0.35);
+    }
+
+    .marker.yellow {
+      background: var(--brand-accent);
+      color: var(--brand-accent);
+      box-shadow: 0 2px 6px rgba(240, 200, 48, 0.35);
+    }
+
+    .marker:active {
+      transform: scale(1.2);
+    }
+
+    .marker.selected {
+      width: 22px !important;
+      height: 22px !important;
+      z-index: 3;
+      animation: markerPop 450ms var(--ease-bounce) forwards, markerPulse 2.4s ease-in-out infinite 500ms;
+    }
+
+    .marker.selected::after {
+      border-top-width: 6px;
+      border-left-width: 5px;
+      border-right-width: 5px;
+      bottom: -4px;
+    }
+
+    /* ── Marker Info Card ── */
+    .marker-info {
+      position: absolute;
+      bottom: calc(100% + 14px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      box-shadow: var(--shadow-float);
+      white-space: nowrap;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .marker-info::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--bg-card);
+    }
+
+    .marker-info .star {
+      color: var(--brand-accent-dark);
+      font-size: 11px;
+    }
+
+    /* ── Map Controls ── */
+    .map-location-btn {
+      position: absolute;
+      bottom: var(--space-4);
+      left: var(--space-4);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      z-index: 5;
+      color: var(--brand-primary);
+      transition: transform 120ms var(--ease-default), box-shadow 120ms var(--ease-default);
+    }
+
+    .map-location-btn:active {
+      transform: scale(0.92);
+    }
+
+    .map-compass {
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-secondary);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* ── Environment Dashboard ── */
+    .env-dashboard {
+      margin: var(--space-3) var(--space-4) 0;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-2);
+      display: flex;
+      align-items: center;
+      box-shadow: var(--shadow-card);
+    }
+
+    .env-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+      padding: 0 var(--space-1);
+    }
+
+    .env-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 4px;
+      height: 32px;
+      width: 1px;
+      background: var(--border-light);
+    }
+
+    .env-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+    }
+
+    .env-value {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+
+    .env-label {
+      font-size: var(--font-size-2xs);
+      color: var(--text-hint);
+      line-height: 1;
+    }
+
+    /* ── Nearby Locations ── */
+    .nearby-section {
+      padding: var(--space-5) var(--space-4) var(--space-4);
+    }
+
+    .nearby-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-3);
+    }
+
+    .nearby-title {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      text-wrap: balance;
+      word-break: keep-all;
+    }
+
+    .nearby-more {
+      font-size: var(--font-size-xs);
+      color: var(--text-hint);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      transition: color 120ms var(--ease-default);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nearby-more:active {
+      color: var(--text-secondary);
+    }
+
+    .nearby-scroll {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: var(--space-1);
+    }
+
+    .nearby-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .location-card {
+      flex-shrink: 0;
+      width: 156px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      opacity: 0;
+      animation: fadeUp 420ms var(--ease-out) forwards;
+      transition: transform 150ms var(--ease-default);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .location-card:active {
+      transform: scale(0.97);
+    }
+
+    .location-card .card-thumb {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      display: block;
+      background: var(--neutral-200);
+    }
+
+    .location-card .card-body {
+      padding: var(--space-3) var(--space-3) var(--space-3);
+    }
+
+    .location-card .card-name {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-wrap: balance;
+      word-break: keep-all;
+    }
+
+    .location-card .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--font-size-2xs);
+      color: var(--text-hint);
+    }
+
+    .card-rating {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      color: var(--brand-accent-dark);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .card-distance {
+      color: var(--text-hint);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── FAB Button ── */
+    .fab {
+      position: absolute;
+      bottom: 104px;
+      right: var(--space-4);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--brand-primary);
+      color: var(--text-inverse);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(255, 107, 74, 0.4);
+      z-index: var(--z-fab);
+      transition: transform 150ms var(--ease-default);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .fab:active {
+      transform: scale(0.9);
+    }
+
+    .fab svg {
+      width: 24px;
+      height: 24px;
+      pointer-events: none;
+    }
+
+    /* ── Tab Bar ── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: stretch;
+      justify-content: space-around;
+      z-index: var(--z-sticky);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      min-height: var(--touch-min);
+      -webkit-tap-highlight-color: transparent;
+      transition: color 120ms var(--ease-default);
+    }
+
+    .tab-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: var(--font-weight-medium);
+      line-height: 1;
+    }
+
+    .tab-item.active {
+      color: var(--brand-primary);
+    }
+
+    .tab-item:not(.active) {
+      color: var(--text-hint);
+    }
+
+    .tab-item:not(.active):active {
+      opacity: 0.6;
+    }
+
+    /* ── Animations ── */
+    @keyframes markerPop {
+      0% {
+        transform: scale(0) translateY(8px);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1.12) translateY(-1px);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes markerPulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(255, 107, 74, 0.35);
+      }
+      50% {
+        transform: scale(1.18);
+        box-shadow: 0 4px 16px rgba(255, 107, 74, 0.45);
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Reduced Motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .marker,
+      .location-card {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+      }
+
+      .marker,
+      .marker.selected {
+        opacity: 1;
+        animation: none !important;
+      }
+
+      .filter-tag,
+      .filter-btn,
+      .fab,
+      .tab-item,
+      .location-card,
+      .map-location-btn {
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ── Touch Device Hover Disable ── */
+    @media (hover: none) {
+      .filter-tag:hover,
+      .location-card:hover,
+      .tab-item:hover,
+      .fab:hover {
+        transform: none;
+      }
+    }
+  </style>
+</body>
+</html>

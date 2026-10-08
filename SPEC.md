@@ -15,7 +15,7 @@
 
 ### 2.2 Color Palette
 ```
-Primary:     #FF6B4A  (珊瑚橙 - 探索与活力)
+Primary:     #D4890E  (琥珀金 - 对齐 Figma 修复清单)
 Secondary:   #4A90D9  (天空蓝 - 地图与信任)
 Accent:      #FFD93D  (向日葵黄 - 高亮标记)
 Background:  #FAFAFA  (云白)

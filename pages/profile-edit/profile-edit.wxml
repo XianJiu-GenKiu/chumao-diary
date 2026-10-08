@@ -1,0 +1,39 @@
+<view class="page page-profile-edit {{darkMode ? 'dark-theme' : ''}}">
+  <view class="cover-editor" bindtap="chooseProfileBg">
+    <image
+      class="cover-preview"
+      wx:if="{{profileBg}}"
+      src="{{profileBg}}"
+      mode="aspectFill"
+    />
+    <view class="cover-placeholder" wx:else>
+      <text class="cover-placeholder-title">上传主页背景</text>
+      <text class="cover-placeholder-subtitle">建议横向图片</text>
+    </view>
+    <view class="cover-mask"></view>
+    <view class="cover-actions">
+      <view class="cover-action" catchtap="chooseProfileBg">更换背景</view>
+      <view class="cover-action secondary" wx:if="{{profileBg}}" catchtap="cropProfileBg">编辑</view>
+      <view class="cover-action secondary" wx:if="{{profileBg}}" catchtap="previewProfileBg">预览</view>
+    </view>
+
+    <view class="avatar-row" catchtap="chooseAvatar">
+      <image class="avatar" src="{{avatar || '/images/tabbar/profile.png'}}" mode="aspectFill" />
+      <text class="avatar-tip">更换头像</text>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <text class="label">昵称</text>
+    <input value="{{nickname}}" data-field="nickname" bindinput="onFieldInput" maxlength="20" placeholder="给自己起个昵称" />
+  </view>
+  <view class="form-section">
+    <text class="label">兽设名</text>
+    <input value="{{furName}}" data-field="furName" bindinput="onFieldInput" maxlength="20" placeholder="选填" />
+  </view>
+  <view class="form-section">
+    <text class="label">个人简介</text>
+    <textarea value="{{signature}}" data-field="signature" bindinput="onFieldInput" maxlength="100" placeholder="选填，最多 100 字" />
+  </view>
+  <view class="save-btn {{saving ? 'disabled' : ''}}" bindtap="save">{{saving ? '保存中...' : '保存资料'}}</view>
+</view>
