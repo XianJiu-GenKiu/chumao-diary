@@ -78,7 +78,8 @@ const MANIFEST = {
     'getCityCandidates',
     'getNearbyMapPoi',
     'suggestPlaces',
-    'planRoute'
+    'planRoute',
+    'getMapSnapshot'
   ],
   // 集合自愈：这些函数是 likes / reactions / ratings / checkins /
   // events / event_likes / usage_events 的唯一（或首次）写入方

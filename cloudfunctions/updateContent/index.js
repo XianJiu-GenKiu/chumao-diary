@@ -77,6 +77,8 @@ exports.main = async (event, context) => {
       if (data.season !== undefined) updateData.season = String(data.season).trim().slice(0, 30)
       if (data.notice !== undefined) updateData.notice = String(data.notice).trim().slice(0, 300)
       if (data.visibility !== undefined) updateData.visibility = data.visibility === 'circle' ? 'circle' : 'public'
+      // 运营方精选标记（编辑已录入地点时可调整；普通用户不持有地点，无越权面）
+      if (data.featured !== undefined) updateData.featured = Boolean(data.featured)
       if (data.latitude !== undefined && Number.isFinite(Number(data.latitude))) updateData.latitude = Number(data.latitude)
       if (data.longitude !== undefined && Number.isFinite(Number(data.longitude))) updateData.longitude = Number(data.longitude)
 

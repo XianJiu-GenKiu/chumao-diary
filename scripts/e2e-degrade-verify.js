@@ -96,6 +96,31 @@ function staticChecks() {
       bad: /\bposts\b/,
       hint: '仍召回帖子'
     },
+    // ── 精选链路与足迹本地化（本轮功能改造契约） ──
+    {
+      name: 'getLocations 支持 featuredOnly 精选过滤',
+      file: 'cloudfunctions/getLocations/index.js',
+      must: /featuredOnly/,
+      hint: '缺少精选过滤，地图「精选」视角与底部精选推荐无数据来源'
+    },
+    {
+      name: 'addLocation 接受 featured 精选标记',
+      file: 'cloudfunctions/addLocation/index.js',
+      must: /featured/,
+      hint: '运营方无法在录入时标记精选'
+    },
+    {
+      name: '足迹页不再依赖官方兽聚名录（已改为用户本机自建）',
+      file: 'pages/footprints/footprints.js',
+      bad: /config\/furmeets/,
+      hint: '仍引用已删除的官方名录'
+    },
+    {
+      name: 'getMapSnapshot 是纯只读代理（不读写任何集合）',
+      file: 'cloudfunctions/getMapSnapshot/index.js',
+      bad: /\.collection\(|\.(add|update|remove)\(/,
+      hint: '出现数据库读写，超出静态图代理职责'
+    },
     // ── 用户地点反馈通道（单向：用户 → 运营方） ──
     {
       name: 'submitLocationFeedback 只写反馈表，不写公开地点库',

@@ -44,23 +44,25 @@
         polyline="{{polyline}}"
         include-points="{{includePoints}}"
         enable-poi="{{true}}"
+        enable-zoom="{{true}}"
+        enable-scroll="{{true}}"
         show-location="{{false}}"
         bindmarkertap="onMarkerTap"
       ></map>
       <view wx:else class="map-empty">
         <icon name="map" size="56" color="#D0D0D0" />
         <text class="map-empty-title">还没有足迹</text>
-        <text class="map-empty-desc">记录第一次出毛，点亮你的第一座城</text>
+        <text class="map-empty-desc">点亮一座城市，或记录第一次出毛</text>
       </view>
       <view class="map-legend">
         <view class="legend-item"><image class="legend-icon" src="/images/map/marker-footprint.png" mode="aspectFit" /><text>我的足迹</text></view>
-        <view class="legend-item"><image class="legend-icon" src="/images/map/marker-furmeet.png" mode="aspectFit" /><text>参加过的兽聚</text></view>
+        <view class="legend-item"><image class="legend-icon" src="/images/map/marker-furmeet.png" mode="aspectFit" /><text>我的兽聚</text></view>
       </view>
     </view>
 
     <!-- 里程碑 -->
     <view class="section">
-      <view class="section-title">里程碑</view>
+      <view class="section-title">里程碑 · 已达成 {{milestones.length ? '' : ''}}<text class="section-title-strong">{{unlockedCount}}</text></view>
       <view class="milestone-row">
         <view
           class="milestone {{item.unlocked ? 'unlocked' : ''}}"
@@ -74,7 +76,7 @@
       </view>
     </view>
 
-    <!-- 城市徽章墙 -->
+    <!-- 城市徽章墙（点击徽章 = 标注在该城市出过毛） -->
     <view class="section">
       <view class="section-title">城市徽章 · 已点亮 {{stats.cities}} / {{cityBadges.length}}</view>
       <view class="badge-wall">
@@ -82,32 +84,41 @@
           class="city-badge {{item.active ? 'active' : ''}}"
           wx:for="{{cityBadges}}"
           wx:key="name"
+          data-name="{{item.name}}"
+          bindtap="onCityBadgeTap"
         >
           <text class="city-badge-name">{{item.label}}</text>
           <text class="city-badge-count" wx:if="{{item.active}}">{{item.count}} 次</text>
+          <text class="city-badge-mark" wx:else>＋</text>
+        </view>
+        <view class="city-badge add-city" bindtap="addCityByChoose">
+          <text class="city-badge-name">📍 其他城市</text>
+          <text class="city-badge-mark">选点标注</text>
         </view>
       </view>
+      <view class="badge-tip">点未点亮的徽章即可标注「在这个城市出过毛」；其他城市可通过地图选点添加，全国城市均可标注。全部数据仅保存在本机。</view>
     </view>
 
-    <!-- 兽聚徽章 -->
+    <!-- 我的兽聚（本机自建） -->
     <view class="section">
-      <view class="section-title">兽聚徽章 · {{stats.furmeetCount}} 场 / {{stats.furmeetDistinct}} 个兽聚</view>
-      <view class="furmeet-note">兽聚由官方收录，仅供记录成就；打卡只保存在你的手机里</view>
+      <view class="section-title">我的兽聚 · {{stats.furmeetCount}} 场 / {{stats.furmeetDistinct}} 个</view>
+      <view class="furmeet-note">由你自己记录：名字、城市、日期和照片只保存在你的手机里</view>
       <view class="furmeet-list">
         <view
-          class="furmeet-badge {{item.active ? 'active' : ''}}"
-          wx:for="{{furmeetBadges}}"
+          class="furmeet-badge active"
+          wx:for="{{myMeets}}"
           wx:key="id"
           data-id="{{item.id}}"
-          bindtap="onFurmeetBadgeTap"
+          bindtap="onMeetTap"
         >
           <view class="furmeet-main">
             <text class="furmeet-name">{{item.cityLabel}} · {{item.name}}</text>
-            <text class="furmeet-meta">{{item.monthsText}}{{item.tip ? ' · ' + item.tip : ''}}</text>
+            <text class="furmeet-meta">{{item.dateText}}{{item.note ? ' · ' + item.note : ''}}</text>
           </view>
-          <text class="furmeet-count">{{item.active ? '去过 ' + item.count + ' 次' : '未打卡'}}</text>
+          <text class="furmeet-count">去过 {{item.attendCount}} 次</text>
         </view>
       </view>
+      <view class="furmeet-add" bindtap="openMeetFormNew">＋ 记录一场兽聚</view>
     </view>
 
     <!-- 海报入口 -->
@@ -133,9 +144,6 @@
           <text class="log-city">{{item.cityLabel}}</text>
         </view>
         <view class="log-place">{{item.placeName}}</view>
-        <view class="log-tags" wx:if="{{item.furmeetNames.length}}">
-          <text class="log-tag furmeet-tag" wx:for="{{item.furmeetNames}}" wx:key="*this" wx:for-item="fname">兽聚 · {{fname}}</text>
-        </view>
         <view class="log-line" wx:if="{{item.companions}}">和 {{item.companions}} 一起</view>
         <view class="log-line note" wx:if="{{item.note}}">{{item.note}}</view>
         <view class="log-photos" wx:if="{{item.photos.length}}">
@@ -160,7 +168,7 @@
     <view class="fab" bindtap="openFormNew">＋ 记录一次出毛</view>
   </block>
 
-  <!-- ══════════ 记录表单（底部弹层） ══════════ -->
+  <!-- ══════════ 出毛记录表单（底部弹层） ══════════ -->
   <view class="form-mask" wx:if="{{showForm}}" bindtap="closeForm"></view>
   <view class="form-sheet" wx:if="{{showForm}}" catchtap="noop">
     <view class="form-title">{{editingId ? '编辑出毛记录' : '记录一次出毛'}}</view>
@@ -205,20 +213,6 @@
       </view>
     </view>
 
-    <!-- 兽聚（仅展示当前城市的名录，只读勾选） -->
-    <view class="form-field" wx:if="{{formFurmeets.length}}">
-      <text class="form-label">参加的兽聚（可选）</text>
-      <view class="chip-row">
-        <view
-          class="chip {{item.selected ? 'selected' : ''}}"
-          wx:for="{{formFurmeets}}"
-          wx:key="id"
-          data-id="{{item.id}}"
-          bindtap="onFormFurmeetToggle"
-        >{{item.name}}</view>
-      </view>
-    </view>
-
     <!-- 同伴（纯文本本地备注） -->
     <view class="form-field">
       <text class="form-label">和谁一起（仅保存在本机）</text>
@@ -258,6 +252,70 @@
     <view class="form-actions">
       <view class="btn-cancel" bindtap="closeForm">取消</view>
       <view class="btn-save" bindtap="saveForm">保存</view>
+    </view>
+  </view>
+
+  <!-- ══════════ 兽聚表单（底部弹层，本机自建） ══════════ -->
+  <view class="form-mask" wx:if="{{showMeetForm}}" bindtap="closeMeetForm"></view>
+  <view class="form-sheet" wx:if="{{showMeetForm}}" catchtap="noop">
+    <view class="form-title">{{editingMeetId ? '编辑兽聚' : '记录一场兽聚'}}</view>
+
+    <view class="form-field">
+      <text class="form-label">兽聚名字</text>
+      <input
+        class="form-input"
+        placeholder="如：XX 夏日兽聚"
+        value="{{meetForm.name}}"
+        bindinput="onMeetNameInput"
+        maxlength="20"
+      />
+    </view>
+
+    <view class="form-field">
+      <text class="form-label">举办城市</text>
+      <picker mode="selector" range="{{cityNames}}" value="{{meetCityIndex}}" bindchange="onMeetCityChange">
+        <view class="form-picker">{{meetForm.city ? cityNames[meetCityIndex] : '选择城市'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-field">
+      <text class="form-label">日期</text>
+      <picker mode="date" value="{{meetDate}}" bindchange="onMeetDateChange">
+        <view class="form-picker">{{meetDate || '选择日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="loc-row">
+      <view class="loc-btn" bindtap="chooseMeetOnMap">选举办地位置（可选）</view>
+    </view>
+    <view class="coords-source" wx:if="{{meetCoordsSource}}">坐标来源：{{meetCoordsSource}}</view>
+
+    <view class="form-field">
+      <text class="form-label">备注</text>
+      <textarea
+        class="form-textarea"
+        placeholder="场地、氛围、下次还想再去…"
+        value="{{meetForm.note}}"
+        bindinput="onMeetNoteInput"
+        maxlength="100"
+        auto-height
+      ></textarea>
+    </view>
+
+    <view class="form-field">
+      <text class="form-label">照片（最多 3 张，仅本机）</text>
+      <view class="photo-row">
+        <view class="photo-item" wx:for="{{meetForm.photos}}" wx:key="*this">
+          <image class="photo-img" src="{{item}}" mode="aspectFill" />
+          <view class="photo-del" data-index="{{index}}" catchtap="removeMeetPhoto">×</view>
+        </view>
+        <view class="photo-add" wx:if="{{meetForm.photos.length < 3}}" bindtap="chooseMeetPhoto">＋</view>
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <view class="btn-cancel" bindtap="closeMeetForm">取消</view>
+      <view class="btn-save" bindtap="saveMeetForm">保存</view>
     </view>
   </view>
 

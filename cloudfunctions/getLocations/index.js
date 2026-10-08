@@ -38,7 +38,7 @@ function matchesOneFilter(location, filter) {
 
 exports.main = async (event, context) => {
   const { OPENID: openid } = cloud.getWXContext()
-  const { category = 'all' } = event
+  const { category = 'all', featuredOnly = false } = event
   const safePage = Math.max(1, Math.floor(Number(event.page) || 1))
   const safePageSize = Math.min(50, Math.max(1, Math.floor(Number(event.pageSize) || 10)))
   const skip = (safePage - 1) * safePageSize
@@ -77,7 +77,10 @@ exports.main = async (event, context) => {
     // 拉黑过滤：被当前用户拉黑的作者，其地点不再出现在地图标记与列表中。
     const blockedIds = await getBlockedIds(db, openid)
     const filtered = filterBlocked(result.data.filter(item =>
-      isPubliclyVisible(item, openid) && matchesFilter(item, category)
+      isPubliclyVisible(item, openid) &&
+      matchesFilter(item, category) &&
+      // 精选视角：只返回运营方标记的 featured 地点（详见 location-upload 的精选开关）
+      (!featuredOnly || item.featured === true)
     ), blockedIds).slice(skip, skip + safePageSize)
     const locationIds = filtered.map(item => item._id).filter(Boolean)
     let favoriteCountMap = {}

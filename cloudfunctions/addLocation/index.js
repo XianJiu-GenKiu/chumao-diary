@@ -64,7 +64,8 @@ exports.main = async (event, context) => {
     season = '',
     notice = '',
     visibility = 'public',
-    imageVisibility = 'public'
+    imageVisibility = 'public',
+    featured = false
   } = event
 
   if (typeof name !== 'string' || name.trim().length > 30) {
@@ -184,6 +185,8 @@ exports.main = async (event, context) => {
       notice: String(notice).trim().slice(0, 300),
       visibility: normalizedVisibility,
       imageVisibility: imageVisibility === 'circle' ? 'circle' : normalizedVisibility,
+      // 运营方精选标记：地图「精选」视角与底部精选推荐只取 featured === true 的地点
+      featured: Boolean(featured),
       // 审核结果落库：approved 正常公开（含接口不可用时的降级放行）。
       // 降级放行的事实落在 moderationDegraded / moderationDegradeCodes，便于日后补审。
       moderationStatus: resolveModerationStatus(...moderationResults),

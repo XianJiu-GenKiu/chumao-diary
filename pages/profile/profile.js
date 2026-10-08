@@ -258,8 +258,8 @@ Page({
   },
 
   onFootprintsTap() {
-    // 数据只存本机，服务端零个人内容；无任何跨用户可见入口。
-    wx.navigateTo({ url: '/pages/footprints/footprints' })
+    // 足迹页已升级为一级 tabBar 页，switchTab 切换；数据只存本机，服务端零个人内容。
+    wx.switchTab({ url: '/pages/footprints/footprints' })
   },
 
   onEditProfile() {

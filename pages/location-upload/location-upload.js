@@ -42,6 +42,7 @@ Page({
     ],
     rating: 0,
     bestTime: '', season: '', notice: '', visibility: 'public',
+    featured: false,
     isEdit: false, editId: '',
     currentStep: 0,
     steps: ['基本信息', '位置信息', '详细说明']
@@ -259,6 +260,7 @@ Page({
   onSeasonInput(e) { this.setData({ season: e.detail.value }) },
   onNoticeInput(e) { this.setData({ notice: e.detail.value }) },
   setVisibility(e) { this.setData({ visibility: e.currentTarget.dataset.value }) },
+  setFeatured(e) { this.setData({ featured: e.currentTarget.dataset.val === 'true' }) },
   onAddressInput(e) {
     const addressKeyword = e.detail.value
     this.setData({ addressKeyword })
@@ -417,7 +419,8 @@ Page({
         season: this.data.season.trim(),
         notice: this.data.notice.trim(),
         visibility: this.data.visibility,
-        imageVisibility: this.data.visibility
+        imageVisibility: this.data.visibility,
+        featured: this.data.featured
       }
       const result = this.data.isEdit
         ? await app.callCloud('updateContent', { contentType: 'location', contentId: this.data.editId, data: payload })

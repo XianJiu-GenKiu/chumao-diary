@@ -33,6 +33,10 @@ const DRAG_MAX_OFFSET = 520
 const FAVORITE_DEBOUNCE = 900
 // 与 wxss 中弹入动画时长保持一致，用于动画结束后清理状态
 const EXIT_DURATION = 260
+// 地图快照封面：持久缓存 key / 有效期（7 天）/ 条目上限（控制 storage 体积）
+const MAP_COVER_CACHE_KEY = 'poi_map_cover_cache_v1'
+const MAP_COVER_TTL = 7 * 24 * 60 * 60 * 1000
+const MAP_COVER_CACHE_MAX = 10
 
 Component({
   properties: {
@@ -62,8 +66,13 @@ Component({
           // 换地点时才重置轮播：swiperCurrent 驱动 swiper，currentImage 仅记录当前页。
           patch.swiperCurrent = 0
           patch.currentImage = 0
+          // 地图快照封面随地点切换重置，再按需重新请求
+          patch.mapCoverSrc = ''
         }
         this.setData(patch)
+
+        // 外部地点没有实拍图：用腾讯位置服务静态地图作为封面背景。
+        if (item && item.isExternalPoi && !coverSrc) this._ensureMapCover(item)
       }
     },
     visible: {
@@ -117,6 +126,8 @@ Component({
     closing: false,
     coverSrc: '',
     gallery: [],
+    // 外部地点的地图快照封面（base64 data URL，由 getMapSnapshot 云函数生成）
+    mapCoverSrc: '',
     // swiper 的 current 绑定值：只在程序化切换时修改，绝不在 bindchange 里回写。
     swiperCurrent: 0,
     // 用户当前看到的第几张图，供指示点与全屏预览使用。
@@ -248,6 +259,22 @@ Component({
     },
 
     // ── 操作 ──
+    /**
+     * 主操作「已出毛」：由页面把该地点写入本机出毛记录（fur_footprints_v1）。
+     * 对内部地点与外部腾讯地点都可用 —— 记录只落本机，零跨用户内容。
+     */
+    onMarkVisited() {
+      const item = this.data.item
+      if (!item || !item.name) return
+      this.triggerEvent('markVisited', {
+        name: item.name,
+        city: item.city || '',
+        locationId: item._id || '',
+        latitude: item.latitude,
+        longitude: item.longitude
+      })
+    },
+
     onViewDetail() {
       const item = this.data.item
       if (item && item._id && item.canViewDetail !== false) {

@@ -16,7 +16,8 @@ const pager = createPager({
   cloudFn: 'getLocations',
   dataKey: 'locationList',
   pageSize: 10,
-  buildParams: (ctx) => ({ category: ctx.data.activeFilters })
+  // 精选视角：只取运营方标记 featured 的地点；其余视角取全部公开地点。
+  buildParams: (ctx) => (ctx.data.viewMode === 'featured' ? { featuredOnly: true } : {})
 })
 
 const { CITY_CANDIDATES } = require('../../config/cities')
@@ -30,6 +31,10 @@ const MARKER_HEIGHT = 46
 // 搜索标点使用的高位 id：内部地点标点占用 0..n-1，避免冲突。
 // 注意 marker.id 必须是 number，字符串会导致整组 markers 渲染失败。
 const SEARCH_MARKER_ID = 999999
+// 地图点击标点（用户点哪儿就落一根针，callout 展示识别结果）。
+const TAP_MARKER_ID = 999998
+// 本机足迹存储 key（与 pages/footprints 共用同一份数据）
+const FOOTPRINT_STORAGE_KEY = 'fur_footprints_v1'
 
 // 面板折叠态需要完整露出环境栏（手柄 + 环境栏 + 间距），与 wxss 中的
 // --float-panel-collapsed-height 保持一致：156rpx。
@@ -88,8 +93,13 @@ function heatPercent(heat) {
   return Math.max(6, Math.min(100, Math.round(ratio * 100)))
 }
 
-function buildDistanceText(loc, lat, lng) {
-  const lat1 = Number(loc.latitude)
+/** 时间戳 → 「YYYY-MM-DD」（足迹视角的地址摘要用） */
+function sameDayText(ts) {
+  const d = new Date(Number(ts) || Date.now())
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function buildDistanceText(loc, lat, lng) {  const lat1 = Number(loc.latitude)
   const lng1 = Number(loc.longitude)
   const lat2 = Number(lat)
   const lng2 = Number(lng)
@@ -132,40 +142,17 @@ Page({
     mapFabFollowOffset: 160,
     mapFabDragging: false,
 
-    // 筛选条件：按名称长度从短到长排列，面板内按“场景 / 出毛需求”分区展示。
-    sceneFilterOptions: [
-      { key: 'park', name: '公园绿地', icon: 'map', active: false },
-      { key: 'forest', name: '森林小径', icon: 'paw', active: false },
-      { key: 'water', name: '湖畔水边', icon: 'sun', active: false },
-      { key: 'ancient', name: '古风建筑', icon: 'home', active: false },
-      { key: 'urban', name: '城市街景', icon: 'navigation', active: false },
-      { key: 'ruins', name: '工业废墟', icon: 'map', active: false },
-      { key: 'indoor', name: '室内场景', icon: 'home', active: false },
-      { key: 'night', name: '夜景灯光', icon: 'moon', active: false },
-      { key: 'countryside', name: '乡野田园', icon: 'map-pin', active: false }
+    // 视角快切：把地图从「统一地点流」变成「按出毛需求切换的四个视角」。
+    // featured = 运营方精选；all = 全部地点；visited = 我出过毛（本机足迹）；
+    // favored = 我收藏的。社交判定相关：visited 只读本机数据，无跨用户内容。
+    viewOptions: [
+      { key: 'featured', name: '精选', icon: 'star' },
+      { key: 'all', name: '全部', icon: 'more-horizontal' },
+      { key: 'visited', name: '我出过毛', icon: 'paw' },
+      { key: 'favored', name: '我收藏的', icon: 'heart' }
     ],
-    needFilterOptions: [
-      { key: 'parking', name: '可停车', icon: 'map-pin', active: false },
-      { key: 'restroom', name: '有卫生间', icon: 'home', active: false },
-      { key: 'spacious', name: '人少宽敞', icon: 'users', active: false },
-      { key: 'shade', name: '遮阳避雨', icon: 'cloud-sun', active: false },
-      { key: 'metro', name: '地铁方便', icon: 'navigation', active: false },
-      { key: 'food', name: '附近可聚餐', icon: 'home', active: false },
-      { key: 'changing', name: '有换装空间', icon: 'edit', active: false },
-      { key: 'large-suit', name: '适合大型兽装', icon: 'paw', active: false },
-      { key: 'group-shoot', name: '适合多人拍摄', icon: 'users', active: false }
-    ],
-    quickFilterOptions: [
-      { key: 'park', name: '公园绿地', icon: 'map', active: false },
-      { key: 'forest', name: '森林小径', icon: 'paw', active: false },
-      { key: 'water', name: '湖畔水边', icon: 'sun', active: false },
-      { key: 'ancient', name: '古风建筑', icon: 'home', active: false }
-    ],
-    filterOptions: [],
-    activeFilter: 'all', // 兼容已有模板和外部跳转
-    activeFilters: [],
-    filteredCount: 0,
-    showFilterPanel: false,
+    viewMode: 'all',
+    viewCount: 0,
 
     // 地图数据
     mapMarkers: [],
@@ -203,8 +190,7 @@ Page({
       statusBarHeight: nav.statusBarHeight,
       navBarHeight: nav.navBarHeight,
       totalNavHeight: nav.totalNavHeight,
-      userInfo: app.globalData.userInfo,
-      filterOptions: [...this.data.sceneFilterOptions, ...this.data.needFilterOptions, { key: 'all', name: '全部', icon: 'more-horizontal', active: true }]
+      userInfo: app.globalData.userInfo
     })
 
     this._loadCityCandidates()
@@ -230,7 +216,7 @@ Page({
     }
     pager.load(this, true).then(() => {
       this._buildMapMarkers()
-      this.setData({ filteredCount: this.data.locationList.length })
+      this.setData({ viewCount: this.data.locationList.length })
     })
     // 深色模式实时同步（统一走 utils/common 的 bindDarkMode）
     bindDarkMode(this)
@@ -532,74 +518,79 @@ Page({
     // 保留空的滚动监听位：后续如需「回到顶部」等滚动联动效果在此扩展。
   },
 
-  // ── 筛选 ──
+  // ── 视角快切 ──
 
-  onFilterTap(e) {
-    this._applyFilter(e.currentTarget.dataset.key)
-  },
-
-  onFilterAllTap() { this.setData({ showFilterPanel: !this.data.showFilterPanel }) },
-  closeFilterPanel() { this.setData({ showFilterPanel: false }) },
-
-  /**
-   * 面板内的类别：只切换选中态，不自动关闭。
-   * 用户可以连续勾选多个类别，确认后自行点击「✕ / 完成」收起面板。
-   */
-  onFilterPanelTap(e) {
-    this._applyFilter(e.currentTarget.dataset.key)
-  },
-
-  /** 用户确认选择后收起面板 */
-  onFilterPanelConfirm() {
-    this.setData({ showFilterPanel: false })
-  },
-
-  /** 清空全部筛选条件（面板底部按钮与提示条按钮共用） */
-  onFilterClearTap() {
-    if (!this.data.activeFilters.length) return
+  onViewTap(e) {
+    const key = e.currentTarget.dataset.view
+    if (!key || key === this.data.viewMode) return
     wx.vibrateShort({ type: 'light' })
-    this._applyFilter('all')
-    wx.showToast({ title: '已清空筛选', icon: 'none' })
+    this.setData({ viewMode: key })
+    this._reloadForView()
   },
 
-  /** 同步 filterOptions 的 active 标记，供 WXML 直接渲染 */
-  _syncFilterOptions(activeFilters) {
-    const selected = Array.isArray(activeFilters) ? activeFilters : []
-    const mark = item => ({
-      ...item,
-      active: item.key === 'all' ? selected.length === 0 : selected.indexOf(item.key) >= 0
-    })
-    this.setData({
-      filterOptions: this.data.filterOptions.map(mark),
-      sceneFilterOptions: this.data.sceneFilterOptions.map(mark),
-      needFilterOptions: this.data.needFilterOptions.map(mark),
-      quickFilterOptions: this.data.quickFilterOptions.map(mark)
-    })
-  },
-
-  _applyFilter(key) {
-    let activeFilters
-    if (key === 'all') {
-      activeFilters = []
-    } else {
-      activeFilters = this.data.activeFilters.slice()
-      const index = activeFilters.indexOf(key)
-      if (index >= 0) activeFilters.splice(index, 1)
-      else activeFilters.push(key)
-    }
-
-    this.setData({
-      activeFilter: activeFilters[0] || 'all',
-      activeFilters
-    })
-    this._syncFilterOptions(activeFilters)
-
-    // 点击类别立即反馈，不等云函数返回
-    wx.vibrateShort({ type: 'light' })
-
+  /** 按当前视角重新拉取地图数据 */
+  _reloadForView() {
+    if (this.data.viewMode === 'visited') return this._loadVisitedView()
+    if (this.data.viewMode === 'favored') return this._loadFavoredView()
+    // featured / all 走分页器（buildParams 按视角注入 featuredOnly）
+    pager.reset()
     pager.load(this, true).then(() => {
       this._buildMapMarkers()
-      this.setData({ filteredCount: this.data.locationList.length })
+      this.setData({ viewCount: this.data.locationList.length })
+    })
+  },
+
+  /**
+   * 「我出过毛」视角：只读本机足迹（fur_footprints_v1），零云请求。
+   * 有地点库 id 的点仍可跳详情；纯本地点只展示名称与导航。
+   */
+  _loadVisitedView() {
+    let records = []
+    try {
+      const value = wx.getStorageSync(FOOTPRINT_STORAGE_KEY)
+      if (Array.isArray(value)) records = value
+    } catch (e) { /* 按无记录处理 */ }
+    const list = records
+      .filter(r => r && !r.autoMarked && Number.isFinite(Number(r.latitude)) && Number.isFinite(Number(r.longitude)))
+      .map(r => ({
+        _id: r.locationId || '',
+        name: r.placeName || '出毛地点',
+        city: r.city || '',
+        latitude: Number(r.latitude),
+        longitude: Number(r.longitude),
+        images: [],
+        address: r.city ? `${r.city} · ${sameDayText(r.visitedAt)} 出毛` : `${sameDayText(r.visitedAt)} 出毛`,
+        isFavorited: false,
+        favoriteCount: 0,
+        viewCount: 0
+      }))
+    this.setData({ locationList: list, viewCount: list.length })
+    this._buildMapMarkers()
+    if (!list.length) wx.showToast({ title: '还没有出毛记录，去足迹页记一笔', icon: 'none' })
+  },
+
+  /** 「我收藏的」视角：拉取当前用户收藏的地点 */
+  _loadFavoredView() {
+    if (!app.globalData.isLoggedIn) {
+      wx.showModal({
+        title: '请先登录',
+        content: '登录后即可在地图上查看你收藏的地点。',
+        confirmText: '去登录',
+        success: result => {
+          if (result.confirm) wx.switchTab({ url: '/pages/profile/profile' })
+        }
+      })
+      return
+    }
+    app.callCloud('getUserContent', { tab: 'favorite', page: 1, pageSize: 50 }).then(res => {
+      const list = (res && res.code === 0 && Array.isArray(res.data))
+        ? res.data.filter(item => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+        : []
+      this.setData({ locationList: list, viewCount: list.length })
+      this._buildMapMarkers()
+      if (!list.length) wx.showToast({ title: '还没有收藏的地点', icon: 'none' })
+    }).catch(() => {
+      wx.showToast({ title: '收藏列表加载失败', icon: 'none' })
     })
   },
 
@@ -694,18 +685,19 @@ Page({
     })
   },
 
-  // ── 附近推荐 ──
+  // ── 面板底部精选推荐 ──
 
   _loadNearbyLocations() {
-    const lat = this._currentLatitude || this.data.mapLatitude
-    const lng = this._currentLongitude || this.data.mapLongitude
-    // UI 框架阶段先切换为地点推荐；后续接入按城市/热度的专用查询参数。
-    app.callCloud('getLocations', { category: 'all', latitude: lat, longitude: lng, radius: 5, pageSize: 5 }).then(result => {
-      if (result && result.code === 0 && result.data) {
-        this.setData({ nearbyLocations: result.data.slice(0, 5).map(item => ({
-          ...item,
-          serviceSummary: item.serviceSummary || '适合拍摄 · 可查看周边服务'
-        })) })
+    // 只展示运营方标记 featured 的地点（location-upload 的「设为精选推荐」开关）。
+    // 暂无精选数据时展示空态，不悄悄退化成普通热门列表 —— 「运营方发布」的语义要保住。
+    app.callCloud('getLocations', { featuredOnly: true, page: 1, pageSize: 5 }).then(result => {
+      if (result && result.code === 0 && Array.isArray(result.data)) {
+        const list = result.data
+          .filter(item => item && item.name)
+          .sort((a, b) => (Number(b.favoriteCount) || 0) - (Number(a.favoriteCount) || 0))
+          .slice(0, 5)
+          .map(item => ({ ...item, serviceSummary: item.description ? String(item.description).slice(0, 40) : '运营方精选 · 可查看周边服务' }))
+        this.setData({ nearbyLocations: list })
       }
     }).catch(() => {})
   },
@@ -764,33 +756,68 @@ Page({
   // ── 地图标记 ──
 
   _buildMapMarkers() {
-    const withCoords = this.data.locationList.filter(i => i.latitude && i.longitude)
+    const withCoords = this.data.locationList.filter(i => Number.isFinite(Number(i.latitude)) && Number.isFinite(Number(i.longitude)))
     this._markerLocMap = withCoords
+
+    // 「我出过毛」视角用足迹针，与普通地点针在视觉上区分开
+    const iconPath = this.data.viewMode === 'visited' ? '/images/map/marker-footprint.png' : '/images/marker.png'
 
     const locMarkers = withCoords.map((item, idx) => ({
       id: idx,
-      latitude: item.latitude,
-      longitude: item.longitude,
-      iconPath: '/images/marker.png',
+      latitude: Number(item.latitude),
+      longitude: Number(item.longitude),
+      iconPath,
       // 信息交由自定义浮层展示，避免原生 callout 与 map tap 同时触发。
       width: MARKER_WIDTH,
       height: MARKER_HEIGHT
     }))
 
-    const mapLabels = []
-
+    const extra = this._tapMarker ? [this._tapMarker] : []
     this.setData({
-      mapMarkers: [...locMarkers, ...this.data.searchMarkers],
-      mapLabels
+      mapMarkers: [...locMarkers, ...this.data.searchMarkers, ...extra]
     })
+  },
+
+  /** 在点击位置放一根识别针（先给即时反馈，识别完成后再更新名称） */
+  _setTapMarker(latitude, longitude, name) {
+    this._tapMarker = {
+      id: TAP_MARKER_ID,
+      latitude,
+      longitude,
+      iconPath: '/images/marker.png',
+      width: 40,
+      height: 48,
+      callout: {
+        content: name || '识别中…',
+        fontSize: 13,
+        borderRadius: 10,
+        bgColor: '#D4890E',
+        color: '#ffffff',
+        padding: 8,
+        display: 'ALWAYS'
+      }
+    }
+    this._appendTapMarker()
+  },
+
+  _updateTapMarkerName(name) {
+    if (!this._tapMarker || !name) return
+    this._tapMarker.callout.content = String(name).slice(0, 16)
+    this._appendTapMarker()
+  },
+
+  _appendTapMarker() {
+    const markers = this.data.mapMarkers.filter(m => m.id !== TAP_MARKER_ID)
+    if (this._tapMarker) markers.push(this._tapMarker)
+    this.setData({ mapMarkers: markers })
   },
 
   // ── 分页 ──
 
   onPullDownRefresh() {
-    stopRefresh(pager.load(this, true).then(() => {
-      this._buildMapMarkers()
-      this.setData({ filteredCount: this.data.locationList.length })
+    const reload = this._reloadForView()
+    stopRefresh(Promise.resolve(reload).then(() => {
+      this.setData({ viewCount: this.data.locationList.length })
     }))
   },
 
@@ -807,8 +834,8 @@ Page({
     // 某些基础库会在 markertap 后继续派发 map tap；短暂忽略，避免浮层闪退。
     this._ignoreMapTapUntil = Date.now() + 450
     const idx = Number(e.detail.markerId)
-    // 搜索标点不属于内部地点，没有对应详情，直接忽略。
-    if (idx === SEARCH_MARKER_ID) return
+    // 搜索标点 / 点击识别针不属于内部地点，没有对应详情，直接忽略。
+    if (idx === SEARCH_MARKER_ID || idx === TAP_MARKER_ID) return
     const loc = this._markerLocMap ? this._markerLocMap[idx] : null
     if (!loc) return
     this._openPoiCard(loc)
@@ -856,6 +883,14 @@ Page({
       miniMeta: `${loc.categoryName || loc.category || loc.style || '地点'}`
     }, 'internal')
 
+    // 「我出过毛」视角的纯本机记录没有地点库 _id：不能收藏、不能跳详情，
+    // 只保留「已出毛 / 导航」等离线可用的操作。
+    if (!poi._id) {
+      poi.canFavorite = false
+      poi.canViewDetail = false
+    }
+
+    this._updateTapMarkerName(loc.name)
     this.setData({
       selectedPoi: poi,
       // 记录当前卡片身份，用于识别过期的关闭事件
@@ -869,30 +904,22 @@ Page({
   /** 地点列表加载失败后重试，成功后重建地图标点 */
   onMapLoadRetry() {
     wx.showLoading({ title: '重新加载...' })
-    pager.reset()
-    pager.load(this, true).then(() => {
-      this._buildMapMarkers()
-      this.setData({ filteredCount: this.data.locationList.length })
-    }).finally(() => wx.hideLoading())
+    const reload = this._reloadForView()
+    Promise.resolve(reload).catch(() => {}).finally(() => wx.hideLoading())
   },
 
   /**
-   * 点击地图：
-   * - 若当前已有卡片打开，第一次点击先收起卡片（保持轻量的关闭手感）；
-   * - 卡片已收起时，把点击坐标交给云函数识别腾讯地图上的地点，
-   *   识别到就弹出统一 POI 卡片，识别不到则提示「在这里创建地点」。
+   * 点击地图空白处：直接请求腾讯位置服务识别该点并在地图上落针标点。
+   * 不再「第一次点击先收卡片」——一次点击就完成标点 + 识别 + 弹卡片。
    */
   onMapTap(e) {
     // 某些基础库会在 markertap 后继续派发 map tap；短暂忽略，避免浮层闪退。
     if (Date.now() < (this._ignoreMapTapUntil || 0)) return
-    if (this.data.showPoiPreview || this.data.showPoiMini) {
-      this.setData({ showPoiPreview: false, showPoiMini: false, selectedPoi: null })
-      return
-    }
     const detail = e && e.detail
     const latitude = Number(detail && detail.latitude)
     const longitude = Number(detail && detail.longitude)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+    this._setTapMarker(latitude, longitude, '识别中…')
     this._queryNearbyMapPoi(latitude, longitude)
   },
 
@@ -908,11 +935,6 @@ Page({
     // 个别基础库会为同一次点击同时派发 poitap 与 tap，
     // 这里设一个很短的窗口，让紧随其后的 tap 被忽略，避免重复查询。
     this._ignoreMapTapUntil = Date.now() + 300
-    // 卡片已打开时，沿用「先收起」的一致手感
-    if (this.data.showPoiPreview || this.data.showPoiMini) {
-      this.setData({ showPoiPreview: false, showPoiMini: false, selectedPoi: null })
-      return
-    }
     const detail = e && e.detail
     const latitude = Number(detail && detail.latitude)
     const longitude = Number(detail && detail.longitude)
@@ -920,8 +942,9 @@ Page({
 
     // 底图 POI 已经带了名称，直接用它构建卡片，省掉一次网络往返。
     // 但「是否已被小程序收录」仍需云函数判定，因此照常请求。
-    this._mapPoiTapName = (detail && detail.name) || ''
-    this._queryNearbyMapPoi(latitude, longitude, { poiName: this._mapPoiTapName })
+    const poiName = (detail && detail.name) || ''
+    this._setTapMarker(latitude, longitude, poiName || '识别中…')
+    this._queryNearbyMapPoi(latitude, longitude, { poiName })
   },
 
   /**
@@ -985,6 +1008,7 @@ Page({
   /** 打开腾讯地图外部地点卡片 */
   _openExternalPoi(raw) {
     if (!raw) return
+    this._updateTapMarkerName(raw.name)
     // 命中已有内部地点时，直接沿用内部卡片体验（含热度、打卡、收藏）
     if (raw.collectionStatus === COLLECTION_STATUS.COLLECTED && raw.matchedLocationId) {
       const matched = this.data.locationList.find(item => item._id === raw.matchedLocationId)
@@ -1012,6 +1036,40 @@ Page({
       showPoiMini: false,
       showPoiPreview: true
     })
+  },
+
+  /**
+   * POI 卡片主按钮「已出毛」：把当前卡片地点写入本机出毛记录。
+   * 只写本机存储（fur_footprints_v1），零云请求、零跨用户内容。
+   */
+  onMarkVisitedFromPoi(e) {
+    const detail = (e && e.detail) || {}
+    const poi = this.data.selectedPoi || {}
+    const name = detail.name || poi.name
+    if (!name) return
+    try {
+      const records = wx.getStorageSync(FOOTPRINT_STORAGE_KEY)
+      const list = Array.isArray(records) ? records : []
+      list.push({
+        id: `fp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        placeName: name,
+        city: detail.city || poi.city || '',
+        locationId: detail.locationId || poi._id || '',
+        latitude: Number(detail.latitude) || Number(poi.latitude) || null,
+        longitude: Number(detail.longitude) || Number(poi.longitude) || null,
+        visitedAt: Date.now(),
+        companions: '',
+        note: '',
+        photos: []
+      })
+      wx.setStorageSync(FOOTPRINT_STORAGE_KEY, list)
+      wx.vibrateShort({ type: 'light' })
+      wx.showToast({ title: '已记一次出毛（仅本机）', icon: 'success' })
+      // 若正停留在「我出过毛」视角，立即把新点画上地图
+      if (this.data.viewMode === 'visited') this._loadVisitedView()
+    } catch (err) {
+      wx.showToast({ title: '记录失败，请重试', icon: 'none' })
+    }
   },
 
   /** 外部地点 → 预填创建地点页面 */

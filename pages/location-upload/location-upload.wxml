@@ -230,6 +230,16 @@
     <text class="form-hint">低成本版暂不提供好友圈，选择“仅自己可见”后只有你能查看。</text>
   </view>
 
+  <!-- 运营方精选：地图「精选」视角与底部精选推荐只显示打勾的地点 -->
+  <view class="form-section" wx:if="{{currentStep === 2}}">
+    <text class="form-label">设为精选推荐</text>
+    <view class="toggle-row">
+      <view class="toggle-item {{!featured ? 'active' : ''}}" data-val="false" bindtap="setFeatured">普通地点</view>
+      <view class="toggle-item {{featured ? 'active' : ''}}" data-val="true" bindtap="setFeatured">⭐ 精选推荐</view>
+    </view>
+    <text class="form-hint">精选地点会优先出现在地图页底部「精选推荐」和「精选」视角中，建议只勾选体验好、信息完整的地点。</text>
+  </view>
+
   <view class="step-actions">
     <view class="btn btn-outline step-btn" wx:if="{{currentStep > 0}}" bindtap="onPrevStep">上一步</view>
     <view class="btn btn-primary step-btn" wx:if="{{currentStep < 2}}" bindtap="onNextStep">下一步</view>

@@ -1002,3 +1002,29 @@
 .env-fur { display: flex; align-items: center; gap: 8rpx; padding: 6rpx 16rpx; border-radius: 999rpx; background: rgba(255,255,255,.7); }
 .env-fur-dot { width: 16rpx; height: 16rpx; border-radius: 50%; flex-shrink: 0; }
 .env-fur-text { font-size: 24rpx; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; }
+
+/* ── 视角快切栏：右侧计数徽标（不可点击） ── */
+.filter-all-btn.static {
+  opacity: 0.75;
+}
+
+/* ── 面板底部「精选推荐」标题行 ── */
+.panel-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  padding: 8rpx 24rpx 4rpx;
+}
+.panel-section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+.panel-section-title::before {
+  content: '⭐ ';
+  font-size: 26rpx;
+}
+.panel-section-sub {
+  font-size: 22rpx;
+  color: #A0A0A0;
+}

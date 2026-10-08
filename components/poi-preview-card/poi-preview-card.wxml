@@ -50,7 +50,14 @@
           </swiper-item>
         </swiper>
       </block>
-      <!-- 外部地点没有图片，按分类显示占位图标，避免空白图区 -->
+      <!-- 外部地点没有图片时，用腾讯位置服务静态地图作为封面背景；
+           快照也不可用时再按分类显示占位图标，避免空白图区 -->
+      <image
+        wx:elif="{{mapCoverSrc}}"
+        class="poi-cover-img"
+        src="{{mapCoverSrc}}"
+        mode="aspectFill"
+      />
       <view class="poi-cover-placeholder" wx:else>
         <icon name="{{item.placeholderIcon || 'map-pin'}}" size="72" color="rgba(255,255,255,0.42)" />
         <text class="poi-cover-placeholder-text" wx:if="{{item.isExternalPoi}}">{{item.categoryName}}</text>
@@ -176,23 +183,28 @@
       </view>
     </view>
 
-    <!-- 操作区：内部地点=导航 + 周边服务 + 查看详情；外部地点=导航 + 添加到出毛日记 -->
+    <!-- 操作区：主按钮「已出毛」（写入本机出毛记录）+ 导航 / 看周边 / 详情；
+         运营方另有「加入地点库」入口 -->
     <view class="poi-actions">
+      <view class="poi-btn primary" catchtap="onMarkVisited">
+        <icon name="paw" size="32" color="#fff" />
+        <text>已出毛</text>
+      </view>
       <view class="poi-btn secondary" wx:if="{{item.canNavigate}}" catchtap="onNavigate">
         <icon name="navigation" size="32" color="#D4890E" />
-        <text>导航前往</text>
+        <text>导航</text>
       </view>
       <view class="poi-btn secondary" wx:if="{{!item.isExternalPoi}}" catchtap="onNearbyServices">
         <icon name="map" size="30" color="#D4890E" />
         <text>看周边</text>
       </view>
-      <view class="poi-btn primary" wx:if="{{showAdd && item.canAddToDiary}}" catchtap="onAddToDiary">
-        <icon name="plus" size="30" color="#fff" />
-        <text>添加到出毛日记</text>
+      <view class="poi-btn secondary" wx:if="{{showAdd && item.canAddToDiary}}" catchtap="onAddToDiary">
+        <icon name="plus" size="30" color="#D4890E" />
+        <text>加入地点库</text>
       </view>
-      <view class="poi-btn primary" wx:elif="{{item.canViewDetail}}" catchtap="onViewDetail">
-        <text>查看详情</text>
-        <icon name="chevron-right" size="32" color="#fff" />
+      <view class="poi-btn secondary" wx:elif="{{item.canViewDetail}}" catchtap="onViewDetail">
+        <text>详情</text>
+        <icon name="chevron-right" size="32" color="#D4890E" />
       </view>
     </view>
   </view>

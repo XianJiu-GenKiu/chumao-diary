@@ -10,9 +10,10 @@
 const app = getApp()
 const { buildScene } = require('../../utils/scene')
 const { CITY_CANDIDATES } = require('../../config/cities.js')
-const { FURMEET_MAP, cityLabel } = require('../../config/furmeets.js')
+const { cityLabel } = require('../../config/city-labels.js')
 
 const FOOTPRINT_STORAGE_KEY = 'fur_footprints_v1'
+const MEET_STORAGE_KEY = 'fur_furmeets_v1'
 const MARKER_COLOR_FOOTPRINT = '#F5A623'
 const MARKER_COLOR_FURMEET = '#4FD1C5'
 
@@ -121,14 +122,33 @@ Page({
 
     if (!records.length) throw new Error('还没有出毛记录，先去记录一次吧')
 
+    // 兽聚来自用户本机自建（fur_furmeets_v1）；地图针用自定义坐标或城市中心
+    let myMeets = []
+    try {
+      const meetValue = wx.getStorageSync(MEET_STORAGE_KEY)
+      if (Array.isArray(meetValue)) myMeets = meetValue
+    } catch (e) { /* 按无兽聚处理 */ }
+    const CITY_MAP = CITY_CANDIDATES.reduce((acc, c) => {
+      acc[c.name] = { latitude: c.lat, longitude: c.lng }
+      return acc
+    }, {})
+    const furmeetCount = myMeets.reduce((sum, m) => sum + Math.max(1, Number(m && m.attendCount) || 1), 0)
+    const meets = myMeets
+      .filter(m => Number.isFinite(Number(m && m.latitude)) || CITY_MAP[m && m.city])
+      .map(m => {
+        const fallback = CITY_MAP[m.city] || {}
+        return {
+          id: m.id,
+          latitude: Number(m.latitude) || fallback.latitude,
+          longitude: Number(m.longitude) || fallback.longitude
+        }
+      })
+
     const places = new Set()
     const cities = new Set()
     const cityCounts = {}
     const days = new Set()
-    let furmeetCount = 0
-    const furmeetIds = new Set()
     const path = []
-    const meets = []
 
     records.slice()
       .sort((a, b) => (a.visitedAt || 0) - (b.visitedAt || 0))
@@ -139,16 +159,8 @@ Page({
           cityCounts[r.city] = (cityCounts[r.city] || 0) + 1
         }
         if (r.visitedAt) days.add(new Date(r.visitedAt).toDateString())
-        ;(r.furmeetIds || []).forEach(fid => {
-          if (!FURMEET_MAP[fid]) return
-          furmeetIds.add(fid)
-          furmeetCount++
-        })
         const hasCoords = Number.isFinite(r.latitude) && Number.isFinite(r.longitude)
         if (!r.autoMarked && hasCoords) path.push({ latitude: r.latitude, longitude: r.longitude })
-        if (!meets.some(m => m.id === (r.furmeetIds || [])[0]) && (r.furmeetIds || []).length && hasCoords) {
-          meets.push({ id: r.furmeetIds[0], latitude: r.latitude, longitude: r.longitude })
-        }
       })
 
     // 海报上的城市名按到访次数取前 6 个（变体甲：含城市名，不含任何自由文本）

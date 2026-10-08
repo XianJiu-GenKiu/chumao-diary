@@ -41,41 +41,26 @@
       </view>
     </view>
 
-  <!-- 固定在搜索栏底部的筛选栏 -->
+  <!-- 固定在搜索栏底部的视角快切栏：精选 / 全部 / 我出过毛 / 我收藏的 -->
   <view class="fixed-top-bar">
-    <!-- 筛选栏 -->
     <view class="filter-section">
       <view class="filter-container">
-        <!-- 类别标签改为换行展示。
-             旧版是单行横向 scroll-view：430px 屏下 4 个标签共需 470px，可视区只有
-             332px，第 3 个就被裁掉一半、第 4 个完全看不见；又因为关掉了滚动条，
-             用户得不到「可以横向滑」的任何提示，只能认为筛选坏了。 -->
         <view class="filter-list">
-          <block wx:for="{{quickFilterOptions}}" wx:key="key">
+          <block wx:for="{{viewOptions}}" wx:key="key">
             <view
-              class="filter-tag {{item.active ? 'active' : ''}}"
-              data-key="{{item.key}}"
-              bindtap="onFilterTap"
+              class="filter-tag {{viewMode === item.key ? 'active' : ''}}"
+              data-view="{{item.key}}"
+              bindtap="onViewTap"
             >
-              <icon name="{{item.icon}}" size="22" color="{{item.active ? '#fff' : '#D4890E'}}" />
+              <icon name="{{item.icon}}" size="22" color="{{viewMode === item.key ? '#fff' : '#D4890E'}}" />
               <text>{{item.name}}</text>
             </view>
           </block>
         </view>
-        <!-- 全部按钮（固定在右边），点击展开面板，面板内含“清空筛选” -->
-        <view
-          class="filter-all-btn {{activeFilters.length === 0 ? 'active' : ''}}"
-          bindtap="onFilterAllTap"
-        >
-          <text>全部</text>
-          <text class="filter-all-arrow {{showFilterPanel ? 'up' : ''}}">▼</text>
-          <text class="filter-all-count" wx:if="{{activeFilters.length > 0}}">{{activeFilters.length}}</text>
+        <!-- 地点计数（不可点击，仅展示当前视角的地点数量） -->
+        <view class="filter-all-btn static">
+          <text>{{viewCount}} 个</text>
         </view>
-      </view>
-      <!-- 已选条件提示条 -->
-      <view class="filter-active-hint" wx:if="{{activeFilters.length > 0}}">
-        <text class="filter-active-text">已选 {{activeFilters.length}} 个类别 · 共 {{filteredCount}} 个地点</text>
-        <text class="filter-active-clear" bindtap="onFilterClearTap">清空</text>
       </view>
     </view>
   </view>
@@ -85,42 +70,6 @@
     <icon name="info" size="30" color="#D4890E" />
     <text class="map-load-error-text">{{errorMessage}}</text>
     <text class="map-load-error-retry">重新加载</text>
-  </view>
-
-  <!-- 筛选浮层 -->
-  <view class="filter-panel-mask" wx:if="{{showFilterPanel}}" bindtap="closeFilterPanel"></view>
-  <view class="filter-panel {{showFilterPanel ? 'show' : ''}}" wx:if="{{showFilterPanel}}">
-    <view class="filter-panel-header">
-      <text class="filter-panel-title">选择筛选条件</text>
-      <text class="filter-panel-subtitle">可多选，选好后点 ✕ 关闭</text>
-      <text class="filter-panel-close" bindtap="closeFilterPanel">✕</text>
-    </view>
-    <view class="filter-panel-content">
-      <view class="filter-group-title"><icon name="image" size="26" color="#D4890E" /><text>场景筛选</text><text class="filter-group-hint">想拍什么</text></view>
-      <view class="filter-chip-grid">
-        <view wx:for="{{sceneFilterOptions}}" wx:key="key" class="filter-panel-item {{item.active ? 'active' : ''}}" data-key="{{item.key}}" bindtap="onFilterPanelTap">
-          <icon name="{{item.icon}}" size="28" color="{{item.active ? '#D4890E' : '#707070'}}" /><text class="filter-panel-item-name">{{item.name}}</text><text class="filter-panel-item-check" wx:if="{{item.active}}">✓</text>
-        </view>
-      </view>
-      <view class="filter-group-title needs"><icon name="paw" size="26" color="#D4890E" /><text>出毛需求</text><text class="filter-group-hint">希望地点具备什么</text></view>
-      <view class="filter-chip-grid">
-        <view wx:for="{{needFilterOptions}}" wx:key="key" class="filter-panel-item {{item.active ? 'active' : ''}}" data-key="{{item.key}}" bindtap="onFilterPanelTap">
-          <icon name="{{item.icon}}" size="28" color="{{item.active ? '#D4890E' : '#707070'}}" /><text class="filter-panel-item-name">{{item.name}}</text><text class="filter-panel-item-check" wx:if="{{item.active}}">✓</text>
-        </view>
-      </view>
-    </view>
-    <!-- 面板底部操作区：清空 + 完成，与页面其他胶囊按钮风格保持一致 -->
-    <view class="filter-panel-footer">
-      <view class="filter-panel-btn ghost {{activeFilters.length === 0 ? 'disabled' : ''}}" bindtap="onFilterClearTap">
-        <icon name="trash" size="28" color="{{activeFilters.length === 0 ? '#B0B0B0' : '#D4890E'}}" />
-        <text>清空筛选</text>
-        <text class="filter-panel-btn-count" wx:if="{{activeFilters.length > 0}}">{{activeFilters.length}}</text>
-      </view>
-      <view class="filter-panel-btn primary" bindtap="onFilterPanelConfirm">
-        <text wx:if="{{activeFilters.length > 0}}">完成，共 {{filteredCount}} 个地点</text>
-        <text wx:else>完成</text>
-      </view>
-    </view>
   </view>
 
   <!-- 城市选择浮层 -->
@@ -259,7 +208,12 @@
         </view>
       </view>
       <scroll-view class="panel-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-        <!-- 地点推荐列表：点击进入 POI 详情，可继续查看周边服务 -->
+        <!-- 精选推荐：运营方标记 featured 的地点（见 location-upload 的精选开关） -->
+        <view class="panel-section-head">
+          <text class="panel-section-title">精选推荐</text>
+          <text class="panel-section-sub">运营方发布的精选地点</text>
+        </view>
+        <!-- 精选地点列表：点击进入 POI 详情，可继续查看周边服务 -->
         <view class="panel-post-card panel-location-card"
           wx:for="{{nearbyLocations}}"
           wx:key="_id"
@@ -271,11 +225,11 @@
           <view class="panel-post-info">
             <text class="panel-location-name">{{item.name || '未命名地点'}}</text>
             <text class="panel-post-text">{{item.serviceSummary}}</text>
-            <view class="panel-post-loc"><icon name="map-pin" size="20" color="#D4890E" /><text>{{item.address || '当前城市热门地点'}}</text></view>
+            <view class="panel-post-loc"><icon name="map-pin" size="20" color="#D4890E" /><text>{{item.address || '运营方精选地点'}}</text></view>
           </view>
         </view>
         <view class="panel-empty" wx:if="{{nearbyLocations.length === 0}}">
-          <text class="panel-empty-text">暂无地点推荐</text>
+          <text class="panel-empty-text">运营方正在整理精选地点，敬请期待</text>
         </view>
       </scroll-view>
     </view>
@@ -293,6 +247,7 @@
     bind:nearbyServices="onNearbyServices"
     show-add="{{isAdmin}}"
     bind:addToDiary="onAddExternalPoi"
+    bind:markVisited="onMarkVisitedFromPoi"
     bind:close="onClosePoiPreview"
   />
 

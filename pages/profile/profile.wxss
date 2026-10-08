@@ -90,7 +90,9 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 448rpx;
+  /* 高度跟随 .user-info 的实际内容：昵称/简介再长也只会把封面一起撑高，
+     文本面板永远不会伸出背景框之外（旧值固定 448rpx，长简介必然溢出）。 */
+  height: 100%;
   transform: none;
   overflow: hidden;
   border-radius: 18rpx;
@@ -274,12 +276,13 @@
   border-bottom: 1rpx solid var(--color-divider);
 }
 
-/* Tab 滑动指示器（3 个 tab 均分宽度） */
+/* Tab 滑动指示器（当前为 2 个 tab 均分宽度；旧值 33.33% 是三 tab 时代遗留，
+   会导致橙色指示条与选中文字错位） */
 .profile-tabs .tab-indicator {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 33.33%;
+  width: 50%;
   height: 6rpx;
   display: flex;
   justify-content: center;

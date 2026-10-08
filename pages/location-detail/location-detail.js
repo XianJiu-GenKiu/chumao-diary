@@ -343,15 +343,17 @@ Page({
 
   recordFurOuting() {
     const location = this.data.location || {}
-    const params = [
-      'add=1',
-      `locationId=${encodeURIComponent(this.data.id || '')}`,
-      `placeName=${encodeURIComponent(location.name || '')}`,
-      `city=${encodeURIComponent(location.city || '')}`,
-      `latitude=${location.latitude || ''}`,
-      `longitude=${location.longitude || ''}`
-    ].join('&')
-    wx.navigateTo({ url: `/pages/footprints/footprints?${params}` })
+    // 足迹页是 tabBar 页面，switchTab 不支持 query 参数，预填信息走 globalData，
+    // 由足迹页 onShow 读取并消费（见 footprints.js 的 _consumePrefill）。
+    app.globalData.footprintPrefill = {
+      add: '1',
+      locationId: this.data.id || '',
+      placeName: location.name || '',
+      city: location.city || '',
+      latitude: location.latitude || '',
+      longitude: location.longitude || ''
+    }
+    wx.switchTab({ url: '/pages/footprints/footprints' })
   },
 
   shareCard() {

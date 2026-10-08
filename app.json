@@ -2,7 +2,7 @@
   "cloud": true,
   "pages": [
     "pages/discover/discover",
-    "pages/featured/featured",
+    "pages/footprints/footprints",
     "pages/profile/profile",
     "pages/profile-edit/profile-edit",
     "pages/location-detail/location-detail",
@@ -39,10 +39,10 @@
         "selectedIconPath": "images/tabbar/discover-active.png"
       },
       {
-        "pagePath": "pages/featured/featured",
-        "text": "精选",
-        "iconPath": "images/tabbar/featured.png",
-        "selectedIconPath": "images/tabbar/featured-active.png"
+        "pagePath": "pages/footprints/footprints",
+        "text": "足迹",
+        "iconPath": "images/tabbar/footprints.png",
+        "selectedIconPath": "images/tabbar/footprints-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

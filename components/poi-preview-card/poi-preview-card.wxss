@@ -546,3 +546,13 @@
 .poi-category-tag {
   box-shadow: var(--shadow-md), 0 2rpx 8rpx rgba(168, 104, 0, 0.18);
 }
+
+/* 「已出毛」为主按钮后，操作区最多可能有 4 个按钮，允许换行防挤压 */
+.poi-actions {
+  flex-wrap: wrap;
+}
+.poi-btn {
+  min-width: 140rpx;
+  padding: 0 18rpx;
+  box-sizing: border-box;
+}

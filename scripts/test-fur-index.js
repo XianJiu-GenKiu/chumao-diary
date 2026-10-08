@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * 离线自测：出毛适宜度规则引擎 + 兽聚名录
+ * 离线自测：出毛适宜度规则引擎 + 城市展示名映射
  *
  * 不联网、不依赖小程序运行时，纯 Node 即可跑：
  *   NODE_PATH=... node scripts/test-fur-index.js
  *
- * 改 utils/furIndex.js 或 config/furmeets.js 后必跑。
+ * 改 utils/furIndex.js 后必跑。
+ * （兽聚名录已改为用户本机自建，config/furmeets.js 已删除，名录断言随之移除）
  */
 
 const path = require('path')
 const ROOT = path.resolve(__dirname, '..')
 
 const { evaluateFurIndex, evaluateFromWeather } = require(path.join(ROOT, 'utils/furIndex.js'))
-const { FURMEETS, cityLabel } = require(path.join(ROOT, 'config/furmeets.js'))
-const { CITY_CANDIDATES } = require(path.join(ROOT, 'config/cities.js'))
+const { cityLabel } = require(path.join(ROOT, 'config/city-labels.js'))
 
 let pass = 0
 let fail = 0
@@ -28,27 +28,12 @@ function check(name, cond, detail) {
   }
 }
 
-console.log('\n══ 1. 兽聚名录数据一致性 ══')
-const cityNames = new Set(CITY_CANDIDATES.map(c => c.name))
-const seenIds = new Set()
-const dupIds = []
-const badCity = []
-const badField = []
-FURMEETS.forEach(m => {
-  if (seenIds.has(m.id)) dupIds.push(m.id)
-  seenIds.add(m.id)
-  if (!cityNames.has(m.city)) badCity.push(`${m.id} → ${m.city}`)
-  if (!m.name || !Array.isArray(m.months) || !m.months.length) badField.push(m.id)
-})
-check(`条目数 ${FURMEETS.length}，id 唯一`, dupIds.length === 0, dupIds.join(','))
-check('city 均存在于 config/cities.js', badCity.length === 0, badCity.join(','))
-check('name / months 字段完整', badField.length === 0, badField.join(','))
-const covered = new Set(FURMEETS.map(m => m.city))
-const uncovered = CITY_CANDIDATES.map(c => c.name).filter(n => !covered.has(n))
-check(`47 城全覆盖（已覆盖 ${covered.size}/${cityNames.size}）`, uncovered.length === 0, uncovered.join('、'))
+console.log('\n══ 1. 城市展示名映射 ══')
 check('城市展示名映射：香港 → 中国香港', cityLabel('香港') === '中国香港')
+check('城市展示名映射：澳门 → 中国澳门', cityLabel('澳门') === '中国澳门')
 check('城市展示名映射：台北 → 中国台湾', cityLabel('台北') === '中国台湾')
 check('未映射城市原样返回', cityLabel('上海') === '上海')
+check('空值返回空串', cityLabel('') === '')
 
 console.log('\n══ 2. 适宜度规则引擎 ══')
 
