@@ -1,7 +1,7 @@
 <!-- 地点分享海报预览 -->
 <view class="page-share-card">
   <view class="page-title">
-    <text class="title">{{type === 'event' ? '生成活动海报' : type === 'collection' ? '生成合集海报' : '生成地点海报'}}</text>
+    <text class="title">{{type === 'collection' ? '生成合集海报' : '生成地点海报'}}</text>
     <text class="subtitle">保存图片后，可分享到任意社交平台</text>
   </view>
 
@@ -24,7 +24,7 @@
     <text>{{loadError}}</text>
     <button bindtap="retryLoad">重新生成</button>
   </view>
-  <text class="tip-text">{{type === 'event' ? '海报包含活动信息、报名人数和扫码入口' : '海报包含地点图片、拍摄建议和扫码入口'}}</text>
+  <text class="tip-text">{{type === 'collection' ? '海报包含合集点位与扫码入口' : '海报包含地点图片、拍摄建议和扫码入口'}}</text>
 
   <view class="loading-mask" wx:if="{{isLoading}}">
     <view class="loading-spinner"></view>

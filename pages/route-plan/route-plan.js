@@ -37,6 +37,8 @@ Page({
   data: {
     collection: null,
     collectionId: '',
+    // true = 我自己的合集（可编辑）；false = 从分享链接进入（只读）
+    isOwner: false,
     route: [],
     markers: [],
     polyline: [],
@@ -69,8 +71,7 @@ Page({
       const res = await app.callCloud('manageCollections', { action: 'detail', collectionId: id })
       if (!res || res.code !== 0) throw new Error((res && res.message) || '加载路线失败')
       const locations = (res.data.locations || []).filter(item => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
-      const start = await new Promise(resolve => wx.getLocation({ type: 'gcj02', success: resolve, fail: () => resolve(null) }))
-      const route = this._buildRoute(locations, start)
+      const route = this._buildRoute(locations)
       this._renderRoute(res.data, route)
       // 真实路径依赖网络，先让点位与直线示意可见，再异步替换。
       this._planRoute(route)
@@ -87,6 +88,7 @@ Page({
     for (let i = 1; i < route.length; i++) straight += distance(route[i - 1], route[i])
     this.setData({
       collection,
+      isOwner: !!collection.isOwner,
       route,
       markers: route.map((item, index) => ({
         id: index, latitude: item.latitude, longitude: item.longitude, width: 30, height: 30,
@@ -135,29 +137,13 @@ Page({
     this._planRoute(this.data.route)
   },
 
-  /** 最近邻排序：从当前位置出发，每次挑选距离最近的下一个地点。 */
-  _buildRoute(locations, start) {
-    const pending = locations.slice()
-    const route = []
-    let cursor
-    if (start && Number.isFinite(Number(start.latitude))) {
-      cursor = { latitude: start.latitude, longitude: start.longitude }
-    } else if (pending.length) {
-      cursor = pending.shift()
-      route.push(cursor)
-    } else return route
-    while (pending.length) {
-      let bestIndex = 0
-      let bestDistance = Infinity
-      pending.forEach((item, index) => {
-        const value = distance(cursor, item)
-        if (value < bestDistance) { bestDistance = value; bestIndex = index }
-      })
-      const next = pending.splice(bestIndex, 1)[0]
-      route.push(next)
-      cursor = next
-    }
-    return route
+  /**
+   * 组装路线点位。
+   * 降级版默认遵循用户保存的合集顺序（服务端按 locationIds 顺序返回），
+   * 不再自动重排——点位由用户挑选、顺序由用户决定，程序只负责展示。
+   */
+  _buildRoute(locations) {
+    return locations.slice()
   },
 
   openLocation(e) {
@@ -181,11 +167,23 @@ Page({
 
   onRetry() { if (this.data.collectionId) this._load(this.data.collectionId) },
 
-  onShareCard() {
-    if (this.data.collectionId) wx.navigateTo({ url: `/pages/share-card/share-card?type=collection&id=${this.data.collectionId}` })
+  async onShareCard() {
+    if (!this.data.collectionId) return
+    // 自己的合集：先显式置为公开（唯一对外出口）再生成海报。
+    // 他人分享进入的合集本就已公开，直接进海报页。
+    if (this.data.isOwner) {
+      try {
+        const res = await app.callCloud('manageCollections', { action: 'share', collectionId: this.data.collectionId })
+        if (!res || res.code !== 0) throw new Error((res && res.message) || '分享失败')
+      } catch (err) {
+        wx.showToast({ title: err.message || '分享失败', icon: 'none' })
+        return
+      }
+    }
+    wx.navigateTo({ url: `/pages/share-card/share-card?type=collection&id=${this.data.collectionId}` })
   },
 
   onShareAppMessage() {
-    return { title: (this.data.collection && this.data.collection.name) || '出毛地点合集', path: `/pages/route-plan/route-plan?id=${this.data.collectionId}` }
+    return { title: (this.data.collection && this.data.collection.title) || '出毛地点合集', path: `/pages/route-plan/route-plan?id=${this.data.collectionId}` }
   }
 })

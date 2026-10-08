@@ -16,9 +16,8 @@ Page({
     coverImg: '',
     city: '',
     category: '',
-    bestTime: '',
-    season: '',
-    rating: '',
+    // 海报中段的三格信息全部由程序生成，不含任何用户自由文本。
+    tiles: [],
     statText: '',
     qrCodePath: '',
     qrError: '',
@@ -33,9 +32,7 @@ Page({
   async _loadData() {
     this.setData({ isLoading: true, loadError: '' })
     try {
-      if (this.data.type === 'event') {
-        await this._loadEventData(this.data.id)
-      } else if (this.data.type === 'location') {
+      if (this.data.type === 'location') {
         await this._loadLocationData(this.data.id)
       } else if (this.data.type === 'collection') {
         await this._loadCollectionData(this.data.id)
@@ -52,44 +49,6 @@ Page({
 
   retryLoad() { this._loadData() },
 
-  async _loadEventData(id) {
-    const res = await app.callCloud('getEventDetail', { id })
-    if (!res || res.code !== 0 || !res.data) throw new Error('活动不存在或已结束')
-    const ev = res.data
-    const cover = typeof ev.cover === 'string' ? ev.cover : (ev.coverUrl || '')
-    const timeText = this._formatEventTime(ev.startTime, ev.endTime)
-    const joinCount = Number(ev.joinCount) || (ev.participantOpenIds && ev.participantOpenIds.length) || 0
-    const maxText = ev.maxPeople ? `上限 ${ev.maxPeople} 人` : '人数不限'
-    const statusText = ev.status === 'ended' ? '已结束' : ev.status === 'ongoing' ? '进行中' : '即将开始'
-    this.setData({
-      title: ev.name || '出毛活动',
-      subtitle: ev.location || '一起出发去出毛',
-      coverImg: cover,
-      city: '',
-      category: '出毛活动',
-      bestTime: timeText || '时间待定',
-      season: `${joinCount} 人已报名`, // 复用“推荐季节”信息块展示报名人数
-      rating: maxText,
-      statText: `${statusText} · ${joinCount} 人已报名`
-    })
-  },
-
-  _formatEventTime(startTime, endTime) {
-    const fmt = (d) => {
-      const date = new Date(d)
-      if (isNaN(date.getTime())) return ''
-      const m = date.getMonth() + 1
-      const day = date.getDate()
-      const h = String(date.getHours()).padStart(2, '0')
-      const min = String(date.getMinutes()).padStart(2, '0')
-      return `${m}月${day}日 ${h}:${min}`
-    }
-    const start = fmt(startTime)
-    const end = fmt(endTime)
-    if (start && end) return `${start} - ${end}`
-    return start || ''
-  },
-
   async _loadLocationData(id) {
     const res = await app.callCloud('getLocationDetail', { locationId: id })
     if (!res || res.code !== 0 || !res.data) throw new Error('地点不存在或已下架')
@@ -102,10 +61,13 @@ Page({
       coverImg: typeof cover === 'string' ? cover : (cover.url || ''),
       city: loc.city || '',
       category: loc.categoryName || loc.category || '拍摄地点',
-      bestTime: loc.bestTime || '待探索',
-      season: loc.season || '四季皆宜',
-      rating: loc.rating ? String(loc.rating) : '暂无评分',
-      statText: `${Number(loc.reactionUpCount || loc.likeCount || 0)} 人种草  ·  ${Number(loc.checkinCount || 0)} 人到访`
+      // 三格信息全部由程序生成；不再展示「用户评分 / 种草数 / 到访数」这类跨用户聚合数据
+      tiles: [
+        { label: '最佳拍摄', value: loc.bestTime || '待探索' },
+        { label: '推荐季节', value: loc.season || '四季皆宜' },
+        { label: '所在城市', value: loc.city || '待补充' }
+      ],
+      statText: `${Number(loc.favoriteCount) || 0} 人收藏`
     })
   },
 
@@ -113,20 +75,31 @@ Page({
     const res = await app.callCloud('manageCollections', { action: 'sharedDetail', collectionId: id })
     if (!res || res.code !== 0 || !res.data) throw new Error('合集不存在或未公开')
     const collection = res.data
-    const first = (collection.locations || [])[0] || {}
+    const locations = Array.isArray(collection.locations) ? collection.locations : []
+    const first = locations[0] || {}
+    const cityCount = new Set(locations.map(item => item && item.city).filter(Boolean)).size
     this.setData({
-      title: collection.name || '地点合集', subtitle: collection.description || '一起收藏出毛好地点',
-      coverImg: (first.images && first.images[0]) || '', city: first.city || '', category: '地点合集',
-      bestTime: `${(collection.locations || []).length} 个地点`, season: '路线收藏',
-      rating: '待探索', statText: '扫码查看完整路线'
+      // 标题由服务端程序生成（形如「XX的路线 · 5个地点」），不接收用户自由文本
+      title: collection.title || collection.name || '地点合集',
+      subtitle: collection.subtitle || '一起收藏出毛好地点',
+      coverImg: (first.images && first.images[0]) || '',
+      city: first.city || '',
+      category: '地点合集',
+      tiles: [
+        { label: '地点数量', value: `${locations.length} 个` },
+        { label: '覆盖城市', value: cityCount ? `${cityCount} 个` : '待补充' },
+        { label: '合集类型', value: '路线收藏' }
+      ],
+      statText: '扫码查看完整路线'
     })
   },
 
   async _loadMiniProgramCode() {
     try {
-      const page = this.data.type === 'event' ? 'pages/event-detail/event-detail'
-        : this.data.type === 'collection' ? 'pages/route-plan/route-plan'
-          : 'pages/location-detail/location-detail'
+      // scene 跳转目标必须在降级版里真实存在：合集 → 路线页，其余 → 地点详情
+      const page = this.data.type === 'collection'
+        ? 'pages/route-plan/route-plan'
+        : 'pages/location-detail/location-detail'
       // scene 上限 32 个可见字符，必须使用裸 ID；超长或不合法时不再生成，
       // 由调用方展示明确的失败态而不是画一个扫不出结果的占位码。
       const scene = buildScene(this.data.id)
@@ -204,7 +177,7 @@ Page({
     // 顶部：品牌和城市坐标。
     this._pill(ctx, inset, 30, 142, 38, 'rgba(255,255,255,.16)')
     ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText(this.data.type === 'event' ? '出毛日记 · 活动' : '出毛日记 · 地点', inset + 71, 55)
+    ctx.fillText(this.data.type === 'collection' ? '出毛日记 · 合集' : '出毛日记 · 地点', inset + 71, 55)
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.84)'; ctx.font = '14px sans-serif'
     ctx.fillText(this.data.city || '城市探索', w - inset, 55)
 
@@ -221,29 +194,34 @@ Page({
     ctx.fillText(this._truncate(this.data.category, 8), inset + 55, subY + 46)
 
     // 信息胶囊：把“拍摄建议”放进分享海报，提升保存和转发价值。
+    // 三格内容由 _loadLocationData / _loadCollectionData 程序生成，此处只负责排版。
     const infoY = 678
     const gap = 12
     const itemW = (w - inset * 2 - gap * 2) / 3
-    this._infoTile(ctx, inset, infoY, itemW, '最佳拍摄', this._truncate(this.data.bestTime, 8))
-    this._infoTile(ctx, inset + itemW + gap, infoY, itemW, '推荐季节', this._truncate(this.data.season, 8))
-    this._infoTile(ctx, inset + (itemW + gap) * 2, infoY, itemW, '地点评分', this.data.rating === '暂无评分' ? this.data.rating : `${this.data.rating} / 5`)
+    const tiles = (Array.isArray(this.data.tiles) && this.data.tiles.length === 3)
+      ? this.data.tiles
+      : [{ label: '最佳拍摄', value: '待探索' }, { label: '推荐季节', value: '四季皆宜' }, { label: '所在城市', value: '待补充' }]
+    tiles.forEach((tile, index) => {
+      this._infoTile(ctx, inset + (itemW + gap) * index, infoY, itemW, this._truncate(tile.label, 6), this._truncate(tile.value, 8))
+    })
     ctx.fillStyle = 'rgba(255,255,255,.70)'; ctx.font = '15px sans-serif'; ctx.textAlign = 'left'
     ctx.fillText(this.data.statText, inset, infoY + 126)
 
     // 底部扫码区；必须留有白底和足够尺寸，保证小程序码识别率。
+    const isCollection = this.data.type === 'collection'
     const qrY = 838
     this._roundRect(ctx, inset, qrY, w - inset * 2, 128, 18)
     ctx.fillStyle = '#fff'; ctx.fill()
     if (code) {
       ctx.drawImage(code, inset + 16, qrY + 14, 100, 100)
       ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'
-      ctx.fillText('扫码查看地点详情', inset + 136, qrY + 52)
+      ctx.fillText(isCollection ? '扫码查看完整路线' : '扫码查看地点详情', inset + 136, qrY + 52)
       ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'
-      ctx.fillText('收藏路线，出发去拍', inset + 136, qrY + 78)
+      ctx.fillText(isCollection ? '查看合集全部点位' : '收藏路线，出发去拍', inset + 136, qrY + 78)
     } else {
       this._roundRect(ctx, inset + 16, qrY + 14, 100, 100, 12); ctx.fillStyle = '#edf1ef'; ctx.fill()
       ctx.fillStyle = '#426356'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('出', inset + 66, qrY + 76)
-      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('在微信内打开地点详情', inset + 136, qrY + 52)
+      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(isCollection ? '在微信内查看完整路线' : '在微信内打开地点详情', inset + 136, qrY + 52)
       ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'; ctx.fillText('小程序码正在准备中', inset + 136, qrY + 78)
     }
   },
@@ -284,6 +262,6 @@ Page({
     })
   },
 
-  onShareAppMessage() { const page = this.data.type === 'event' ? 'event-detail/event-detail' : this.data.type === 'collection' ? 'route-plan/route-plan' : 'location-detail/location-detail'; return { title: this.data.title || '发现一处好地点', path: `/pages/${page}?id=${this.data.id}` } },
+  onShareAppMessage() { const page = this.data.type === 'collection' ? 'route-plan/route-plan' : 'location-detail/location-detail'; return { title: this.data.title || '发现一处好地点', path: `/pages/${page}?id=${this.data.id}` } },
   onShareTimeline() { return { title: this.data.title || '发现一处好地点', query: `id=${this.data.id}` } }
 })
