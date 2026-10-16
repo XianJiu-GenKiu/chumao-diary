@@ -76,10 +76,6 @@
         "type": "glob"
       },
       {
-        "value": "mcp_config_example.json",
-        "type": "glob"
-      },
-      {
         "value": "心情图标-emoji风格预览.png",
         "type": "glob"
       },
