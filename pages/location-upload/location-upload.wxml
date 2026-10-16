@@ -252,4 +252,5 @@
       <text wx:else>发布中...</text>
     </view>
   </view>
+  <privacy-popup />
 </view>

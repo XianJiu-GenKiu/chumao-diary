@@ -32,6 +32,7 @@ const MANIFEST = {
     'comment-create',
     'createEvent',
     'post-create',
+    'submitLocationFeedback',
     'updateContent',
     'updateUserProfile'
   ],

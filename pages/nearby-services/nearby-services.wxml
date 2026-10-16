@@ -41,4 +41,5 @@
     </view>
   </scroll-view>
   <view class="nearby-bottom"><button class="primary-btn" bindtap="openMap">在地图中查看</button></view>
+  <privacy-popup />
 </view>

@@ -19,6 +19,7 @@ const db = cloud.database()
 const _ = db.command
 const { ensureCollection } = require('./ensureCollection')
 const { validateFeedback, DAILY_LIMIT } = require('./locationFeedback')
+const { checkText, describeFailure, resolveModerationStatus, moderationTraceFields, SCENE } = require('./contentSecurity')
 
 const COLLECTION = 'location_submissions'
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -44,6 +45,15 @@ exports.main = async event => {
   const { name, category, note, address, latitude, longitude } = validated.data
 
   try {
+    // 文字安全审核（msgSecCheck 2.0）。收窄字段后用户可写的只剩名称 / 位置描述 /
+    // 反馈三段，合起来一次送审即可，不必逐字段调。
+    // 审核不可用（openapi 未注册 / 超时）走 checkText 的降级放行，不因审核故障
+    // 挡住正常用户；降级事实会随文档落库，便于日后补审。
+    const textResult = await checkText([name, address, note].filter(Boolean).join(' '), { openid, scene: SCENE.LOG })
+    if (textResult.moderationStatus === 'rejected') {
+      return { code: -3, message: describeFailure(textResult, 'text'), suggest: textResult.suggest, moderationStatus: textResult.moderationStatus }
+    }
+
     // 集合首次写入才存在：这里必须自愈，否则「第一个提交的用户」必然失败。
     await ensureCollection(db, COLLECTION)
 
@@ -73,6 +83,9 @@ exports.main = async event => {
         longitude,
         // 处理状态：pending → accepted（已录入）/ rejected（忽略）
         status: 'pending',
+        // 审核结论（approved / rejected / 降级放行的 moderationDegraded）。
+        moderationStatus: resolveModerationStatus(textResult),
+        ...moderationTraceFields(textResult),
         // 仅用于防刷与追责：不随任何读接口返回，不进入公开地点库。
         submitterOpenId: openid,
         createdAt: db.serverDate(),

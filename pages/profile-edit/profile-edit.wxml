@@ -17,15 +17,32 @@
       <view class="cover-action secondary" wx:if="{{profileBg}}" catchtap="previewProfileBg">预览</view>
     </view>
 
-    <view class="avatar-row" catchtap="chooseAvatar">
+    <!-- 头像走微信官方「头像昵称填写能力」：open-type="chooseAvatar" 是唯一被官方
+         认可的获取方式（wx.getUserProfile 已被回收，wx.chooseMedia 拿不到微信头像）。
+         catchtap 阻止冒泡：外层 .cover-editor 绑了「更换背景」，不拦会连带弹背景选图。 -->
+    <button
+      class="avatar-row"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+      catchtap="noop"
+      hover-class="none"
+    >
       <image class="avatar" src="{{avatar || '/images/tabbar/profile.png'}}" mode="aspectFill" />
       <text class="avatar-tip">更换头像</text>
-    </view>
+    </button>
   </view>
 
   <view class="form-section">
     <text class="label">昵称</text>
-    <input value="{{nickname}}" data-field="nickname" bindinput="onFieldInput" maxlength="20" placeholder="给自己起个昵称" />
+    <input
+      type="nickname"
+      value="{{nickname}}"
+      data-field="nickname"
+      bindinput="onFieldInput"
+      bindblur="onFieldInput"
+      maxlength="20"
+      placeholder="给自己起个昵称"
+    />
   </view>
   <view class="form-section">
     <text class="label">兽设名</text>
@@ -36,4 +53,5 @@
     <textarea value="{{signature}}" data-field="signature" bindinput="onFieldInput" maxlength="100" placeholder="选填，最多 100 字" />
   </view>
   <view class="save-btn {{saving ? 'disabled' : ''}}" bindtap="save">{{saving ? '保存中...' : '保存资料'}}</view>
+  <privacy-popup />
 </view>

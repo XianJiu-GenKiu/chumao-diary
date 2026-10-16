@@ -1,5 +1,6 @@
 const app = getApp()
 const { uploadImages, stopRefresh, bindDarkMode, unbindDarkMode } = require('../../utils/common')
+const { VERSION, APP_NAME, CONTACT_EMAIL, CONTACT_WECHAT } = require('../../config/app-info')
 
 Page({
   data: {
@@ -31,6 +32,13 @@ Page({
   _initSettings() {
     const notify = wx.getStorageSync('notifyEnabled') !== false
     const dark = wx.getStorageSync('darkMode') || false
+
+    // 联系方式：未配置时不渲染入口，避免留下点了没反应的死链。
+    const contactItems = []
+    if (CONTACT_EMAIL) contactItems.push({ label: `客服邮箱：${CONTACT_EMAIL}`, icon: 'mail', action: 'contactEmail' })
+    if (CONTACT_WECHAT) contactItems.push({ label: `客服微信：${CONTACT_WECHAT}`, icon: 'message-circle', action: 'contactWechat' })
+    contactItems.push({ label: '意见反馈', icon: 'message-circle', action: 'feedback' })
+
     this.setData({
       settingGroups: [
         { title: '个人', items: [
@@ -42,11 +50,13 @@ Page({
           { label: '深色模式', icon: 'moon', action: 'toggleDark', checked: dark, isSwitch: true },
           { label: '清除缓存', icon: 'trash', action: 'clearCache' },
           { label: '推荐新地点', icon: 'map-pin', url: '/pages/location-feedback/location-feedback' },
-          { label: '意见反馈', icon: 'message-circle', action: 'feedback' },
           { label: '用户协议', icon: 'file-text', action: 'agreement' },
+          { label: '隐私保护指引', icon: 'shield', action: 'privacy' },
           { label: '关于我们', icon: 'info', action: 'about' }
         ]},
+        { title: '联系我们', items: contactItems },
         { title: '账号', items: [
+          { label: '注销账号', icon: 'trash', action: 'deleteAccount', danger: true },
           { label: '退出登录', icon: 'arrow-left', action: 'logout', danger: true }
         ]}
       ]
@@ -162,11 +172,45 @@ Page({
   },
 
   about() {
-    wx.showModal({ title: '关于', content: '出毛日记 v0.2.0\n一个低成本、为出毛拍摄地点与体验分享而做的小程序。\n地点与动态内容仅作经验参考，请遵守场地规则并注意出行安全。', showCancel: false })
+    wx.showModal({
+      title: `关于${APP_NAME}`,
+      content: `${APP_NAME} v${VERSION}\n一个为出毛拍摄地点与足迹记录而做的小程序。\n地点与天气信息仅供参考，请遵守场地规则并注意出行安全。`,
+      showCancel: false
+    })
+  },
+
+  /** 复制客服邮箱：小程序内无法直接调起邮件客户端，复制是最稳的落地方式。 */
+  contactEmail() {
+    if (!CONTACT_EMAIL) return
+    wx.setClipboardData({
+      data: CONTACT_EMAIL,
+      success: () => wx.showToast({ title: '邮箱已复制', icon: 'success' })
+    })
+  },
+
+  contactWechat() {
+    if (!CONTACT_WECHAT) return
+    wx.setClipboardData({
+      data: CONTACT_WECHAT,
+      success: () => wx.showToast({ title: '微信号已复制', icon: 'success' })
+    })
   },
 
   agreement() {
     wx.navigateTo({ url: '/pages/agreement/agreement' })
+  },
+
+  // 打开微信官方的《小程序用户隐私保护指引》。
+  // 该指引在 mp 后台「设置 - 服务内容声明 - 用户隐私保护指引」中维护，
+  // 这里只是给用户一个入口；基础库不支持时兜底跳到本地协议页。
+  privacy() {
+    if (typeof wx.openPrivacyContract === 'function') {
+      wx.openPrivacyContract({
+        fail: () => wx.navigateTo({ url: '/pages/agreement/agreement' })
+      })
+    } else {
+      wx.navigateTo({ url: '/pages/agreement/agreement' })
+    }
   },
 
   logout() {
@@ -177,6 +221,43 @@ Page({
           app.clearLoginState()
           wx.switchTab({ url: '/pages/profile/profile' })
         }
+      }
+    })
+  },
+
+  // 注销账号：服务端删除个人数据，客户端清本地登录态。
+  // 注意这是不可逆操作，必须让用户手输一次「注销」再执行。
+  deleteAccount() {
+    wx.showModal({
+      title: '注销账号',
+      content: '将永久删除你的账号与个人数据（收藏、足迹、地点合集、评分、反馈等），此操作不可恢复。',
+      confirmText: '继续',
+      confirmColor: '#e74c3c',
+      success: (r) => {
+        if (!r.confirm) return
+        wx.showModal({
+          title: '最后确认',
+          editable: true,
+          placeholderText: '请输入「注销」以确认',
+          success: async (r2) => {
+            if (!r2.confirm) return
+            if ((r2.content || '').trim() !== '注销') {
+              return wx.showToast({ title: '输入不匹配，已取消', icon: 'none' })
+            }
+            wx.showLoading({ title: '正在注销...' })
+            try {
+              const res = await app.callCloud('deleteAccount', {})
+              if (!res || res.code !== 0) throw new Error((res && res.message) || '注销失败')
+              app.clearLoginState()
+              wx.hideLoading()
+              wx.showToast({ title: '账号已注销', icon: 'success' })
+              setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 1200)
+            } catch (err) {
+              wx.hideLoading()
+              wx.showToast({ title: err.message || '注销失败，请稍后重试', icon: 'none' })
+            }
+          }
+        })
       }
     })
   }

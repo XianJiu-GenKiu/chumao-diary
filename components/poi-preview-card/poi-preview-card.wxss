@@ -43,6 +43,18 @@
   height: 100%;
 }
 
+/* 地图审图号：贴在封面左下角，字号小、半透明，只为满足地图标注要求，不抢视觉。
+   与底部类别标签 / 图片数量同处一行，但靠最左侧。 */
+.poi-map-approval {
+  position: absolute;
+  left: 16rpx;
+  bottom: 10rpx;
+  font-size: 18rpx;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.45);
+}
+
 /* 多图轮播容器，尺寸与单图封面保持一致 */
 .poi-cover-swiper {
   width: 100%;

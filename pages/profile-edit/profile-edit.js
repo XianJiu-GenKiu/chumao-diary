@@ -99,14 +99,18 @@ Page({
     this.setData({ [e.currentTarget.dataset.field]: e.detail.value })
   },
 
-  chooseAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      // 头像展示尺寸小，直接要压缩版，从源头避开云端 1MB 审核上限
-      sizeType: ['compressed'],
-      success: result => this.setData({ avatar: result.tempFiles[0].tempFilePath })
-    })
+  /** 空处理器：只用于 catchtap 阻止事件冒泡（头像按钮不能触发外层的换背景）。 */
+  noop() {},
+
+  /**
+   * 微信官方「头像昵称填写能力」回调。
+   * <button open-type="chooseAvatar"> 触发，e.detail.avatarUrl 是临时文件路径，
+   * 保存时由 uploadIfLocal 上传到云存储并过审。
+   */
+  onChooseAvatar(e) {
+    const avatarUrl = (e && e.detail && e.detail.avatarUrl) || ''
+    if (!avatarUrl) return
+    this.setData({ avatar: avatarUrl })
   },
 
   chooseProfileBg() {

@@ -94,6 +94,18 @@
   color: #fff;
   font-size: 24rpx;
   z-index: 3;
+  /* button 默认样式重置：open-type="chooseAvatar" 必须用 button，
+     不清掉自带背景/边框/内边距会多出一圈灰底和描边。 */
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+}
+
+.avatar-row::after {
+  border: none;
 }
 
 .avatar {

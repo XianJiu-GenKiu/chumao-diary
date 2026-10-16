@@ -25,6 +25,8 @@
  * 4. 弹出 / 弹入使用非线性缓动（见 wxss 的 --poi-ease-pop / --poi-ease-in），
  *    并通过 animState 状态机保证「进入」与「退出」各自使用不同的时间曲线。
  */
+const { MAP_APPROVAL_NUMBER } = require('../../utils/mapView.js')
+
 // 判定为「下滑关闭」所需的最小纵向位移（px）
 const DRAG_START_THRESHOLD = 8
 // 卡片可拖拽的最大位移（px）
@@ -128,6 +130,9 @@ Component({
     gallery: [],
     // 外部地点的地图快照封面（base64 data URL，由 getMapSnapshot 云函数生成）
     mapCoverSrc: '',
+    // 地图审图号：腾讯静态图底图不自带，展示时须由展示者叠加（《地图管理条例》第十六条）。
+    // 编号在 utils/mapView.js 的 MAP_APPROVAL_NUMBER 配置，留空则不渲染。
+    approvalNumber: MAP_APPROVAL_NUMBER,
     // swiper 的 current 绑定值：只在程序化切换时修改，绝不在 bindchange 里回写。
     swiperCurrent: 0,
     // 用户当前看到的第几张图，供指示点与全屏预览使用。

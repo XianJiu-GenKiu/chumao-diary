@@ -1,0 +1,10 @@
+{
+  "name": "submitLocationFeedback",
+  "type": "cloudfunction",
+  "permissions": {
+    "openapi": [
+      "security.msgSecCheck",
+      "security.imgSecCheck"
+    ]
+  }
+}

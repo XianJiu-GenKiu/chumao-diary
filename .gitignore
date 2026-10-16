@@ -16,6 +16,7 @@ node_modules/
 # 工具链备份与本地工具数据（体积大 / 非源码）
 toolchain-backup/
 .workbuddy/
+.workbuddy-ai/
 .trae/
 .reasonix/
 .kunsdd/

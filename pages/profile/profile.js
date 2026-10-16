@@ -303,15 +303,34 @@ Page({
     })
   },
 
-  _getWechatProfile() {
-    // 用户拒绝头像昵称授权时，仍允许用微信身份登录；仅使用默认资料。
-    if (typeof wx.getUserProfile !== 'function') return Promise.resolve(null)
-    return new Promise((resolve) => {
-      wx.getUserProfile({
-        desc: '用于完善个人主页的昵称和头像',
-        success: (res) => resolve(res.userInfo || null),
-        fail: () => resolve(null)
-      })
+  // 注意：这里刻意不再调用 wx.getUserProfile。
+  // 微信自 2022-10-25 起已回收该能力（返回的昵称恒为「微信用户」、头像是默认灰头像），
+  // 属于「使用已废弃能力」，审核会挑；而且它还会多弹一次毫无意义的授权框。
+  // 头像昵称改用官方「头像昵称填写能力」：见 pages/profile-edit
+  // （<button open-type="chooseAvatar"> + <input type="nickname">）。
+  // 登录只认微信身份（wx.login → 云函数 getWXContext），资料由用户自己填。
+
+  /**
+   * 登录后引导完善资料。
+   *
+   * 背景：wx.getUserProfile 被回收后，昵称头像只能由用户自填。若不引导，
+   * 资料页会长期停在默认的「毛毛用户」+ 灰头像 —— 审核员看到的是"没有实质内容"。
+   * 这里只提示一次，不强制。
+   */
+  _maybePromptProfile(user) {
+    const nickname = String((user && user.nickname) || '').trim()
+    const isDefault = !nickname || nickname === '毛毛用户' || nickname === '微信用户'
+    const avatar = (user && (user.avatar || user.avatarUrl)) || ''
+    if (!isDefault && avatar) return
+
+    wx.showModal({
+      title: '完善个人资料',
+      content: '设置昵称和头像后，你的收藏与足迹会更容易分辨。',
+      confirmText: '去设置',
+      cancelText: '稍后',
+      success: r => {
+        if (r.confirm) wx.navigateTo({ url: '/pages/profile-edit/profile-edit' })
+      }
     })
   },
 
@@ -324,10 +343,10 @@ Page({
       debugLog('[profile] 正在获取微信登录凭证')
       await this._getWechatLoginCode()
       debugLog('[profile] 微信登录凭证获取成功')
-      const userInfo = await this._getWechatProfile()
-      debugLog('[profile] 用户资料授权结果:', userInfo ? '已授权' : '未授权，使用默认资料')
+      // 不传 userInfo：昵称头像一律由用户在「编辑资料」里自填（官方头像昵称填写能力），
+      // 云函数会为新账号写入默认昵称，老账号保留已有资料。
       debugLog('[profile] 正在调用 login 云函数')
-      const result = await app.callCloud('login', { userInfo })
+      const result = await app.callCloud('login', {})
       debugLog('[profile] login 云函数返回:', result)
       if (result && result.data) {
         if (!app.setLoggedInUser(result.data)) {
@@ -335,6 +354,7 @@ Page({
         }
         this.loadUserInfo()
         wx.showToast({ title: '登录成功', icon: 'success' })
+        this._maybePromptProfile(result.data)
       } else {
         wx.showToast({ title: (result && (result.message || result.error)) || '登录失败，请重试', icon: 'none' })
       }

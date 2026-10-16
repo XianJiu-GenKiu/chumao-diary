@@ -2,34 +2,34 @@
 <view class="page agreement-page {{darkMode ? 'dark-theme' : ''}}">
   <view class="agreement-section">
     <text class="agreement-title">用户协议</text>
-    <text class="agreement-update-time">最后更新：2026年7月22日</text>
+    <text class="agreement-update-time">最后更新：2026年10月13日</text>
   </view>
 
   <view class="agreement-content">
     <view class="content-block">
       <text class="block-title">一、服务说明</text>
-      <text class="block-text">出毛日记（以下简称"本应用"）是一款基于微信小程序的地点分享与外景拍摄记录工具。本应用提供地点发布、浏览、搜索、动态分享、评论互动等功能。使用本应用即表示您同意本协议的全部条款。</text>
+      <text class="block-text">出毛日记（以下简称"本应用"）是一款基于微信小程序的外景拍摄地点浏览与出毛足迹记录工具。本应用的地点信息由运营方核实后录入并公开展示；你可以浏览与搜索地点、记录自己的出毛足迹、收藏地点、规划路线，并通过反馈功能提交纠错或推荐。本应用不提供用户之间的发布、评论、私信等互动功能。使用本应用即表示您同意本协议的全部条款。</text>
     </view>
 
     <view class="content-block">
       <text class="block-title">二、用户行为规范</text>
-      <text class="block-text">1. 您发布的内容应遵守国家法律法规，不得包含违法、色情、暴力、歧视等不良信息。</text>
-      <text class="block-text">2. 您应对自己发布的内容（文字、图片等）拥有合法权利，不得侵犯他人知识产权、肖像权等合法权益。</text>
-      <text class="block-text">3. 不得发布虚假信息、垃圾广告或恶意骚扰其他用户。</text>
-      <text class="block-text">4. 本应用会对发布内容进行安全审核，违规内容将被拒绝发布或删除。</text>
+      <text class="block-text">1. 您使用本应用时应遵守国家法律法规，不得提交违法、色情、暴力、歧视等不良信息。</text>
+      <text class="block-text">2. 您应保证通过反馈功能提交的信息真实、合法，不得侵犯他人知识产权、肖像权等合法权益。</text>
+      <text class="block-text">3. 不得提交虚假信息、垃圾广告，或恶意、大量地使用反馈功能。</text>
+      <text class="block-text">4. 您提交的反馈信息会经过安全审核，违规信息将被拒绝或删除。</text>
       <text class="block-text">5. 严禁利用本应用从事任何危害国家安全、社会公共利益的活动。</text>
     </view>
 
     <view class="content-block">
       <text class="block-title">三、内容管理</text>
-      <text class="block-text">1. 您可以随时编辑或删除自己发布的地点和动态。</text>
-      <text class="block-text">2. 如发现他人发布的内容存在违规情况，您可以通过"举报"功能向我们反馈。</text>
-      <text class="block-text">3. 本应用有权对违规内容进行删除、下架处理，情节严重者将被封禁账号。</text>
+      <text class="block-text">1. 本应用的公开地点信息由运营方核实后录入并维护，您可以对已有地点提交纠错反馈，也可以推荐新的地点。</text>
+      <text class="block-text">2. 反馈信息仅供运营方核对与录入使用，不会直接公开展示，也不会展示您的昵称或头像。</text>
+      <text class="block-text">3. 本应用有权对违规信息进行删除、下架处理，情节严重者将被封禁账号。</text>
     </view>
 
     <view class="content-block">
       <text class="block-title">四、免责声明</text>
-      <text class="block-text">1. 本应用中的地点信息由用户自行上传，仅供参考，不构成任何推荐或建议。</text>
+      <text class="block-text">1. 本应用中的地点信息由运营方核实后录入，或整理自公开信息，仅供参考，不构成任何推荐或建议。</text>
       <text class="block-text">2. 前往任何地点时请遵守当地法律法规和场地规则，注意人身和财产安全。</text>
       <text class="block-text">3. 本应用不对地点信息的准确性、完整性做出保证，不对因使用本应用信息而产生的任何后果承担责任。</text>
       <text class="block-text">4. 外景拍摄受天气、季节等因素影响，请合理安排出行计划。</text>
@@ -37,62 +37,75 @@
 
     <view class="content-block">
       <text class="block-title">五、知识产权</text>
-      <text class="block-text">1. 您发布的内容的知识产权归您所有。</text>
-      <text class="block-text">2. 您在发布内容时，即授权本应用在平台内展示和使用您的内容。</text>
+      <text class="block-text">1. 本应用收录的地点名称、地址等公开信息，其权利归原作者或权利人所有，本应用仅作整理与展示。</text>
+      <text class="block-text">2. 您通过反馈功能提交的信息，视为授权本应用在核实后用于地点录入与展示，我们不会公开您的昵称或头像。</text>
       <text class="block-text">3. 本应用的界面设计、图标、代码等知识产权归本应用所有，未经授权不得复制或使用。</text>
     </view>
   </view>
 
   <view class="agreement-section">
     <text class="agreement-title">隐私政策</text>
-    <text class="agreement-update-time">最后更新：2026年7月22日</text>
+    <text class="agreement-update-time">最后更新：2026年10月13日</text>
   </view>
 
   <view class="agreement-content">
     <view class="content-block">
       <text class="block-title">一、信息收集</text>
-      <text class="block-text">本应用在您使用过程中可能收集以下信息：</text>
-      <text class="block-text">1. 微信授权信息：包括您的昵称、头像等基本资料。</text>
-      <text class="block-text">2. 位置信息：用于展示附近的地点和提供基于位置的服务。您可以选择不授权位置信息。</text>
-      <text class="block-text">3. 您发布的内容：包括文字、图片、地点信息、评论等。</text>
-      <text class="block-text">4. 设备信息：如系统版本、屏幕尺寸等，用于优化应用体验。</text>
+      <text class="block-text">本应用在您使用过程中可能收集以下信息，且仅在实现对应功能所必需的范围内收集：</text>
+      <text class="block-text">1. 微信授权信息：您的昵称、头像等资料。这些资料由您在「设置 - 编辑资料」中自行填写，本应用不会自动获取。</text>
+      <text class="block-text">2. 位置信息：用于展示附近地点、周边设施与路线规划。仅在您主动点击定位或在地图上选点时获取，您可以随时拒绝授权，拒绝后仍可手动选择城市浏览。</text>
+      <text class="block-text">3. 相册与摄像头：仅在您主动选择图片时使用，用于设置头像、主页背景图以及为出毛记录添加照片。本应用不会读取您相册中的其他图片。</text>
+      <text class="block-text">4. 您使用过程中的记录信息：包括收藏的地点、出毛足迹（打卡记录）、地点合集、评分与您提交的地点推荐。</text>
+      <text class="block-text">5. 设备信息：如系统版本、屏幕尺寸、深色模式偏好等，用于适配界面与优化体验。</text>
+      <text class="block-text">6. 剪贴板：仅在您主动点击「复制地址」等按钮时写入，用于方便您粘贴分享。</text>
     </view>
 
     <view class="content-block">
-      <text class="block-title">二、信息使用</text>
+      <text class="block-title">二、第三方服务</text>
+      <text class="block-text">为实现地图展示、周边检索、天气查询与路线规划，本应用通过服务端调用腾讯位置服务（腾讯地图）的接口。相关请求由我们的服务器发起，不包含您的微信身份信息，腾讯位置服务的隐私政策请参见其官方网站。</text>
+      <text class="block-text">本应用的账号体系与数据存储使用微信云开发，不会向其他第三方共享您的个人信息。</text>
+    </view>
+
+    <view class="content-block">
+      <text class="block-title">三、信息使用</text>
       <text class="block-text">1. 收集的信息仅用于提供和优化本应用的服务功能。</text>
       <text class="block-text">2. 我们不会将您的个人信息出售给第三方。</text>
       <text class="block-text">3. 在以下情况下，我们可能会披露您的信息：经您同意、法律法规要求、保护公共利益或个人合法权益。</text>
     </view>
 
     <view class="content-block">
-      <text class="block-title">三、信息存储与安全</text>
-      <text class="block-text">1. 您的信息存储在微信云开发平台，采用加密传输和安全存储机制。</text>
+      <text class="block-title">四、信息存储与安全</text>
+      <text class="block-text">1. 您的信息存储在微信云开发平台（中国大陆境内），采用加密传输和安全存储机制。</text>
       <text class="block-text">2. 我们采取合理的技术措施保护您的信息安全，防止未经授权的访问、使用或披露。</text>
-      <text class="block-text">3. 您可以随时通过删除自己发布的内容来管理个人信息。</text>
+      <text class="block-text">3. 保存期限：账号存续期间持续保存；您注销账号后，我们将删除或匿名化处理您的个人信息。为履行法律法规义务确需保留的除外。</text>
+      <text class="block-text">4. 本应用不收集您发布的图片或评论内容，也不提供此类功能。</text>
     </view>
 
     <view class="content-block">
-      <text class="block-title">四、用户权利</text>
-      <text class="block-text">1. 您有权访问、更正、删除自己的个人信息。</text>
-      <text class="block-text">2. 您可以通过退出登录来停止使用本应用。</text>
-      <text class="block-text">3. 如需删除账号，请联系客服处理。</text>
+      <text class="block-title">五、用户权利</text>
+      <text class="block-text">1. 您有权访问、更正、删除自己的个人信息：收藏、足迹、地点合集等均可随时自行取消。</text>
+      <text class="block-text">2. 您可以随时通过"设置 - 账号 - 注销账号"自助注销账号，注销后将删除您的账号记录与上述个人数据，此操作不可恢复。</text>
+      <text class="block-text">3. 退出登录只会清除本机登录状态，不会删除服务端数据；如需删除数据请使用注销账号。</text>
+      <text class="block-text">4. 如在注销过程中遇到问题，可通过"设置 - 联系我们"与我们联系。</text>
     </view>
 
     <view class="content-block">
-      <text class="block-title">五、未成年人保护</text>
+      <text class="block-title">六、未成年人保护</text>
       <text class="block-text">1. 本应用不针对未成年人提供服务。</text>
       <text class="block-text">2. 如未成年人使用本应用，应在监护人指导下进行。</text>
       <text class="block-text">3. 监护人发现未成年人未经同意使用本应用，可联系我们删除相关信息。</text>
     </view>
 
     <view class="content-block">
-      <text class="block-title">六、联系我们</text>
-      <text class="block-text">如对本协议或隐私政策有任何疑问，可通过"设置-意见反馈"与我们联系。</text>
+      <text class="block-title">七、联系我们</text>
+      <text class="block-text">如对本协议或隐私政策有任何疑问，可通过"设置 - 意见反馈"给我们留言。</text>
+      <text class="block-text" wx:if="{{contactEmail}}">客服邮箱：{{contactEmail}}</text>
+      <text class="block-text" wx:if="{{contactWechat}}">客服微信：{{contactWechat}}</text>
+      <text class="block-text">我们会在收到后尽快处理。</text>
     </view>
   </view>
 
   <view class="agreement-footer">
-    <text class="footer-text">出毛日记 v0.2.0</text>
+    <text class="footer-text">{{appName}} v{{appVersion}}</text>
   </view>
 </view>

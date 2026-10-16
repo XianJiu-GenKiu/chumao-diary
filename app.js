@@ -123,24 +123,25 @@ App({
   },
 
   /**
-   * 启动时自动定位城市
-   * - 优先使用缓存（30分钟有效）
-   * - 不使用缓存时重新获取 GPS → 逆地理编码
-   * - 失败时使用上次成功的城市，都不行则显示“定位失败”
+   * 启动时载入城市信息（只读缓存，不主动索取定位）
+   *
+   * ⚠️ 合规约束 —— 不要改回「启动即 wx.getLocation」：
+   * 微信要求权限申请必须由用户主动操作触发，不得在小程序启动/首次进入时索取定位。
+   * 因此这里只读本地缓存；没有可用缓存时把城市标为「待定位」，等用户点击城市徽章
+   * 或定位按钮时再调 locateCity() 发起真实定位。
    */
   _initCity() {
     const CACHE_KEY = 'cached_city_info'
-    const CACHE_TTL = 30 * 60 * 1000 // 30 分钟
 
-    // 1) 尝试读取本地缓存（短时间内不必重复定位）
     try {
       const cached = wx.getStorageSync(CACHE_KEY)
-      if (cached && cached.city && cached.timestamp) {
-        const age = Date.now() - cached.timestamp
-        if (age < CACHE_TTL && cached.city !== '定位中...' && cached.city !== '定位失败' && cached.city !== '未知城市') {
+      if (cached && cached.city) {
+        const usable = cached.city !== '定位中...' && cached.city !== '定位失败' &&
+          cached.city !== '未知城市' && cached.city !== '待定位'
+        if (usable) {
           this.globalData.currentCity = cached.city
-          this.globalData.currentLatitude = cached.latitude
-          this.globalData.currentLongitude = cached.longitude
+          this.globalData.currentLatitude = cached.latitude || null
+          this.globalData.currentLongitude = cached.longitude || null
           this.globalData.cityReady = true
           this.emit('cityReady', cached)
           return
@@ -148,35 +149,62 @@ App({
       }
     } catch (e) { /* ignore */ }
 
-    // 2) 发起真实定位
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        const { latitude, longitude } = res
-        this.globalData.currentLatitude = latitude
-        this.globalData.currentLongitude = longitude
+    // 无可用缓存：保持「待定位」，不弹权限框。
+    this.globalData.currentCity = '待定位'
+    this.globalData.cityReady = true
+    this.emit('cityReady', { city: '待定位' })
+  },
 
-        // 逆地理编码获取城市名
-        this.callCloud('getCityByLocation', { latitude, longitude }).then(result => {
-          const city = (result && result.code === 0 && result.data)
-            ? (result.data.city || '定位失败')
-            : '定位失败'
-
-          this.globalData.currentCity = city
-          this.globalData.cityReady = true
-
-          // 写缓存
-          const info = { city, latitude, longitude, timestamp: Date.now() }
-          wx.setStorage({ key: CACHE_KEY, data: info }).catch(() => {})
-          this.emit('cityReady', info)
-        }).catch(() => {
+  /**
+   * 用户主动发起的定位。
+   *
+   * 只能由点击等用户交互调用（城市徽章 / 定位 FAB / 在地图上选点），
+   * 禁止在 onLaunch / onShow 里自动调用 —— 那是审核明确禁止的「启动即索权」。
+   *
+   * @returns {Promise<{ok: boolean, city?: string, denied?: boolean}>}
+   *          denied 为 true 表示用户拒绝了位置授权，调用方可据此引导去设置页。
+   */
+  locateCity() {
+    return new Promise(resolve => {
+      wx.getLocation({
+        type: 'gcj02',
+        success: (res) => {
+          const { latitude, longitude } = res
+          this.globalData.currentLatitude = latitude
+          this.globalData.currentLongitude = longitude
+          this.callCloud('getCityByLocation', { latitude, longitude }).then(result => {
+            const city = (result && result.code === 0 && result.data && result.data.city) || '定位失败'
+            if (city === '定位失败') {
+              this._cityFallback()
+              resolve({ ok: false, city: this.globalData.currentCity })
+              return
+            }
+            this._commitCity(city, latitude, longitude)
+            resolve({ ok: true, city })
+          }).catch(() => {
+            this._cityFallback()
+            resolve({ ok: false, city: this.globalData.currentCity })
+          })
+        },
+        fail: (err) => {
+          const denied = /auth\s*deny|denied|authorize/i.test(String((err && err.errMsg) || ''))
           this._cityFallback()
-        })
-      },
-      fail: () => {
-        this._cityFallback()
-      }
+          resolve({ ok: false, denied, city: this.globalData.currentCity })
+        }
+      })
     })
+  },
+
+  /** 定位成功后的统一落地：写全局 + 写缓存 + 广播。 */
+  _commitCity(city, latitude, longitude) {
+    this.globalData.currentCity = city
+    this.globalData.currentLatitude = latitude
+    this.globalData.currentLongitude = longitude
+    this.globalData.cityReady = true
+    const info = { city, latitude, longitude, timestamp: Date.now() }
+    try { wx.setStorageSync('cached_city_info', info) } catch (e) { /* ignore */ }
+    this.emit('cityReady', info)
+    return info
   },
 
   /**
@@ -187,7 +215,7 @@ App({
     const CACHE_KEY = 'cached_city_info'
     try {
       const cached = wx.getStorageSync(CACHE_KEY)
-      if (cached && cached.city && cached.city !== '定位中...' && cached.city !== '定位失败' && cached.city !== '未知城市') {
+      if (cached && cached.city && cached.city !== '定位中...' && cached.city !== '定位失败' && cached.city !== '未知城市' && cached.city !== '待定位') {
         this.globalData.currentCity = cached.city
         this.globalData.currentLatitude = cached.latitude || null
         this.globalData.currentLongitude = cached.longitude || null

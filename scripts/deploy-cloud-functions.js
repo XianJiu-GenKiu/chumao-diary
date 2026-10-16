@@ -20,6 +20,12 @@
  *   node scripts/deploy-cloud-functions.js                  部署全部本地云函数
  *   node scripts/deploy-cloud-functions.js --skip-unchanged 断点续传：本次已成功部署且包内容未变的跳过
  *   node scripts/deploy-cloud-functions.js rateLocation getPosts   只部署指定函数
+ *   node scripts/deploy-cloud-functions.js --create deleteAccount  云端不存在时用 SCF CreateFunction 新建
+ *
+ * 关于 --create：UpdateFunctionCode 只能改已存在的函数，云端没有该函数时 `fn detail`
+ * 直接 404，脚本会停在「读取云端信息失败」。`--create` 时改为调 SCF CreateFunction 新建，
+ * 函数级配置（Runtime / Timeout / MemorySize / InstallDependency）取 CREATE_DEFAULTS。
+ * 注意：本机 `tcb fn deploy` 的 COS/ZIP 上传通道会挂起，所以必须走 SCF 原生接口这条路。
  *
  * 注意：`--skip-unchanged` 依据 `scripts/.deploy-state.json` 里的**整包 sha256** 判断，
  * 不是比对云端 index.js —— 云端只回传 index.js，比对不出共享模块
@@ -206,6 +212,56 @@ function fetchDetail(fnName) {
   return res.data
 }
 
+/**
+ * 新建函数的默认配置。
+ *
+ * Runtime 跟随本环境多数派（Nodejs16.13）；Timeout 刻意给到 20 秒 —— 默认的 3 秒
+ * 对任何带网络调用的函数（内容安全审核、LBS 请求、逐集合删除）都必然超时。
+ */
+const CREATE_DEFAULTS = {
+  Runtime: 'Nodejs16.13',
+  Handler: HANDLER,
+  Timeout: 20,
+  MemorySize: 256,
+  InstallDependency: 'TRUE',
+  Role: 'TCB_QcsRole'
+}
+
+/** 云端没有该函数时用 CreateFunction 新建（UpdateFunctionCode 无法创建）。 */
+function createOne(fnName, zip) {
+  const body = {
+    FunctionName: fnName,
+    Namespace: ENV_ID,
+    ...CREATE_DEFAULTS,
+    Code: { ZipFile: zip.toString('base64') }
+  }
+  const bodyJson = JSON.stringify(body)
+  if (bodyJson.length > 30000) {
+    throw new Error(`请求体 ${bodyJson.length} 字符，超过命令行长度上限，需改走 COS 中转`)
+  }
+  const res = tcbJson([
+    'api', 'scf', 'CreateFunction',
+    '--api-version', '2018-04-16',
+    '-e', ENV_ID,
+    '--body', bodyJson
+  ])
+  if (res.error) throw new Error(res.error.message || JSON.stringify(res.error))
+  return res.data && res.data.RequestId
+}
+
+/** 只改函数级配置，不动代码包。用于把 Timeout 从默认的 3 秒提到可用值。 */
+function updateConfig(fnName, patch) {
+  const body = { FunctionName: fnName, Namespace: ENV_ID, ...patch }
+  const res = tcbJson([
+    'api', 'scf', 'UpdateFunctionConfiguration',
+    '--api-version', '2018-04-16',
+    '-e', ENV_ID,
+    '--body', JSON.stringify(body)
+  ])
+  if (res.error) throw new Error(res.error.message || JSON.stringify(res.error))
+  return res.data && res.data.RequestId
+}
+
 const normalize = text => String(text || '').replace(/\r\n/g, '\n').trim()
 
 /**
@@ -259,6 +315,11 @@ function main() {
   const dryRun = flags.includes('--dry-run')
   const verifyOnly = flags.includes('--verify')
   const skipUnchanged = flags.includes('--skip-unchanged')
+  // 云端不存在时允许新建（否则 UpdateFunctionCode 必然 404）
+  const allowCreate = flags.includes('--create')
+  // 可选：把函数级 Timeout 一并提到指定秒数（默认 3 秒对带网络调用的函数太短）
+  const timeoutFlag = flags.find(f => f.startsWith('--timeout='))
+  const timeoutSec = timeoutFlag ? Number(timeoutFlag.split('=')[1]) : null
 
   if (!fs.existsSync(TCB_ENTRY)) {
     console.error(`找不到 tcb 入口: ${TCB_ENTRY}`)
@@ -306,13 +367,41 @@ function main() {
     }
 
     let detail = null
+    let createdNow = false
     try {
       detail = fetchDetail(fnName)
     } catch (err) {
-      console.log(`  ✗ ${label} 读取云端信息失败: ${explainExecError(err)}`)
-      report.push({ fnName, ok: false, stage: 'detail', error: explainExecError(err) })
-      failed++
-      continue
+      const reason = explainExecError(err)
+      if (!allowCreate) {
+        console.log(`  ✗ ${label} 读取云端信息失败: ${reason}`)
+        console.log('      （若该函数云端确实不存在，加 --create 可新建）')
+        report.push({ fnName, ok: false, stage: 'detail', error: reason })
+        failed++
+        continue
+      }
+      // 云端没有这个函数 —— 用 CreateFunction 新建，再走同一套回读校验。
+      try {
+        createOne(fnName, packed.zip)
+        createdNow = true
+        console.log(`  + ${label} 云端不存在，已新建  Runtime ${CREATE_DEFAULTS.Runtime}  Timeout ${CREATE_DEFAULTS.Timeout}s`)
+        detail = fetchDetail(fnName)
+      } catch (createErr) {
+        console.log(`  ✗ ${label} 新建失败: ${explainExecError(createErr)}`)
+        report.push({ fnName, ok: false, stage: 'create', error: explainExecError(createErr) })
+        failed++
+        continue
+      }
+    }
+
+    // 函数级配置修正：Timeout 默认 3 秒，带网络调用的函数必然超时。
+    if (!dryRun && !verifyOnly && timeoutSec && Number(detail.Timeout) !== timeoutSec) {
+      try {
+        updateConfig(fnName, { Timeout: timeoutSec })
+        detail = fetchDetail(fnName)
+        console.log(`  · ${label} Timeout 已调整为 ${timeoutSec}s`)
+      } catch (cfgErr) {
+        console.log(`  ⚠ ${label} Timeout 调整失败: ${explainExecError(cfgErr)}`)
+      }
     }
 
     const localSource = normalize(fs.readFileSync(path.join(CLOUD_DIR, fnName, 'index.js'), 'utf8'))
@@ -378,6 +467,7 @@ function main() {
       fnName,
       ok: inSync,
       stage: 'deploy',
+      created: createdNow,
       requestId,
       inSync,
       zipSha,

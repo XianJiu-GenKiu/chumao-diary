@@ -58,6 +58,9 @@
         src="{{mapCoverSrc}}"
         mode="aspectFill"
       />
+      <!-- 地图审图号：腾讯静态图底图不自带，须由展示者叠加（《地图管理条例》第十六条）。
+           编号在 utils/mapView.js 的 MAP_APPROVAL_NUMBER 配置，留空则不渲染。 -->
+      <text class="poi-map-approval" wx:if="{{mapCoverSrc && approvalNumber}}">{{approvalNumber}}</text>
       <view class="poi-cover-placeholder" wx:else>
         <icon name="{{item.placeholderIcon || 'map-pin'}}" size="72" color="rgba(255,255,255,0.42)" />
         <text class="poi-cover-placeholder-text" wx:if="{{item.isExternalPoi}}">{{item.categoryName}}</text>

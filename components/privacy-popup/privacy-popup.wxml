@@ -1,0 +1,18 @@
+<!-- components/privacy-popup/privacy-popup.wxml -->
+<view class="pp-mask" wx:if="{{visible}}" catchtouchmove="noop">
+  <view class="pp-dialog">
+    <text class="pp-title">用户隐私保护提示</text>
+    <text class="pp-content">感谢你使用出毛日记。使用前请阅读并同意{{contractName || '《出毛日记用户协议与隐私政策》'}}。我们只在你授权的范围内收集与使用位置、相册等信息。</text>
+    <view class="pp-actions">
+      <button class="pp-btn pp-btn-plain" hover-class="none" bindtap="openContract">查看协议</button>
+      <button
+        id="pp-agree-btn"
+        class="pp-btn pp-btn-primary"
+        hover-class="none"
+        open-type="agreePrivacyAuthorization"
+        bindagreeprivacyauthorization="onAgree"
+      >同意</button>
+    </view>
+    <text class="pp-reject" bindtap="onDisagree">暂不同意</text>
+  </view>
+</view>

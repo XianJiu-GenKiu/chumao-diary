@@ -19,10 +19,9 @@ function loadPage(relative, app) {
 }
 
 async function main() {
-  const eventPage = loadPage('pages/event-create/event-create.js', {})
-  assert.equal(eventPage._toTimestamp('2026-08-01 10:30'), new Date(2026, 7, 1, 10, 30).getTime())
-  assert.equal(eventPage._toTimestamp('2026年8月1日 10:30'), null)
-  assert.match(read('pages/event-create/event-create.js'), /startTime: this\.data\.startTime/)
+  // 注意：原本这里断言 pages/event-create 的 _toTimestamp。
+  // 公开展示型降级（release/display）已删除活动/帖子等 UGC 页面，相关断言同步移除 ——
+  // 保留会 ENOENT，且测的是已下线的能力。云函数侧的校验见下方 createEvent/getEvents。
   // 云函数统一用 { code, message } 契约，这里此前写成了 msg:，断言早已过期。
   assert.match(read('cloudfunctions/createEvent/index.js'), /if \(!endTime\) return \{ code: -2, message: '请选择结束时间' \}/)
 
@@ -55,7 +54,7 @@ async function main() {
   assert.match(read('cloudfunctions/getEvents/index.js'), /query\.endTime = _\.gt\(now\)/)
   assert.match(read('cloudfunctions/getEvents/index.js'), /!Number\.isFinite\(endAt\) && event\.status === 'ended'/)
   assert.match(read('cloudfunctions/joinEvent/index.js'), /endAt <= now/)
-  assert.match(read('pages/post-create/post-create.wxml'), /仅自己可见/)
+  // 原「pages/post-create/post-create.wxml 含『仅自己可见』」的断言随 UGC 页面删除一并移除。
 
   // ── 编辑资料页：头像 / 背景图上传 ──
   // 回归点：微信选图返回的临时路径在真机上是 http://tmp/xxx，
@@ -117,29 +116,21 @@ async function main() {
   }
 
   // ── 多用户 / 集合自愈 ──
-  // 回归点：favorites / comments / messages 都是「第一次被写出时才存在」的集合。
-  // 云开发在集合不存在时写入会抛 -502005，缺了自愈会让「第一个收藏/评论的用户」
+  // 回归点：favorites / collections 都是「第一次被写出时才存在」的集合。
+  // 云开发在集合不存在时写入会抛 -502005，缺了自愈会让「第一个收藏的用户」
   // 直接失败，并且连累 getLocationDetail / getUserStats 等读接口整页报错。
-  // 完整跨用户行为验证见 scripts/multi-user-sim.js。
+  //
+  // 注意：公开展示型降级已移除「通知作者」这条跨用户链路（messages），
+  // 也移除了帖子/评论相关的 UGC 云函数，因此不再断言 messages 自愈。
   assert.match(read('cloudfunctions/toggleFavorite/index.js'), /ensureCollection\(db, 'favorites'\)/)
   assert.match(read('cloudfunctions/post-favorite/index.js'), /ensureCollection\(db, 'favorites'\)/)
-  assert.match(read('cloudfunctions/comment-create/index.js'), /ensureCollection\(db, 'comments'\)/)
-  for (const fnName of ['post-like', 'toggleReaction', 'toggleFavorite', 'post-favorite', 'comment-create']) {
-    assert.match(
-      read(`cloudfunctions/${fnName}/index.js`),
-      /ensureCollection\(db, 'messages'\)/,
-      `${fnName} 缺少 messages 集合自愈，互动通知会被静默丢弃`
-    )
-  }
   // 读接口对「集合可能不存在」必须降级，而不是让整页失败。
   const detailSource = read('cloudfunctions/getLocationDetail/index.js')
-  for (const name of ['favorites', 'comments', 'posts']) {
-    assert.match(
-      detailSource,
-      new RegExp(`collection\\('${name}'\\)[\\s\\S]{0,400}?\\.catch\\(\\(\\) =>`),
-      `getLocationDetail 的 ${name} 查询缺少降级`
-    )
-  }
+  assert.match(
+    detailSource,
+    /collection\('favorites'\)[\s\S]{0,400}?\.count\(\)\.catch\(\(\) => \(\{ total: 0 \}\)\)/,
+    'getLocationDetail 的 favorites 查询缺少降级'
+  )
   assert.match(read('cloudfunctions/getUserStats/index.js'), /\.count\(\)\s*\.catch\(\(\) => \(\{ total: 0 \}\)\)/, 'getUserStats 的收藏数缺少降级')
   assert.match(read('cloudfunctions/getUserContent/index.js'), /\.catch\(\(\) => \(\{ data: \[\] \}\)\)/, 'getUserContent 的收藏列表缺少降级')
 

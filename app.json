@@ -60,7 +60,9 @@
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json",
+  "__usePrivacyCheck__": true,
   "usingComponents": {
-    "icon": "/components/icon/icon"
+    "icon": "/components/icon/icon",
+    "privacy-popup": "/components/privacy-popup/privacy-popup"
   }
 }
