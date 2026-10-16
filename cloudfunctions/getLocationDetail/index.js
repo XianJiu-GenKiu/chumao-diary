@@ -7,6 +7,19 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+// 已下线功能遗留的字段：签到 / 评分 / 种草踩雷 / 评论计数。
+// 历史文档里仍然存着这些值（addLocation 当年会初始化它们），
+// 直接 ...location 会把它们一并带回客户端，这里显式剔除。
+const RETIRED_FIELDS = [
+  'checkinCount',
+  'rating',
+  'ratingCount',
+  'creatorRating',
+  'reactionUpCount',
+  'reactionDownCount',
+  'commentCount'
+]
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -61,14 +74,10 @@ exports.main = async (event, context) => {
       favoriteCount = favCountRes.total
     }
 
-    return {
-      code: 0,
-      data: {
-        ...location,
-        isFavorited,
-        favoriteCount
-      }
-    }
+    const payload = { ...location, isFavorited, favoriteCount }
+    RETIRED_FIELDS.forEach(key => { delete payload[key] })
+
+    return { code: 0, data: payload }
   } catch (err) {
     console.error('getLocationDetail 云函数出错:', err)
     return { code: -1, message: '获取地点详情失败', error: err.message }

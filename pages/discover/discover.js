@@ -15,9 +15,12 @@ function getCityByLocation(latitude, longitude) {
 const pager = createPager({
   cloudFn: 'getLocations',
   dataKey: 'locationList',
-  pageSize: 10,
-  // 精选视角：只取运营方标记 featured 的地点；其余视角取全部公开地点。
-  buildParams: (ctx) => (ctx.data.viewMode === 'featured' ? { featuredOnly: true } : {})
+  // 地图上要一次看到全部标点，因此不按「一屏 10 条」取；50 是 getLocations 的服务端上限。
+  // 超过 50 条时 _loadAllLocations 会继续翻页，不会静默截断标点。
+  pageSize: 50,
+  // 分页器只服务「全部」视角；「我出过毛 / 我收藏的」走本地足迹与收藏云调用，
+  // 「精选地点」走 _loadFeaturedLocations 的独立请求，均不经此分页器。
+  buildParams: () => ({})
 })
 
 const { CITY_CANDIDATES } = require('../../config/cities')
@@ -36,12 +39,18 @@ const TAP_MARKER_ID = 999998
 // 本机足迹存储 key（与 pages/footprints 共用同一份数据）
 const FOOTPRINT_STORAGE_KEY = 'fur_footprints_v1'
 
-// 面板折叠态需要完整露出环境栏（手柄 + 环境栏 + 间距），与 wxss 中的
-// --float-panel-collapsed-height 保持一致：156rpx。
-const PANEL_COLLAPSED_HEIGHT = 156
-// 拖拽手柄高度，与 .panel-handle 的 32rpx 对应。
-const PANEL_HANDLE_HEIGHT = 32
+// 面板三档高度（rpx）。环境栏 108rpx + 底部 margin 12rpx + 手柄 52rpx ≈ 172rpx，
+// 但实测收起态到概况区顶边只有 150rpx：多出来的高度会让 POI 名称在收起时露出半行被截断，
+// 所以收起高度按实测取 150。
+// 半开态露出「环境栏 + 地点概况 + 操作区」，三块连排大约是 640rpx，所以半开高度取 640；
+// 全开态由详情区撑开，与顶部抽屉底边贴齐。
+const PANEL_COLLAPSED_HEIGHT = 150
+const PANEL_HALF_HEIGHT = 640
 const PANEL_FAB_GAP = 14
+
+// 顶部精选抽屉展开后的内容高度：同样按视口比例取高并设上限。
+const FEATURED_BODY_RATIO = 0.46
+const FEATURED_BODY_MAX_RPX = 640
 
 function normalizeCityKeyword(value) {
   return String(value || '').trim().replace(/(市|地区|盟|自治州|特别行政区)$/g, '')
@@ -121,8 +130,10 @@ Page({
     statusBarHeight: 0,
     navBarHeight: 44,
     totalNavHeight: 112,
-    customNavHeight: 162,
-    currentCity: '定位中...',
+    // 0 = 未实测。测量前由 _panelNavFallback() 按导航栏真实结构推算，
+    // 不能用固定值兜底：算小了面板会变高，全开态把环境栏顶进导航栏里。
+    customNavHeight: 0,
+    currentCity: '待定位',
     locatedCity: '',
     userInfo: null,
 
@@ -135,22 +146,25 @@ Page({
     // 运营方身份（仅用于隐藏「添加到地点库」入口，真正防线在云函数 addLocation）
     isAdmin: false,
 
-    mapPanelExpanded: true,
+    // 面板三档状态：collapsed（收起，只露环境栏）/ half（地点概况）/ full（详情）
+    mapPanelState: 'collapsed',
     mapPanelDragOffset: 0,
     mapPanelDragging: false,
+    // 面板总高与位移全部以 px 内联，避免 CSS calc(100vh - …) 在真机上产生档位偏差
+    panelFullHeight: 0,
+    panelTranslate: 0,
     // FAB 跟随面板：面板可见高度（px）。首帧给一个保守初值，onReady 测量后立即校正。
     mapFabFollowOffset: 160,
     mapFabDragging: false,
 
-    // 视角快切：把地图从「统一地点流」变成「按出毛需求切换的四个视角」。
-    // featured = 运营方精选；all = 全部地点；visited = 我出过毛（本机足迹）；
-    // favored = 我收藏的。社交判定相关：visited 只读本机数据，无跨用户内容。
-    viewOptions: [
-      { key: 'featured', name: '精选', icon: 'star' },
-      { key: 'all', name: '全部', icon: 'more-horizontal' },
-      { key: 'visited', name: '我出过毛', icon: 'paw' },
-      { key: 'favored', name: '我收藏的', icon: 'heart' }
-    ],
+    // 顶部精选地点抽屉：内容高度由 JS 驱动（px），收起为 0
+    featuredExpanded: false,
+    featuredDragging: false,
+    featuredBodyHeight: 0,
+    featuredLocations: [],
+
+    // 视角切换：all = 全部地点（默认）；visited = 我出过毛（本机足迹，只读本机数据）；
+    // favored = 我收藏的。由地图右侧 FAB 触发，再次点击恢复 all。
     viewMode: 'all',
     viewCount: 0,
 
@@ -161,22 +175,16 @@ Page({
     mapLongitude: 121.4737,
     mapScale: 12,
     searchMarkers: [],
+    // 底部面板当前展示的地点及其轮播图
     selectedPoi: null,
-    showPoiMini: false,
-    // 地图内小号浮层的纵向位置，随导航栏实测高度变化
-    mapPoiMiniTop: 116,
-    // POI 卡片固定在顶部导航/筛选栏下方的地图安全区，不覆盖底部地点推荐。
-    poiCardTop: 174,
-    poiMiniScale: 0.9,
-    showPoiPreview: false,
+    poiGallery: [],
+    poiCurrentImage: 0,
+    favPending: false,
     // 外部地点查询中的 loading，避免用户重复点击地图
     poiQuerying: false,
 
     // 天气数据（展示用，为 null 时界面显示占位符）
     weatherView: null,
-
-    // 附近推荐
-    nearbyLocations: [],
 
     ...pager.initData()
   },
@@ -196,6 +204,13 @@ Page({
     this._loadCityCandidates()
     this._initLocation()
     this._measurePanelMetrics()
+    // 自动登录可能晚于页面 onLoad 完成，登录态变化后重新探测管理员身份。
+    this._onLoginStateChanged = ({ isLoggedIn }) => {
+      delete app.globalData.isAdmin
+      this.setData({ isAdmin: false })
+      if (isLoggedIn) this._syncAdmin()
+    }
+    app.on('loginStateChanged', this._onLoginStateChanged)
     this._syncAdmin()
 
     const saved = wx.getStorageSync('currentSearchMarker')
@@ -214,7 +229,7 @@ Page({
         mapScale: 16
       })
     }
-    pager.load(this, true).then(() => {
+    this._loadAllLocations().then(() => {
       this._buildMapMarkers()
       this.setData({ viewCount: this.data.locationList.length })
     })
@@ -225,74 +240,107 @@ Page({
   onUnload() {
     unbindDarkMode(this)
     app.off('cityReady', this._onCityReady)
+    app.off('loginStateChanged', this._onLoginStateChanged)
     if (this._citySearchTimer) clearTimeout(this._citySearchTimer)
+    if (this._favTimer) clearTimeout(this._favTimer)
+    if (this._layoutRetryTimer) clearTimeout(this._layoutRetryTimer)
   },
 
   onReady() {
-    this._measureCustomNav()
-    this._measurePanelMetrics()
-  },
-
-  _measureCustomNav() {
-    wx.createSelectorQuery()
-      .select('.custom-nav-bar')
-      .boundingClientRect(rect => {
-        if (!rect || rect.height <= 0) return
-        const patch = {}
-        if (rect.height !== this.data.customNavHeight) patch.customNavHeight = rect.height
-        // 小号浮层贴在导航栏下方 8px 处，标题加高后依然不会被遮挡。
-        const nextTop = Math.round(rect.height + 8)
-        if (nextTop !== this.data.mapPoiMiniTop) patch.mapPoiMiniTop = nextTop
-        // 紧凑 POI 卡片与顶部栏保留 12px 间距，直接显示在地图安全区。
-        const nextPoiTop = Math.round(rect.height + 12)
-        if (nextPoiTop !== this.data.poiCardTop) patch.poiCardTop = nextPoiTop
-        if (Object.keys(patch).length) this.setData(patch)
-      })
-      .exec()
+    this._measureLayout()
   },
 
   /**
-   * 读取面板真实高度，换算出 FAB 需要贴在面板上沿的位置。
+   * 测量顶部布局：导航栏高度 + 精选抽屉底边。
+   * 精选抽屉位于导航栏内部，其底边已经包含「状态栏 + 标题 + 搜索栏 + 抽屉手柄」，
+   * 是底部面板全开时环境栏应当贴着的位置——用它当「顶部遮挡」，
+   * 环境栏就能与精选抽屉刚好并拢，且不会被遮住。
+   *
+   * 这个值只测一次是不够的：onReady 时布局可能还没落定（抽屉 rect 取到 0），
+   * 于是面板按兜底值算高了，表现为「环境栏上滑到顶被精选地点盖住」且此后不会自愈。
+   * 因此取不到抽屉底边时延迟重测一次，页面重新显示时也补测。
+   */
+  _measureLayout(retry = true) {
+    wx.createSelectorQuery()
+      .select('.custom-nav-bar').boundingClientRect()
+      .select('.featured-drawer').boundingClientRect()
+      .exec(res => {
+        const navRect = res && res[0]
+        const drawerRect = res && res[1]
+        const patch = {}
+        if (navRect && navRect.height > 0) patch.customNavHeight = navRect.height
+        // 抽屉底边 = 底部面板全开时面板顶边的上限
+        if (drawerRect && drawerRect.bottom > 0) this._featuredBottom = drawerRect.bottom
+        if (Object.keys(patch).length) this.setData(patch)
+        this._measurePanelMetrics()
+        if (retry && !(this._featuredBottom > 0)) {
+          if (this._layoutRetryTimer) clearTimeout(this._layoutRetryTimer)
+          this._layoutRetryTimer = setTimeout(() => this._measureLayout(false), 400)
+        }
+      })
+  },
+
+  /**
+   * 计算面板三档高度（px）与精选抽屉的展开高度。
    * rpx → px 用屏幕宽度折算（750rpx = 屏宽）。
+   * 面板全开高度 = 视口高度 - 实测精选抽屉底边，
+   * 这样环境栏不会被顶部遮挡，且两者之间没有缝隙。
    */
   _measurePanelMetrics() {
     const info = app.globalData.systemInfo || wx.getWindowInfo()
     const pxPerRpx = (info.windowWidth || 375) / 750
+    const windowHeight = info.windowHeight || 667
     this._pxPerRpx = pxPerRpx
-    // 先按设计令牌估算一次，避免选择器查询返回前的首帧位置跳变。
-    const estimatedExpanded = Math.max(400 * pxPerRpx, (info.windowHeight || 667) - 880 * pxPerRpx)
-    this._panelExpandedHeight = estimatedExpanded
-    this._panelCollapsedHeight = PANEL_COLLAPSED_HEIGHT * pxPerRpx
-    this._syncFabOffset()
 
-    wx.createSelectorQuery()
-      .select('.float-panel')
-      .boundingClientRect(rect => {
-        const expandedHeight = rect && rect.height > 0
-          ? rect.height
-          : estimatedExpanded
-        this._panelExpandedHeight = expandedHeight
-        this._panelCollapsedHeight = PANEL_COLLAPSED_HEIGHT * pxPerRpx
-        this._syncFabOffset()
-      })
-      .exec()
+    // 顶部遮挡高度 = 精选抽屉底边（抽屉在导航栏内部，底边已含状态栏 / 标题 / 搜索栏 / 手柄）。
+    // onReady 实测后写入 _featuredBottom；首帧用导航栏推算高度兜底。
+    // 兜底值必须按导航栏真实结构算（状态栏占位 + 状态栏内边距 + 标题 80rpx + 内容行 + 抽屉手柄 76rpx），
+    // 一旦算小，面板就会变高，全开态把环境栏顶进导航栏里。
+    const navHeight = this.data.customNavHeight || Math.round(
+      this.data.statusBarHeight * 2 + (80 + 76) * pxPerRpx + (this.data.navBarHeight || 44)
+    )
+    const topObstruction = (this._featuredBottom && this._featuredBottom > 0) ? this._featuredBottom : navHeight
+
+    // 全开时顶部恰好贴着抽屉下边缘。不能再叠加比例/高度上限，否则会留缝。
+    this._panelCollapsedHeight = PANEL_COLLAPSED_HEIGHT * pxPerRpx
+    this._panelFullHeight = Math.max(this._panelCollapsedHeight, windowHeight - topObstruction)
+    this._panelHalfHeight = Math.min(this._panelFullHeight, PANEL_HALF_HEIGHT * pxPerRpx)
+    this._featuredFullHeight = Math.min(windowHeight * FEATURED_BODY_RATIO, FEATURED_BODY_MAX_RPX * pxPerRpx)
+
+    this.setData({ panelFullHeight: Math.round(this._panelFullHeight) })
+    this._applyPanelState(this.data.mapPanelState)
   },
 
   /**
-   * 让 FAB 始终贴着环境栏上沿，并随拖拽实时跟随。
-   * 面板 bottom: 0，可见高度即 translateY 之上露出的部分。
+   * 把面板吸附到指定档位。三档共用同一个 translateY：
+   *   0                            → 全开
+   *   fullHeight - halfHeight      → 半开
+   *   fullHeight - collapsedHeight → 收起
    */
-  _syncFabOffset(expanded, dragOffset) {
-    const isExpanded = typeof expanded === 'boolean' ? expanded : this.data.mapPanelExpanded
+  _applyPanelState(state) {
+    // 底部面板要上滑时先收起上方列表，避免高层级导航栏盖住环境栏。
+    if (state !== 'collapsed' && this.data.featuredBodyHeight > 0) this._setFeaturedHeight(0)
+    const full = this._panelFullHeight || 0
+    const half = this._panelHalfHeight || 0
+    const collapsed = this._panelCollapsedHeight || 0
+    let translate = 0
+    if (state === 'half') translate = Math.max(0, full - half)
+    else if (state === 'collapsed') translate = Math.max(0, full - collapsed)
+    this.setData({ mapPanelState: state, panelTranslate: Math.round(translate), mapPanelDragOffset: 0 })
+    this._syncFabOffset(0)
+  },
+
+  /**
+   * 让 FAB 始终贴着面板上沿，并随拖拽实时跟随。
+   * 面板 bottom: 0，可见高度 = 面板总高 - 当前总位移。
+   */
+  _syncFabOffset(dragOffset) {
+    const full = this._panelFullHeight || 300
+    const collapsed = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
     const offset = typeof dragOffset === 'number' ? dragOffset : this.data.mapPanelDragOffset
-    const expandedHeight = this._panelExpandedHeight || 300
-    const collapsedHeight = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
-    // 面板可见高度 = 展开高度 - 当前 translateY（translateY 越大，露出越少）
-    const translateY = (isExpanded ? 0 : expandedHeight - collapsedHeight) + offset
-    const visibleHeight = Math.max(collapsedHeight, expandedHeight - translateY)
-    // 环境栏上沿 = 面板可见高度 - 拖拽手柄高度
-    const envBarTop = visibleHeight - PANEL_HANDLE_HEIGHT * (this._pxPerRpx || 0.5)
-    this.setData({ mapFabFollowOffset: Math.round(Math.max(visibleHeight * 0.5, envBarTop) + PANEL_FAB_GAP) })
+    const translate = (this.data.panelTranslate || 0) + offset
+    const visibleHeight = Math.max(collapsed, full - translate)
+    this.setData({ mapFabFollowOffset: Math.round(visibleHeight + PANEL_FAB_GAP) })
   },
 
   async _loadCityCandidates() {
@@ -319,6 +367,7 @@ Page({
       darkMode: app.globalData.darkMode || false,
       isAdmin: !!app.globalData.isAdmin
     })
+    this._syncAdmin()
     // 同步全局城市（可能在后台已更新）
     if (app.globalData.cityReady && app.globalData.currentCity !== this.data.currentCity) {
       this.setData({
@@ -327,6 +376,8 @@ Page({
       })
     }
     this._fetchWeather()
+    // 重新显示时补测一次顶部布局：字体 / 窗口尺寸变化都会让面板高度过期。
+    this._measureLayout(false)
   },
 
   /**
@@ -340,11 +391,15 @@ Page({
       return
     }
     if (!app.globalData.isLoggedIn) return
+    const openId = app.globalData.openId
     app.callCloud('manageReports', { action: 'whoami' }).then(res => {
+      if (app.globalData.openId !== openId) return
       const isAdmin = !!(res && res.code === 0 && res.data && res.data.isAdmin)
       app.globalData.isAdmin = isAdmin
       this.setData({ isAdmin })
-    }).catch(() => app.globalData.isAdmin === undefined && (app.globalData.isAdmin = false))
+    }).catch(() => {
+      if (app.globalData.openId === openId) this.setData({ isAdmin: false })
+    })
   },
 
   _initLocation() {
@@ -370,7 +425,7 @@ Page({
         })
       }
       this._fetchWeather()
-      this._loadNearbyLocations()
+      this._loadFeaturedLocations()
       return
     }
 
@@ -386,45 +441,47 @@ Page({
       if (info.latitude) this._currentLatitude = info.latitude
       if (info.longitude) this._currentLongitude = info.longitude
       this._fetchWeather()
-      this._loadNearbyLocations()
+      this._loadFeaturedLocations()
     }
     app.on('cityReady', this._onCityReady)
   },
 
-  onReLocate() {
+  /**
+   * 重新定位（用户点击城市徽章触发）。
+   * 定位统一走 app.locateCity()：它会写全局 + 写缓存 + 广播 cityReady，
+   * 并且只在这里（用户交互）才发起 wx.getLocation —— 启动时不索权。
+   */
+  async onReLocate() {
     this.setData({ currentCity: '定位中...' })
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        this._currentLatitude = res.latitude
-        this._currentLongitude = res.longitude
-        this.setData({ mapLatitude: res.latitude, mapLongitude: res.longitude, mapScale: 14 })
-        getCityByLocation(res.latitude, res.longitude).then(city => {
-          this.setData({ currentCity: city, locatedCity: city })
-          // 同步回全局数据，让其他页面也能拿到最新城市
-          app.globalData.currentCity = city
-          app.globalData.currentLatitude = res.latitude
-          app.globalData.currentLongitude = res.longitude
-          wx.setStorage({
-            key: 'cached_city_info',
-            data: { city, latitude: res.latitude, longitude: res.longitude, timestamp: Date.now() }
-          }).catch(() => {})
-          this._fetchWeather()
-          this._loadNearbyLocations()
-        })
-      },
-      fail: () => {
-        this.setData({ currentCity: '定位失败' })
-        wx.showModal({
-          title: '定位权限未开启',
-          content: '请在微信设置中开启定位权限，以便为你推荐附近地点。',
-          confirmText: '去设置',
-          success: result => {
-            if (result.confirm) wx.openSetting()
-          }
-        })
-      }
-    })
+    const result = await app.locateCity()
+    if (result && result.ok) {
+      const latitude = app.globalData.currentLatitude
+      const longitude = app.globalData.currentLongitude
+      this._currentLatitude = latitude
+      this._currentLongitude = longitude
+      this.setData({
+        currentCity: result.city,
+        locatedCity: result.city,
+        mapLatitude: latitude,
+        mapLongitude: longitude,
+        mapScale: 14
+      })
+      this._fetchWeather()
+      this._loadFeaturedLocations()
+      return
+    }
+    // 失败：app.locateCity 内部已回落旧缓存，这里只负责界面反馈。
+    this.setData({ currentCity: app.globalData.currentCity || '定位失败' })
+    if (result && result.denied) {
+      wx.showModal({
+        title: '定位权限未开启',
+        content: '请在微信设置中开启定位权限，以便为你推荐附近地点。',
+        confirmText: '去设置',
+        success: r => { if (r.confirm) wx.openSetting() }
+      })
+    } else {
+      wx.showToast({ title: '定位失败，可手动选择城市', icon: 'none' })
+    }
   },
 
   onAvatarTap() {
@@ -434,6 +491,14 @@ Page({
   // ── 城市选择器 ──
 
   onCityTap() {
+    // 还没有城市（启动时不再自动索权定位）→ 这一次点击就是「用户主动发起定位」，
+    // 直接定位，不用先让用户进面板再找按钮。
+    const city = this.data.currentCity
+    if (city === '待定位' || city === '定位失败' || city === '定位中...') {
+      this.onReLocate()
+      return
+    }
+
     const cityList = cityCandidates.slice(0, 10)
 
     const locatedCity = this.data.locatedCity
@@ -509,7 +574,7 @@ Page({
       app.globalData.currentLongitude = longitude
       app.globalData.cityReady = true
       this._fetchWeather()
-      this._loadNearbyLocations()
+      this._loadFeaturedLocations()
     })
     wx.showToast({ title: `已切换到${name}`, icon: 'none' })
   },
@@ -518,12 +583,21 @@ Page({
     // 保留空的滚动监听位：后续如需「回到顶部」等滚动联动效果在此扩展。
   },
 
-  // ── 视角快切 ──
+  // ── 视角切换（由地图右侧 FAB 触发） ──
 
-  onViewTap(e) {
-    const key = e.currentTarget.dataset.view
-    if (!key || key === this.data.viewMode) return
+  /** FAB「我出过毛」：把本机足迹标注到地图；再次点击恢复「全部」 */
+  onFabVisited() {
     wx.vibrateShort({ type: 'light' })
+    this._switchView(this.data.viewMode === 'visited' ? 'all' : 'visited')
+  },
+
+  /** FAB「我收藏的」：把收藏过的地点标注到地图；再次点击恢复「全部」 */
+  onFabFavored() {
+    wx.vibrateShort({ type: 'light' })
+    this._switchView(this.data.viewMode === 'favored' ? 'all' : 'favored')
+  },
+
+  _switchView(key) {
     this.setData({ viewMode: key })
     this._reloadForView()
   },
@@ -532,12 +606,29 @@ Page({
   _reloadForView() {
     if (this.data.viewMode === 'visited') return this._loadVisitedView()
     if (this.data.viewMode === 'favored') return this._loadFavoredView()
-    // featured / all 走分页器（buildParams 按视角注入 featuredOnly）
-    pager.reset()
-    pager.load(this, true).then(() => {
+    // 「全部」视角走分页器
+    this._loadAllLocations().then(() => {
       this._buildMapMarkers()
       this.setData({ viewCount: this.data.locationList.length })
     })
+  },
+
+  /**
+   * 把「全部」视角的地点一次性拉齐。
+   *
+   * 地图是整屏展示的，标点少一个用户就会以为地点没收录；而分页器默认只取第一页，
+   * 之前在 16 个地点时只能显示 10 个。这里循环翻页直到 hasMore 为 false。
+   * guard 是防呆上限：服务端 hasMore 异常时不会无限请求。
+   */
+  async _loadAllLocations() {
+    pager.reset()
+    let refresh = true
+    for (let guard = 0; guard < 20; guard++) {
+      const list = await pager.load(this, refresh)
+      refresh = false
+      if (!Array.isArray(list) || !list.length) break
+      if (!this.data.hasMore) break
+    }
   },
 
   /**
@@ -594,11 +685,6 @@ Page({
     })
   },
 
-  /** 找场地：不带参数进入周边服务页（finder 模式，先选位置再查设施） */
-  onOpenSiteFinder() {
-    wx.navigateTo({ url: '/pages/nearby-services/nearby-services' })
-  },
-
   moveToMyLocation() {
     wx.getLocation({
       type: 'gcj02',
@@ -613,7 +699,7 @@ Page({
           app.globalData.currentLongitude = r.longitude
           app.globalData.cityReady = true
           this._fetchWeather()
-          this._loadNearbyLocations()
+          this._loadFeaturedLocations()
         })
       },
       fail: () => wx.showToast({ title: '请授权位置权限', icon: 'none' })
@@ -624,53 +710,68 @@ Page({
 
   _fetchWeather() {
     const city = normalizeCityKeyword(this.data.currentCity)
-    const latitude = this.data.mapLatitude
-    const longitude = this.data.mapLongitude
+    const latitude = Number(this.data.mapLatitude)
+    const longitude = Number(this.data.mapLongitude)
     const requestSeq = ++this._weatherRequestSeq
-    const data = city && city !== '定位中...' && city !== '定位失败'
-      ? { city, latitude, longitude }
-      : { latitude, longitude }
+    const hasCity = !!city && city !== '定位中...' && city !== '定位失败'
+    const primaryParams = hasCity ? { city, latitude, longitude } : { latitude, longitude }
 
-    // 检查本地缓存（30 分钟过期）
-    const cacheKey = `weather_${city || `${latitude},${longitude}`}`
-    const cached = wx.getStorageSync(cacheKey)
-    if (cached && cached.timestamp && Date.now() - cached.timestamp < 30 * 60 * 1000) {
-      this.setData({ weatherView: cached.view || null })
-      return // 使用缓存，不重复请求
+    // 保留同一城市上次成功的数据；云端临时无数据时展示真实缓存，不清空环境栏。
+    const cacheKey = `weather_${hasCity ? city : `${latitude},${longitude}`}`
+    let cached = null
+    try { cached = wx.getStorageSync(cacheKey) } catch (e) { cached = null }
+    const cachedView = cached && cached.view && this._hasWeatherValues(cached.view) ? cached.view : null
+    if (cachedView) this.setData({ weatherView: cachedView })
+    if (cachedView && cached.timestamp && Date.now() - cached.timestamp < 30 * 60 * 1000) return
+
+    const applyResult = result => {
+      if (requestSeq !== this._weatherRequestSeq) return true
+      const view = result && result.code === 0 ? this._formatWeather(result.data) : null
+      if (!view || !this._hasWeatherValues(view)) return false
+      this.setData({ weatherView: view })
+      try { wx.setStorageSync(cacheKey, { view, timestamp: Date.now() }) } catch (e) { /* 缓存不可用不影响展示 */ }
+      return true
+    }
+    const keepLastKnown = () => {
+      if (requestSeq !== this._weatherRequestSeq) return
+      this.setData({ weatherView: cachedView || null })
     }
 
-    app.callCloud('getWeather', data).then(result => {
-      if (requestSeq !== this._weatherRequestSeq) return
-      // 云函数查不到天气时返回 data: null（不再编造数据），这里如实渲染无数据态。
-      const view = result && result.code === 0 ? this._formatWeather(result.data) : null
-      this.setData({ weatherView: view })
-      if (view) {
-        wx.setStorageSync(cacheKey, { view, timestamp: Date.now() })
+    app.callCloud('getWeather', primaryParams).then(result => {
+      if (applyResult(result)) return
+      // 城市名查询无实时天气时再按坐标查询一次，避免城市映射缺失导致空栏。
+      if (hasCity && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        return app.callCloud('getWeather', { latitude, longitude }).then(fallbackResult => {
+          if (!applyResult(fallbackResult)) keepLastKnown()
+        }).catch(keepLastKnown)
       }
-    }).catch(() => {
-      if (requestSeq !== this._weatherRequestSeq) return
-      this.setData({ weatherView: null })
-    })
+      keepLastKnown()
+    }).catch(keepLastKnown)
   },
 
-  /**
-   * 把天气数据格式化成展示字符串。
-   *
-   * 缺字段就显示占位符，**绝不回落到看似真实的具体数值** —— 早期版本
-   * 在 wxml 里用 `{{weatherData.temperature || '28'}}` 兜底，接口坏掉时
-   * 用户看到的是编造的天气，且与云函数里的假数据互相掩护，很难被发现。
-   */
+  /** 天气值可能来自不同版本的云函数，数字和数字字符串都可识别。 */
   _formatWeather(data) {
-    if (!data) return null
-    return {
-      temperature: Number.isFinite(data.temperature) ? `${data.temperature}°` : '—',
-      humidity: Number.isFinite(data.humidity) ? `${data.humidity}%` : '—',
-      wind: data.windDisplay || (Number.isFinite(data.wind) ? `${data.wind}级` : '—'),
-      condition: data.condition || '—',
-      // 出毛适宜度：本地规则计算（公共气象数据 → 程序输出，用户零输入）。
-      // 紫外线接口（批次 2）接入前自动按 4 因子降级。
-      furIndex: evaluateFromWeather(data)
+    if (!data || typeof data !== 'object') return null
+    const asNumber = value => {
+      if (value === null || value === undefined || value === '') return null
+      const number = Number(value)
+      return Number.isFinite(number) ? number : null
     }
+    const temperature = asNumber(data.temperature)
+    const humidity = asNumber(data.humidity)
+    const wind = asNumber(data.wind)
+    return {
+      temperature: temperature !== null ? `${temperature}°` : '—',
+      humidity: humidity !== null ? `${humidity}%` : '—',
+      wind: data.windDisplay || (wind !== null ? `${wind}级` : '—'),
+      condition: String(data.condition || '').trim() || '—',
+      furIndex: evaluateFromWeather({ ...data, temperature, humidity, wind })
+    }
+  },
+
+  _hasWeatherValues(view) {
+    return !!view && ['temperature', 'humidity', 'wind', 'condition']
+      .some(key => view[key] && view[key] !== '—')
   },
 
   /** 点击适宜度徽标：展示分项拆解与建议 */
@@ -685,72 +786,163 @@ Page({
     })
   },
 
-  // ── 面板底部精选推荐 ──
+  // ── 顶部精选地点抽屉 ──
 
-  _loadNearbyLocations() {
-    // 只展示运营方标记 featured 的地点（location-upload 的「设为精选推荐」开关）。
-    // 暂无精选数据时展示空态，不悄悄退化成普通热门列表 —— 「运营方发布」的语义要保住。
-    app.callCloud('getLocations', { featuredOnly: true, page: 1, pageSize: 5 }).then(result => {
+  /**
+   * 只取运营方标记 featured 的地点（location-upload 的「设为精选推荐」开关）。
+   * 数据与地图中心无关，因此不跟随 regionchange 反复请求。
+   * 暂无精选数据时展示空态，不悄悄退化成普通热门列表 ——「运营方发布」的语义要保住。
+   */
+  _loadFeaturedLocations() {
+    app.callCloud('getLocations', { featuredOnly: true, page: 1, pageSize: 10 }).then(result => {
       if (result && result.code === 0 && Array.isArray(result.data)) {
         const list = result.data
           .filter(item => item && item.name)
           .sort((a, b) => (Number(b.favoriteCount) || 0) - (Number(a.favoriteCount) || 0))
-          .slice(0, 5)
-          .map(item => ({ ...item, serviceSummary: item.description ? String(item.description).slice(0, 40) : '运营方精选 · 可查看周边服务' }))
-        this.setData({ nearbyLocations: list })
+          .slice(0, 10)
+          .map(item => ({ ...item, serviceSummary: item.description ? String(item.description).slice(0, 40) : '运营方精选地点' }))
+        this.setData({ featuredLocations: list })
       }
     }).catch(() => {})
   },
 
-  onNearbyTap(e) {
-    const id = e.currentTarget.dataset.id
-    if (id) wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
+  /** 设置抽屉内容高度（px），0 即收起 */
+  _setFeaturedHeight(height) {
+    const full = this._featuredFullHeight || 0
+    const next = Math.max(0, Math.min(full, height))
+    // 展开抽屉之前先放下底部面板；否则两个固定层会互相遮挡。
+    if (next > 0 && this.data.mapPanelState !== 'collapsed') this._applyPanelState('collapsed')
+    this.setData({ featuredBodyHeight: Math.round(next), featuredExpanded: next > 0 })
   },
+
+  onFeaturedToggle() {
+    // 拖拽抬手也会派发 tap，用时间戳过滤，避免「刚拖完又被反向折叠」
+    if (Date.now() < (this._featuredIgnoreTapUntil || 0)) return
+    wx.vibrateShort({ type: 'light' })
+    this._setFeaturedHeight(this.data.featuredBodyHeight > 0 ? 0 : (this._featuredFullHeight || 0))
+  },
+
+  onFeaturedTouchStart(e) {
+    const touch = e.touches && e.touches[0]
+    if (!touch) return
+    this._featuredTouchStartY = touch.clientY
+    this._featuredStartHeight = this.data.featuredBodyHeight
+    this._featuredTouchStartAt = Date.now()
+    this._featuredDragActive = false
+  },
+
+  onFeaturedTouchMove(e) {
+    const touch = e.touches && e.touches[0]
+    if (!touch) return
+    // _featuredTouchStartY 可能在某些边界情况下未初始化，用 0 兜底
+    const startY = this._featuredTouchStartY || touch.clientY
+    const delta = touch.clientY - startY
+    if (!this._featuredDragActive) {
+      // 小于 4px 视为轻点，交给 tap 处理，避免吞掉点击
+      if (Math.abs(delta) < 4) return
+      this._featuredDragActive = true
+      this.setData({ featuredDragging: true })
+    }
+    this._setFeaturedHeight(this._featuredStartHeight + delta)
+  },
+
+  onFeaturedTouchEnd() {
+    if (!this._featuredDragActive) return
+    this._featuredDragActive = false
+    this._featuredIgnoreTapUntil = Date.now() + 320
+    const elapsed = Math.max(1, Date.now() - this._featuredTouchStartAt)
+    const current = this.data.featuredBodyHeight
+    const full = this._featuredFullHeight || 0
+    // 位移量：正 = 向下拉（展开），负 = 向上拉（收起）
+    const velocity = (current - this._featuredStartHeight) / elapsed
+    // 吸附判断（阈值放宽，避免「上拉一点又弹回展开」导致用户以为滑不动）：
+    // 1. 有明确方向速度时按方向吸附（0.15 px/ms，比原来 0.3 更灵敏）
+    // 2. 慢速拖动时按当前位置是否过半判断
+    const shouldExpand = velocity > 0.15 ? true
+      : velocity < -0.15 ? false
+      : current > full * 0.5
+    this.setData({ featuredDragging: false })
+    this._setFeaturedHeight(shouldExpand ? full : 0)
+  },
+
+  /** 点击精选地点：收起抽屉，地图移到该地点，并在底部面板展示概况 */
+  onFeaturedTap(e) {
+    const item = e.currentTarget.dataset.item
+    if (!item) return
+    this._setFeaturedHeight(0)
+    const latitude = Number(item.latitude)
+    const longitude = Number(item.longitude)
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      this._currentLatitude = latitude
+      this._currentLongitude = longitude
+      this.setData({ mapLatitude: latitude, mapLongitude: longitude, mapScale: 15 })
+    }
+    // 复用地图标点点击的呈现逻辑，保证两条入口的体验一致
+    this._openPoiCard(item)
+  },
+
+  // ── 面板拖拽（三档吸附） ──
+  // 旧实现是「展开 / 收起」二值，这里改为 full / half / collapsed 三档，
+  // 拖拽结束后吸附到最近档位，并允许用快速甩动直接跳到首尾档。
 
   onPanelTouchStart(e) {
     const touch = e.touches && e.touches[0]
     if (!touch) return
     this._panelTouchStartY = touch.clientY
-    this._panelStartedExpanded = this.data.mapPanelExpanded
     this._panelDragOffset = 0
-    const expandedHeight = this._panelExpandedHeight || 300
-    const collapsedHeight = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
-    this._panelBaseTranslate = this._panelStartedExpanded ? 0 : Math.max(0, expandedHeight - collapsedHeight)
     this._panelTouchStartAt = Date.now()
-    this.setData({ mapPanelDragging: true, mapFabDragging: true })
+    this._panelDragActive = false
   },
 
   onPanelTouchMove(e) {
     const touch = e.touches && e.touches[0]
-    if (!touch || !this.data.mapPanelDragging) return
+    if (!touch) return
+    const full = this._panelFullHeight || 300
+    const collapsed = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
+    const maxTranslate = Math.max(0, full - collapsed)
     const delta = touch.clientY - this._panelTouchStartY
-    const expandedHeight = this._panelExpandedHeight || 300
-    const collapsedHeight = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
-    const baseTranslate = this._panelBaseTranslate || 0
-    // 以面板当前真实位移为基准计算，环境栏和拖拽手柄都能连续上下拖动。
-    const travel = Math.max(0, expandedHeight - collapsedHeight)
-    const nextTranslate = Math.max(0, Math.min(travel, baseTranslate + delta))
-    const offset = nextTranslate - baseTranslate
+    if (!this._panelDragActive) {
+      // 小于 4px 视为轻点，交给 tap / 内部按钮处理，避免吞掉点击
+      if (Math.abs(delta) < 4) return
+      this._panelDragActive = true
+      if (delta < 0 && this.data.featuredBodyHeight > 0) this._setFeaturedHeight(0)
+      this.setData({ mapPanelDragging: true, mapFabDragging: true })
+    }
+    const base = this.data.panelTranslate || 0
+    const nextTranslate = Math.max(0, Math.min(maxTranslate, base + delta))
+    const offset = nextTranslate - base
     this._panelDragOffset = offset
-    this.setData({ mapPanelDragOffset: offset })
-    this._syncFabOffset(this._panelStartedExpanded, offset)
+    this.setData({ mapPanelDragOffset: Math.round(offset) })
+    this._syncFabOffset(offset)
   },
 
   onPanelTouchEnd() {
-    if (!this.data.mapPanelDragging) return
+    if (!this._panelDragActive) return
+    this._panelDragActive = false
     const elapsed = Math.max(1, Date.now() - this._panelTouchStartAt)
     const velocity = this._panelDragOffset / elapsed
-    const collapse = this._panelStartedExpanded && (this._panelDragOffset > 90 || (this._panelDragOffset > 42 && velocity > 0.5))
-    const expand = !this._panelStartedExpanded && (this._panelDragOffset < -70 || (this._panelDragOffset < -36 && velocity < -0.5))
-    const nextExpanded = expand ? true : collapse ? false : this._panelStartedExpanded
-    this.setData({
-      mapPanelExpanded: nextExpanded,
-      mapPanelDragging: false,
-      mapFabDragging: false,
-      mapPanelDragOffset: 0
-    })
+    const full = this._panelFullHeight || 300
+    const half = this._panelHalfHeight || 0
+    const collapsed = this._panelCollapsedHeight || (PANEL_COLLAPSED_HEIGHT * (this._pxPerRpx || 0.5))
+    const current = Math.max(0, Math.min(full - collapsed, (this.data.panelTranslate || 0) + this._panelDragOffset))
+
+    // 速度优先：快速上滑直接全开、快速下滑直接收起，避免「甩了一下却没动」。
+    let next
+    if (velocity < -0.5) next = 'full'
+    else if (velocity > 0.5) next = 'collapsed'
+    else {
+      const candidates = [
+        { state: 'full', y: 0 },
+        { state: 'half', y: Math.max(0, full - half) },
+        { state: 'collapsed', y: Math.max(0, full - collapsed) }
+      ]
+      next = candidates.reduce((best, item) =>
+        Math.abs(item.y - current) < Math.abs(best.y - current) ? item : best).state
+    }
+
     this._panelDragOffset = 0
-    this._syncFabOffset(nextExpanded, 0)
+    this.setData({ mapPanelDragging: false, mapFabDragging: false })
+    this._applyPanelState(next)
   },
 
   // ── 地图标记 ──
@@ -891,14 +1083,19 @@ Page({
     }
 
     this._updateTapMarkerName(loc.name)
-    this.setData({
-      selectedPoi: poi,
-      // 记录当前卡片身份，用于识别过期的关闭事件
-      closingPoiId: poi._id || poi.externalId || poi.name || '',
-      // 地图标点点击后直接显示卡片式 POI；隐藏旧的小号浮层，避免重复出现两层卡片。
-      showPoiMini: false,
-      showPoiPreview: true
-    })
+    this._presentPoi(poi)
+  },
+
+  /**
+   * 把地点交给底部面板：更新轮播数据并把面板吸附到半开态。
+   * 用户再上滑即展开完整详情，符合「先看概况、再看详情」的两段式节奏。
+   */
+  _presentPoi(poi) {
+    const images = Array.isArray(poi.images) ? poi.images.filter(Boolean) : []
+    const gallery = images.slice()
+    if (poi.previewImage && gallery.indexOf(poi.previewImage) === -1) gallery.unshift(poi.previewImage)
+    this.setData({ selectedPoi: poi, poiGallery: gallery, poiCurrentImage: 0 })
+    this._applyPanelState('half')
   },
 
   /** 地点列表加载失败后重试，成功后重建地图标点 */
@@ -1018,34 +1215,22 @@ Page({
       }
     }
     const poi = normalizePoi(raw, 'tencent')
-    this.setData({
-      selectedPoi: poi,
-      closingPoiId: poi._id || poi.externalId || poi.name || '',
-      showPoiMini: false,
-      showPoiPreview: true
-    })
+    this._presentPoi(poi)
   },
 
   /** 附近没有任何可识别地点时的兜底卡片 */
   _openUnresolvedPoi(latitude, longitude) {
     const poi = normalizePoi({ latitude, longitude }, 'unresolved')
-    this.setData({
-      selectedPoi: poi,
-      // 未识别地点没有 id，用坐标作为身份标识
-      closingPoiId: `${latitude},${longitude}`,
-      showPoiMini: false,
-      showPoiPreview: true
-    })
+    this._presentPoi(poi)
   },
 
   /**
-   * POI 卡片主按钮「已出毛」：把当前卡片地点写入本机出毛记录。
+   * 主按钮「已出毛」：把当前地点写入本机出毛记录。
    * 只写本机存储（fur_footprints_v1），零云请求、零跨用户内容。
    */
-  onMarkVisitedFromPoi(e) {
-    const detail = (e && e.detail) || {}
+  onPoiMarkVisited() {
     const poi = this.data.selectedPoi || {}
-    const name = detail.name || poi.name
+    const name = poi.name
     if (!name) return
     try {
       const records = wx.getStorageSync(FOOTPRINT_STORAGE_KEY)
@@ -1053,10 +1238,10 @@ Page({
       list.push({
         id: `fp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         placeName: name,
-        city: detail.city || poi.city || '',
-        locationId: detail.locationId || poi._id || '',
-        latitude: Number(detail.latitude) || Number(poi.latitude) || null,
-        longitude: Number(detail.longitude) || Number(poi.longitude) || null,
+        city: poi.city || '',
+        locationId: poi._id || '',
+        latitude: Number(poi.latitude) || null,
+        longitude: Number(poi.longitude) || null,
         visitedAt: Date.now(),
         companions: '',
         note: '',
@@ -1072,59 +1257,86 @@ Page({
     }
   },
 
-  /** 外部地点 → 预填创建地点页面 */
-  onAddExternalPoi(e) {
-    const detail = (e && e.detail) || {}
-    if (!detail.name) return
+  /** 导航：调起微信内置地图 */
+  onPoiNavigate() {
+    const poi = this.data.selectedPoi || {}
+    const latitude = Number(poi.latitude)
+    const longitude = Number(poi.longitude)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      wx.showToast({ title: '暂无位置信息', icon: 'none' })
+      return
+    }
+    wx.openLocation({
+      latitude,
+      longitude,
+      name: poi.name || '',
+      address: poi.address || '',
+      scale: 15
+    })
+    app.trackEvent('map_navigation', { targetId: poi._id || '', targetType: 'location' })
+  },
+
+  /** 进入地点详情页（仅已收录的内部地点有 _id） */
+  onPoiViewDetail() {
+    const id = this.data.selectedPoi && this.data.selectedPoi._id
+    if (id) wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
+  },
+
+  /** 运营方：外部地点 → 预填录入页 */
+  onPoiAddToDiary() {
+    const poi = this.data.selectedPoi || {}
+    if (!poi.name) return
     const params = {
-      poiName: detail.name,
-      poiAddress: detail.address || '',
-      poiCategory: detail.category || '',
-      poiLat: detail.latitude,
-      poiLng: detail.longitude,
-      poiSource: detail.externalSource || '',
-      poiExternalId: detail.externalId || ''
+      poiName: poi.name,
+      poiAddress: poi.address || '',
+      poiCategory: poi.categoryName || '',
+      poiLat: poi.latitude,
+      poiLng: poi.longitude,
+      poiSource: poi.externalSource || '',
+      poiExternalId: poi.externalId || ''
     }
     const query = Object.keys(params)
       .filter(key => params[key] !== '' && params[key] !== null && params[key] !== undefined)
       .map(key => `${key}=${encodeURIComponent(params[key])}`)
       .join('&')
-    this.setData({ showPoiPreview: false, showPoiMini: false, selectedPoi: null })
     wx.navigateTo({ url: `/pages/location-upload/location-upload?${query}` })
   },
 
-  onOpenPoiPreview() {
-    if (this.data.selectedPoi) this.setData({ showPoiMini: false, showPoiPreview: true })
-  },
-
-  onViewPoiDetail(e) {
-    const id = e.detail.id
-    if (id) {
-      this.setData({ showPoiPreview: false, showPoiMini: false, selectedPoi: null })
-      wx.navigateTo({ url: `/pages/location-detail/location-detail?id=${id}` })
+  /**
+   * 反馈此地点：带着当前地点信息跳到「用户 → 运营方」的单向反馈表单。
+   *
+   * 这里曾经用 wx.showActionSheet 选地点类型，结果是「点了完全没反应」：
+   * 官方限制 itemList 最多 6 项，而地点类型是 7 项的封闭集合
+   * （自然风光 / 城市街景 / 室内场景 / 公园绿地 / 水域 / 山地 / 其他），
+   * 超限时 showActionSheet 不弹面板直接走 fail —— 用户什么都看不到。
+   * 表单页的类型是标签墙，不受这个上限约束，也让反馈只有唯一落点。
+   */
+  onPoiFeedback() {
+    const poi = this.data.selectedPoi || {}
+    if (!poi.name) {
+      wx.showToast({ title: '暂无地点信息', icon: 'none' })
+      return
     }
+    const params = {
+      mode: 'poi',
+      name: poi.name,
+      category: poi.categoryName || '',
+      address: poi.address || '',
+      latitude: Number(poi.latitude) || '',
+      longitude: Number(poi.longitude) || ''
+    }
+    const query = Object.keys(params)
+      .filter(key => params[key] !== '' && params[key] !== null && params[key] !== undefined)
+      .map(key => `${key}=${encodeURIComponent(params[key])}`)
+      .join('&')
+    wx.navigateTo({ url: `/pages/location-feedback/location-feedback?${query}` })
   },
 
-  onClosePoiPreview(e) {
-    // 关闭事件在弹入动画播完后才发出（约 260ms）。
-    // 若这段时间内用户又点了别的标点并打开了新卡片，这次 close 已经过期，
-    // 再清状态会把刚打开的新卡片一起抹掉，因此用 id 比对后直接忽略。
-    const closedId = (e && e.detail && e.detail.id) || ''
-    const currentId = this.data.closingPoiId || ''
-    if (closedId && currentId && closedId !== currentId) return
-    this.setData({ showPoiPreview: false, showPoiMini: false, selectedPoi: null, closingPoiId: '' })
-  },
-
-  onNavigateToPoi(e) {
-    const id = e.detail && e.detail.id
-    if (id) app.trackEvent('map_navigation', { targetId: id, targetType: 'location' })
-  },
-
-  /** 卡片内直接收藏 / 取消收藏，无需进入详情页 */
-  onTogglePoiFavorite(e) {
-    const id = (e.detail && e.detail.id) || (this.data.selectedPoi && this.data.selectedPoi._id)
+  /** 面板内直接收藏 / 取消收藏，无需进入详情页 */
+  onPoiFavorite() {
     const poi = this.data.selectedPoi
-    if (!id || !poi) return
+    const id = poi && poi._id
+    if (!id || this._favPending) return
     if (!app.globalData.isLoggedIn) {
       wx.showModal({
         title: '请先登录',
@@ -1139,9 +1351,12 @@ Page({
 
     const nextFavorited = !poi.isFavorited
     const nextCount = Math.max(0, (poi.favoriteCount || 0) + (nextFavorited ? 1 : -1))
+    // 短时防抖：避免连点导致同一地点被反复收藏 / 取消
+    this._favPending = true
     this.setData({
       'selectedPoi.isFavorited': nextFavorited,
-      'selectedPoi.favoriteCount': nextCount
+      'selectedPoi.favoriteCount': nextCount,
+      favPending: true
     })
     wx.vibrateShort({ type: 'light' })
 
@@ -1160,15 +1375,40 @@ Page({
         'selectedPoi.favoriteCount': poi.favoriteCount || 0
       })
       wx.showToast({ title: '操作失败，请重试', icon: 'none' })
+    }).finally(() => {
+      clearTimeout(this._favTimer)
+      this._favTimer = setTimeout(() => {
+        this._favPending = false
+        this.setData({ favPending: false })
+      }, 600)
     })
   },
 
-  onNearbyServices(e) {
-    const id = e && e.detail && e.detail.id
-    const poi = this.data.selectedPoi || {}
-    const lat = Number(poi.latitude)
-    const lng = Number(poi.longitude)
-    wx.navigateTo({ url: `/pages/nearby-services/nearby-services?id=${id || ''}&lat=${Number.isFinite(lat) ? lat : ''}&lng=${Number.isFinite(lng) ? lng : ''}&name=${encodeURIComponent(poi.name || '当前地点')}` })
+  /** 地址一键复制 */
+  onPoiCopyAddress() {
+    const addr = this.data.selectedPoi && this.data.selectedPoi.address
+    if (!addr) return
+    wx.setClipboardData({
+      data: addr,
+      success: () => {
+        wx.showToast({ title: '地址已复制', icon: 'success' })
+        wx.vibrateShort({ type: 'light' })
+      }
+    })
+  },
+
+  /** 只记录当前页，不回写 current，避免干扰 swiper 滑动 */
+  onPoiGalleryChange(e) {
+    this.setData({ poiCurrentImage: e.detail.current })
+  },
+
+  onPoiPreviewImage() {
+    const gallery = this.data.poiGallery
+    if (!gallery.length) return
+    wx.previewImage({
+      current: gallery[this.data.poiCurrentImage] || gallery[0],
+      urls: gallery
+    })
   },
 
   onMapRegionChange: debounce(function (e) {
@@ -1176,16 +1416,13 @@ Page({
     const detail = e.detail || {}
     const nextScale = Number(detail.scale)
     if (Number.isFinite(nextScale) && nextScale >= 3 && nextScale <= 20) {
-      this.setData({
-        mapScale: nextScale,
-        poiMiniScale: Math.max(0.78, Math.min(1.12, 0.78 + (nextScale - 8) * 0.034))
-      })
+      this.setData({ mapScale: nextScale })
     }
     if (detail.centerLocation) {
-      const { latitude, longitude } = detail.centerLocation
-      this._currentLatitude = latitude
-      this._currentLongitude = longitude
-      this._loadNearbyLocations()
+      // 只记录当前中心，供距离计算使用。
+      // 精选地点与地图中心无关，因此不再随 regionchange 反复请求。
+      this._currentLatitude = detail.centerLocation.latitude
+      this._currentLongitude = detail.centerLocation.longitude
     }
   }, 500),
 

@@ -11,19 +11,87 @@ const app = getApp()
 const { buildScene } = require('../../utils/scene')
 const { CITY_CANDIDATES } = require('../../config/cities.js')
 const { cityLabel } = require('../../config/city-labels.js')
+const { meetStats, meetAttendances } = require('../../utils/furmeets.js')
+const { PROVINCE_RAMP } = require('../../utils/provinceBadges.js')
+const {
+  TILE_SIZE,
+  NATIONAL_IMAGE_W,
+  NATIONAL_IMAGE_H,
+  MAP_APPROVAL_NUMBER,
+  nationalMapView,
+  buildNationalMapRequest,
+  buildMapMapping,
+  projectToBox,
+  buildStops,
+  buildArcs
+} = require('../../utils/mapView.js')
 
 const FOOTPRINT_STORAGE_KEY = 'fur_footprints_v1'
 const MEET_STORAGE_KEY = 'fur_furmeets_v1'
-const MARKER_COLOR_FOOTPRINT = '#F5A623'
-const MARKER_COLOR_FURMEET = '#4FD1C5'
+
+/**
+ * 海报画布逻辑尺寸。
+ * wxss 里按 662×1051rpx 展示，所以 **1 个画布单位 ≈ 1.05rpx** ——
+ * 字号必须按这个比例给，早期写成 13px 的辅助文字实际只有约 13rpx，
+ * 远低于项目 24rpx 的下限，在手机上看不清。
+ */
+const POSTER_W = 630
+const POSTER_H = 1000
+
+/**
+ * 足迹海报地图卡的尺寸（海报里的展示矩形）。
+ *
+ * 底图**不按这个尺寸取**：全国版图在 zoom=4（API 下限）下要 840×560 才装得下，
+ * 取图尺寸见 utils/mapView.js 的 NATIONAL_IMAGE_*（与这个卡片同比，所以铺进来正好满格）。
+ */
+const FOOTPRINT_MAP_W = 574
+const FOOTPRINT_MAP_H = 384
+
+/**
+ * 弧线的时间色阶，直接复用省份徽章那套绿→橙热度色阶：
+ * 早 = 浅绿、近 = 品牌橙，全 app 只有一套"进度"配色语言。
+ */
+const ARC_TIME_RAMP = PROVINCE_RAMP
+
+/**
+ * 地图上的地点标签超过这个数量就只标首尾两个，否则小图上会糊成一片。
+ */
+const MAX_STOP_LABELS = 6
+
+/**
+ * 足迹海报配色：跟小程序其余页面同调（米底 + 白卡 + 橙主色），
+ * 不再用之前那套不在设计令牌里的墨绿。
+ *
+ * brandInk 专供浅底上的橙色文字 —— 品牌橙 #D4890E 对白底只有约 3.0:1，
+ * 当正文读不够，压深到 #9A5F05 后是 5.2:1。色块/线条仍用 brand。
+ */
+const POSTER = {
+  cream: '#FFFDF8',
+  creamDeep: '#FFF1DC',
+  card: '#FFFFFF',
+  cardBorder: '#EFE3CF',
+  gridMinor: '#F4ECDD',
+  gridMajor: '#E7DAC2',
+  ink: '#1A1A1A',
+  inkSoft: '#707070',
+  brand: '#D4890E',
+  brandInk: '#9A5F05',
+  brandTint: '#FFF7E6',
+  green: '#5BA81A'
+}
+
+/** 两个矩形是否相交（地图上的地名标签靠它避让，省得糊成一坨或压住指北针） */
+function rectsOverlap(a, b) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+}
 
 Page({
   data: {
     type: '',
     id: '',
     isLoading: true,
-    canvasWidth: 630,
-    canvasHeight: 1000,
+    canvasWidth: POSTER_W,
+    canvasHeight: POSTER_H,
     title: '',
     subtitle: '',
     coverImg: '',
@@ -113,7 +181,7 @@ Page({
    * 足迹海报数据：只读本机，不发任何云请求。
    * 若本机没有记录，直接抛错让用户回到足迹页先记录。
    */
-  _loadFootprintData() {
+  async _loadFootprintData() {
     let records = []
     try {
       const value = wx.getStorageSync(FOOTPRINT_STORAGE_KEY)
@@ -132,7 +200,8 @@ Page({
       acc[c.name] = { latitude: c.lat, longitude: c.lng }
       return acc
     }, {})
-    const furmeetCount = myMeets.reduce((sum, m) => sum + Math.max(1, Number(m && m.attendCount) || 1), 0)
+    // 场次口径与足迹页共用 utils/furmeets，避免海报数字和页面数字对不上
+    const furmeetCount = meetStats(myMeets).furmeetCount
     const meets = myMeets
       .filter(m => Number.isFinite(Number(m && m.latitude)) || CITY_MAP[m && m.city])
       .map(m => {
@@ -140,7 +209,9 @@ Page({
         return {
           id: m.id,
           latitude: Number(m.latitude) || fallback.latitude,
-          longitude: Number(m.longitude) || fallback.longitude
+          longitude: Number(m.longitude) || fallback.longitude,
+          // 场次给海报用：兽聚点的大小也表达"去过几次"
+          attendances: meetAttendances(m)
         }
       })
 
@@ -160,7 +231,17 @@ Page({
         }
         if (r.visitedAt) days.add(new Date(r.visitedAt).toDateString())
         const hasCoords = Number.isFinite(r.latitude) && Number.isFinite(r.longitude)
-        if (!r.autoMarked && hasCoords) path.push({ latitude: r.latitude, longitude: r.longitude })
+        if (!r.autoMarked && hasCoords) {
+          // placeName / visitedAt 给海报地图用：前者用来区分"去过哪些不同地点"，
+          // 后者决定弧线的时间色阶（记录已按 visitedAt 升序）
+          path.push({
+            latitude: r.latitude,
+            longitude: r.longitude,
+            city: r.city || '',
+            placeName: r.placeName || '',
+            visitedAt: r.visitedAt || 0
+          })
+        }
       })
 
     // 海报上的城市名按到访次数取前 6 个（变体甲：含城市名，不含任何自由文本）
@@ -172,7 +253,26 @@ Page({
     const userInfo = app.globalData.userInfo || {}
     const nick = userInfo.furName || userInfo.nickName || userInfo.nickname || '毛毛用户'
 
-    this._mapPoints = { path, meets }
+    // 地图上只给起点和终点城市打标签：图幅有限，标签一多就会互相压住
+    const labels = []
+    if (path.length) {
+      const first = path[0]
+      const last = path[path.length - 1]
+      if (first.city) labels.push({ text: cityLabel(first.city), latitude: first.latitude, longitude: first.longitude })
+      if (path.length > 1 && last.city && last.city !== first.city) {
+        labels.push({ text: cityLabel(last.city), latitude: last.latitude, longitude: last.longitude })
+      }
+    }
+
+    this._mapPoints = { path, meets, labels }
+
+    // 真实底图：取不到就交给绘制层走矢量回退，绝不让整张海报生成失败
+    this._staticMapPath = ''
+    try {
+      this._staticMapPath = await this._loadStaticMap()
+    } catch (err) {
+      console.warn('静态地图底图不可用，改用矢量地图:', err)
+    }
 
     this.setData({
       title: `${nick}的出毛足迹`,
@@ -186,6 +286,90 @@ Page({
         { label: '兽聚场次', value: `${furmeetCount} 场` }
       ],
       statText: topCities.length ? `足迹遍及：${topCities.join(' · ')}` : '继续记录，点亮更多城市'
+    })
+  },
+
+  /**
+   * 取腾讯静态地图底图，落成本机临时文件后返回路径。
+   *
+   * 取的是**固定的全国视图**（center/zoom/尺寸都是常量，与用户足迹点无关）：
+   * 海报要表达的是「点亮了哪些地方」，一张全国地图才是主角；跟着点集缩放只会
+   * 得到某个城市的特写。副作用是底图对所有用户完全一致（将来可直接做缓存）。
+   *
+   * 走云函数而不是客户端直连：key 不能出现在客户端，小程序 request 也要求域名白名单。
+   * 任何失败都返回空串，由绘制层回退到矢量地图 —— 海报必须能生成出来。
+   *
+   * 两条投递通道（云函数侧按「纯底图」自动选）：
+   *   1. data.fileID → 云存储下载。全国底图 840×560 的 base64 有 520KB，
+   *      走 callFunction 直接回传有被网关按传输大小拦掉的风险，所以默认走这条；
+   *   2. data.src    → base64 落盘（旧通道，也是云存储不可用时的兜底）。
+   * 通道 1 下载失败时再带 mode:'base64' 要一次，尽量别让用户看到网格回退。
+   */
+  async _loadStaticMap() {
+    // 只取纯底图：弧线、标记、地名全部由 canvas 自己画（静态图 API 画不出弧线）。
+    // 请求用的视图必须原样存下来给绘制层复用 —— 两边各算一次就会和底图错位。
+    const request = buildNationalMapRequest()
+    this._staticMapView = request
+      ? { latitude: request.latitude, longitude: request.longitude, zoom: request.zoom }
+      : null
+    if (!request) return ''
+    const res = await app.callCloud('getMapSnapshot', request)
+    if (!res || res.code !== 0 || !res.data) {
+      console.warn('getMapSnapshot 未返回图片:', (res && (res.message || res.code)) || '空响应')
+      return ''
+    }
+    if (res.data.fileID) {
+      const filePath = await this._downloadCloudFile(res.data.fileID)
+      if (filePath) return filePath
+      const retry = await app.callCloud('getMapSnapshot', Object.assign({}, request, { mode: 'base64' }))
+      if (retry && retry.code === 0 && retry.data && retry.data.src) {
+        return this._writeBase64File(retry.data.src)
+      }
+      return ''
+    }
+    if (res.data.src) return this._writeBase64File(res.data.src)
+    console.warn('getMapSnapshot 返回里既没有 fileID 也没有 src')
+    return ''
+  },
+
+  /**
+   * 云存储 fileID → 本机临时路径。
+   * 用 wx.cloud.downloadFile 而不是 getTempFileURL + downloadFile：
+   * 前者一次调用直接落成本机文件，少一次网络往返。
+   */
+  _downloadCloudFile(fileID) {
+    return new Promise(resolve => {
+      wx.cloud.downloadFile({
+        fileID,
+        success: res => resolve((res && res.tempFilePath) || ''),
+        fail: err => {
+          console.warn('地图底图云存储下载失败:', err)
+          resolve('')
+        }
+      })
+    })
+  },
+
+  /**
+   * base64 data URL → 本机临时文件。
+   * canvas.createImage() 对 base64 data URL 的支持不可靠，而本机文件路径是确定可用的，
+   * 所以先落盘再交给 createImage（同样的写法在 scripts/e2e-profile-save-real.js 里用过）。
+   */
+  _writeBase64File(dataUrl) {
+    return new Promise(resolve => {
+      const base64 = String(dataUrl).replace(/^data:image\/\w+;base64,/, '')
+      if (!base64) return resolve('')
+      const filePath = `${wx.env.USER_DATA_PATH}/footprint-map-${Date.now()}.png`
+      wx.getFileSystemManager().writeFile({
+        filePath,
+        data: base64,
+        encoding: 'base64',
+        success: () => resolve(filePath),
+        fail: err => {
+          console.warn('地图底图落盘失败:', err)
+          resolve('')
+        }
+      })
     })
   },
 
@@ -270,205 +454,444 @@ Page({
     if (cover) this._drawCover(ctx, cover, 0, 0, w, h)
     else {
       const fallback = ctx.createLinearGradient(0, 0, w, h)
-      fallback.addColorStop(0, '#365d4f'); fallback.addColorStop(1, '#172a32')
+      fallback.addColorStop(0, '#3E2F1C'); fallback.addColorStop(1, '#1B140B')
       ctx.fillStyle = fallback; ctx.fillRect(0, 0, w, h)
     }
     const shade = ctx.createLinearGradient(0, 0, 0, h)
-    shade.addColorStop(0, 'rgba(9,24,24,.20)')
-    shade.addColorStop(.46, 'rgba(8,19,20,.18)')
-    shade.addColorStop(.72, 'rgba(8,18,20,.83)')
-    shade.addColorStop(1, 'rgba(8,18,20,.97)')
+    shade.addColorStop(0, 'rgba(26,19,10,.20)')
+    shade.addColorStop(.46, 'rgba(24,17,9,.18)')
+    shade.addColorStop(.72, 'rgba(24,17,9,.83)')
+    shade.addColorStop(1, 'rgba(24,17,9,.97)')
     ctx.fillStyle = shade; ctx.fillRect(0, 0, w, h)
     ctx.restore()
 
-    // 顶部：品牌和城市坐标。
-    this._pill(ctx, inset, 30, 142, 38, 'rgba(255,255,255,.16)')
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText(this.data.type === 'collection' ? '出毛日记 · 合集' : '出毛日记 · 地点', inset + 71, 55)
-    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.84)'; ctx.font = '14px sans-serif'
-    ctx.fillText(this.data.city || '城市探索', w - inset, 55)
+    // 顶部：品牌和城市坐标。字号按「1 画布单位 ≈ 1.05rpx」给，不低于 24rpx 可读下限
+    this._pill(ctx, inset, 30, 190, 44, 'rgba(255,255,255,.18)')
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText(this.data.type === 'collection' ? '出毛日记 · 合集' : '出毛日记 · 地点', inset + 95, 60)
+    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.86)'; ctx.font = '24px sans-serif'
+    ctx.fillText(this._truncate(this.data.city || '城市探索', 12), w - inset, 60)
 
     // 中段：地点基本信息。
-    const titleY = 510
-    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = 'bold 38px sans-serif'
+    const titleY = 490
+    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = 'bold 44px sans-serif'
     const lines = this._wrapText(ctx, this.data.title, w - inset * 2)
-    lines.slice(0, 2).forEach((line, index) => ctx.fillText(line, inset, titleY + index * 50))
-    const subY = titleY + Math.min(lines.length, 2) * 50 + 8
-    ctx.fillStyle = 'rgba(255,255,255,.86)'; ctx.font = '17px sans-serif'
-    ctx.fillText(`⌖  ${this._truncate(this.data.subtitle, 32)}`, inset, subY)
-    this._pill(ctx, inset, subY + 24, 110, 32, 'rgba(228,157,50,.90)')
-    ctx.fillStyle = '#172520'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText(this._truncate(this.data.category, 8), inset + 55, subY + 46)
+    lines.slice(0, 2).forEach((line, index) => ctx.fillText(line, inset, titleY + index * 52))
+    const subY = titleY + Math.min(lines.length, 2) * 52 + 10
+    ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.font = '28px sans-serif'
+    ctx.fillText(`⌖  ${this._truncate(this.data.subtitle, 24)}`, inset, subY)
+    this._pill(ctx, inset, subY + 26, 150, 36, 'rgba(228,157,50,.92)')
+    ctx.fillStyle = POSTER.ink; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText(this._truncate(this.data.category, 6), inset + 75, subY + 50)
 
     // 信息胶囊：把“拍摄建议”放进分享海报，提升保存和转发价值。
     // 三格内容由 _loadLocationData / _loadCollectionData 程序生成，此处只负责排版。
-    const infoY = 678
+    const infoY = 694
     const gap = 12
     const itemW = (w - inset * 2 - gap * 2) / 3
     const tiles = (Array.isArray(this.data.tiles) && this.data.tiles.length === 3)
       ? this.data.tiles
       : [{ label: '最佳拍摄', value: '待探索' }, { label: '推荐季节', value: '四季皆宜' }, { label: '所在城市', value: '待补充' }]
     tiles.forEach((tile, index) => {
-      this._infoTile(ctx, inset + (itemW + gap) * index, infoY, itemW, this._truncate(tile.label, 6), this._truncate(tile.value, 8))
+      this._infoTile(ctx, inset + (itemW + gap) * index, infoY, itemW, this._truncate(tile.label, 5), this._truncate(tile.value, 7))
     })
-    ctx.fillStyle = 'rgba(255,255,255,.70)'; ctx.font = '15px sans-serif'; ctx.textAlign = 'left'
-    ctx.fillText(this.data.statText, inset, infoY + 126)
+    ctx.fillStyle = 'rgba(255,255,255,.78)'; ctx.font = '26px sans-serif'; ctx.textAlign = 'left'
+    ctx.fillText(this._truncate(this.data.statText, 22), inset, infoY + 134)
 
     // 底部扫码区；必须留有白底和足够尺寸，保证小程序码识别率。
     const isCollection = this.data.type === 'collection'
-    const qrY = 838
+    const qrY = 844
     this._roundRect(ctx, inset, qrY, w - inset * 2, 128, 18)
     ctx.fillStyle = '#fff'; ctx.fill()
     if (code) {
       ctx.drawImage(code, inset + 16, qrY + 14, 100, 100)
-      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'
-      ctx.fillText(isCollection ? '扫码查看完整路线' : '扫码查看地点详情', inset + 136, qrY + 52)
-      ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'
-      ctx.fillText(isCollection ? '查看合集全部点位' : '收藏路线，出发去拍', inset + 136, qrY + 78)
+      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'left'
+      ctx.fillText(isCollection ? '扫码看完整路线' : '扫码看地点详情', inset + 136, qrY + 56)
+      ctx.fillStyle = '#71817c'; ctx.font = '24px sans-serif'
+      ctx.fillText(isCollection ? '查看合集全部点位' : '收藏路线，出发去拍', inset + 136, qrY + 92)
     } else {
       this._roundRect(ctx, inset + 16, qrY + 14, 100, 100, 12); ctx.fillStyle = '#edf1ef'; ctx.fill()
-      ctx.fillStyle = '#426356'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('出', inset + 66, qrY + 76)
-      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(isCollection ? '在微信内查看完整路线' : '在微信内打开地点详情', inset + 136, qrY + 52)
-      ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'; ctx.fillText('小程序码正在准备中', inset + 136, qrY + 78)
+      ctx.fillStyle = '#426356'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('出', inset + 66, qrY + 82)
+      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(isCollection ? '在微信内查看路线' : '在微信内打开', inset + 136, qrY + 56)
+      ctx.fillStyle = '#71817c'; ctx.font = '24px sans-serif'; ctx.fillText('小程序码正在准备中', inset + 136, qrY + 92)
     }
   },
 
   /**
-   * 足迹成就海报：地图连线 + 昵称 + 统计数字 + 城市名（全部程序生成）。
-   * 与地点海报共用底部排版，但不用照片封面 —— 用户照片绝不进海报。
+   * 足迹成就海报：足迹地图 + 昵称 + 统计数字 + 城市名（全部程序生成）。
+   *
+   * 排版顺序 = 地图（主角）→ 人 → 数据 → 城市 → 扫码，底色走米白暖调。
+   * 字号按「1 画布单位 ≈ 1.05rpx」给：正文 ≥26、辅助 ≥24、标题 44，
+   * 保证在手机上不低于项目 24rpx 的可读下限。用户照片绝不进海报。
    */
   async _renderFootprint(ctx, canvas, w, h) {
     const inset = 28
     const code = await this._loadCanvasImage(canvas, this.data.qrCodePath)
+    // 静态地图底图；取不到时 _drawFootprintMap 会自己走矢量回退
+    const mapImage = await this._loadCanvasImage(canvas, this._staticMapPath)
 
     this._roundRect(ctx, 0, 0, w, h, 24)
     ctx.save(); ctx.clip()
 
     const bg = ctx.createLinearGradient(0, 0, 0, h)
-    bg.addColorStop(0, '#1f4d44')
-    bg.addColorStop(.5, '#173a35')
-    bg.addColorStop(1, '#0f2622')
+    bg.addColorStop(0, POSTER.cream)
+    bg.addColorStop(1, POSTER.creamDeep)
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h)
 
-    // ── 成就地图区（把足迹连线画进海报） ──
+    // ── 顶部品牌行 ──
+    this._pill(ctx, inset, 30, 200, 44, POSTER.brand)
+    ctx.fillStyle = POSTER.ink; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText('出毛日记 · 足迹', inset + 100, 60)
+    ctx.textAlign = 'right'; ctx.fillStyle = POSTER.inkSoft; ctx.font = '24px sans-serif'
+    ctx.fillText(this._truncate(this.data.city || '足迹地图', 12), w - inset, 60)
+
+    // ── 地图卡：海报的主角，给它最大面积 ──
+    const points = this._mapPoints || { path: [], meets: [], labels: [] }
+    // 一个地点一个点（同一地点去多次只留一个，次数决定点的大小）；
+    // 相邻地点之间连弧线，弧线颜色按时间先后走绿→橙色阶
+    const stops = buildStops(points.path)
+    const arcs = buildArcs(stops, ARC_TIME_RAMP, { bow: 0.18, steps: 24 })
+    // 底图必须和取图时那份视图配对：弧线是按 view 算像素的，
+    // 用另一套取景去铺图会让整张图错位 —— 那种情况宁可老实退回网格。
+    // 取不到底图时退到同一个全国视图（nationalMapView），这样两种底图下
+    // 可见的经纬范围完全一致，不会出现「有底图看得到、没底图就跑到卡外」。
+    const useBaseMap = !!(mapImage && this._staticMapView)
+    const view = useBaseMap ? this._staticMapView : nationalMapView()
+    // 铺图映射：底图取的是 840×560 的全国窗口，铺进 574×384 的卡片要等比缩小，
+    // 覆盖物必须乘同一个缩放，否则点和弧线整片偏掉。
+    const mapping = buildMapMapping(view, NATIONAL_IMAGE_W, NATIONAL_IMAGE_H, FOOTPRINT_MAP_W, FOOTPRINT_MAP_H)
+    // 地点名：数量不多就全标，多了只标首尾，否则小图上会糊成一片
+    // （重叠的还会在 _drawFootprintMap 里被逐个跳过 —— 全国视图下东部城市会挤在一起）
+    const stopLabels = stops.length && stops.length <= MAX_STOP_LABELS
+      ? stops.map(stop => ({
+          text: cityLabel(stop.city) || stop.placeName,
+          latitude: stop.latitude,
+          longitude: stop.longitude
+        }))
+      : points.labels
+
     const mapTop = 96
-    const mapBottom = 470
-    this._drawFootprintMap(ctx, inset + 8, mapTop, w - (inset + 8) * 2, mapBottom - mapTop)
+    this._drawFootprintMap(ctx, inset, mapTop, w - inset * 2, FOOTPRINT_MAP_H, useBaseMap ? mapImage : null, mapping, {
+      stops,
+      arcs,
+      meets: points.meets,
+      labels: stopLabels
+    })
 
-    // 顶部品牌 pill
-    this._pill(ctx, inset, 30, 168, 38, 'rgba(255,255,255,.16)')
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText('出毛日记 · 足迹', inset + 84, 55)
-    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.84)'; ctx.font = '14px sans-serif'
-    ctx.fillText(this.data.city || '足迹地图', w - inset, 55)
+    // 图例放在卡片外：说明弧线的时间色阶与点的大小含义
+    const legendY = mapTop + FOOTPRINT_MAP_H + 36
+    let legendX = inset + 6
+    ctx.textAlign = 'left'; ctx.fillStyle = POSTER.inkSoft; ctx.font = '24px sans-serif'
+    ctx.fillText('早期', legendX, legendY)
+    legendX += ctx.measureText('早期').width + 12
+    ARC_TIME_RAMP.forEach(color => {
+      ctx.beginPath(); ctx.arc(legendX + 8, legendY - 8, 8, 0, Math.PI * 2)
+      ctx.fillStyle = color; ctx.fill()
+      legendX += 20
+    })
+    legendX += 4
+    ctx.fillStyle = POSTER.inkSoft
+    ctx.fillText('近期', legendX, legendY)
+    legendX += ctx.measureText('近期').width + 26
+    ctx.fillText('点越大去得越多', legendX, legendY)
 
-    // 标题（昵称）与副标题（统计）—— 都来自程序拼接，非用户自由文本
-    const titleY = 528
-    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = 'bold 36px sans-serif'
+    // ── 标题区：昵称 + 统计副标题 + 类别（全部程序拼接，非用户自由文本）──
+    const titleY = 572
+    ctx.textAlign = 'left'; ctx.fillStyle = POSTER.ink; ctx.font = 'bold 44px sans-serif'
     this._wrapText(ctx, this.data.title, w - inset * 2).slice(0, 1)
-      .forEach((line, index) => ctx.fillText(line, inset, titleY + index * 48))
-    ctx.fillStyle = 'rgba(255,255,255,.86)'; ctx.font = '17px sans-serif'
-    ctx.fillText(this._truncate(this.data.subtitle, 34), inset, titleY + 46)
+      .forEach((line, index) => ctx.fillText(line, inset, titleY + index * 52))
+    ctx.fillStyle = POSTER.inkSoft; ctx.font = '28px sans-serif'
+    ctx.fillText(this._truncate(this.data.subtitle, 26), inset, titleY + 36)
 
-    this._pill(ctx, inset, titleY + 66, 110, 32, 'rgba(228,157,50,.90)')
-    ctx.fillStyle = '#172520'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText(this._truncate(this.data.category, 8), inset + 55, titleY + 88)
+    this._pill(ctx, inset, titleY + 56, 150, 36, POSTER.brandTint)
+    ctx.fillStyle = POSTER.brandInk; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText(this._truncate(this.data.category, 6), inset + 75, titleY + 80)
 
-    // 三格统计
-    const infoY = 678
+    // ── 三格统计：白卡 + 橙色数字 ──
+    const infoY = 684
     const gap = 12
     const itemW = (w - inset * 2 - gap * 2) / 3
     const tiles = (Array.isArray(this.data.tiles) && this.data.tiles.length === 3)
       ? this.data.tiles
       : [{ label: '出毛次数', value: '0 次' }, { label: '点亮城市', value: '0 个' }, { label: '兽聚场次', value: '0 场' }]
     tiles.forEach((tile, index) => {
-      this._infoTile(ctx, inset + (itemW + gap) * index, infoY, itemW, this._truncate(tile.label, 6), this._truncate(tile.value, 8))
+      this._infoTile(ctx, inset + (itemW + gap) * index, infoY, itemW, this._truncate(tile.label, 5), this._truncate(tile.value, 7), true)
     })
-    ctx.fillStyle = 'rgba(255,255,255,.70)'; ctx.font = '14px sans-serif'; ctx.textAlign = 'left'
-    ctx.fillText(this._truncate(this.data.statText, 30), inset, infoY + 126)
+    ctx.fillStyle = POSTER.inkSoft; ctx.font = '26px sans-serif'; ctx.textAlign = 'left'
+    ctx.fillText(this._truncate(this.data.statText, 22), inset, infoY + 136)
 
-    // 底部扫码区：码只指向小程序首页
-    const qrY = 838
+    // ── 底部扫码区：码只指向小程序首页 ──
+    const qrY = 844
     this._roundRect(ctx, inset, qrY, w - inset * 2, 128, 18)
-    ctx.fillStyle = '#fff'; ctx.fill()
+    ctx.fillStyle = POSTER.card; ctx.fill()
+    ctx.lineWidth = 1.5; ctx.strokeStyle = POSTER.cardBorder
+    this._roundRect(ctx, inset, qrY, w - inset * 2, 128, 18); ctx.stroke()
     if (code) {
       ctx.drawImage(code, inset + 16, qrY + 14, 100, 100)
-      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'
-      ctx.fillText('扫码打开出毛日记', inset + 136, qrY + 52)
-      ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'
-      ctx.fillText('记录你的出毛足迹', inset + 136, qrY + 78)
+      ctx.fillStyle = POSTER.ink; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'left'
+      ctx.fillText('扫码打开出毛日记', inset + 136, qrY + 56)
+      ctx.fillStyle = POSTER.inkSoft; ctx.font = '24px sans-serif'
+      ctx.fillText('记录你的出毛足迹', inset + 136, qrY + 92)
     } else {
-      this._roundRect(ctx, inset + 16, qrY + 14, 100, 100, 12); ctx.fillStyle = '#edf1ef'; ctx.fill()
-      ctx.fillStyle = '#426356'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('出', inset + 66, qrY + 76)
-      ctx.fillStyle = '#1d2926'; ctx.font = 'bold 19px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('在微信内打开出毛日记', inset + 136, qrY + 52)
-      ctx.fillStyle = '#71817c'; ctx.font = '14px sans-serif'; ctx.fillText('小程序码正在准备中', inset + 136, qrY + 78)
+      this._roundRect(ctx, inset + 16, qrY + 14, 100, 100, 12); ctx.fillStyle = POSTER.brandTint; ctx.fill()
+      ctx.fillStyle = POSTER.brand; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('出', inset + 66, qrY + 82)
+      ctx.fillStyle = POSTER.ink; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('在微信内打开', inset + 136, qrY + 56)
+      ctx.fillStyle = POSTER.inkSoft; ctx.font = '24px sans-serif'; ctx.fillText('小程序码正在准备中', inset + 136, qrY + 92)
     }
 
     ctx.restore()
   },
 
   /**
-   * 把足迹连线画进海报的指定矩形区域：
-   * 橙色点 = 个人足迹（按时间连线），青色点 = 参加过的兽聚。
+   * 把地图画进海报的指定矩形。
+   *
+   * 底图两条路径，覆盖物一套逻辑：
+   *   1. mapImage 有值 → 铺腾讯静态地图的**全国底图**；
+   *   2. mapImage 为空 → 用经纬网格撑住画面。
+   * 两种情况下弧线、地点、兽聚、地名全部由 canvas 自己画 —— 静态图 API 的 path
+   * 只支持 color / weight、**画不出弧线**，所以覆盖物只能客户端画；顺带让两条路径
+   * 的视觉语言完全一致（云函数没部署时也一样能看到弧线）。
+   *
+   * 坐标一律走 mapping（= 全国视图 + 铺图缩放），不直接用 projectToCanvas：
+   * 底图是从 840×560 缩小到卡片上的，漏乘那个缩放，点和弧线会整片往中心挤。
+   *
+   * 回退分支不是可有可无的：静态图依赖云函数与 key（key 有没有静态图权限未知），
+   * 任何一种失败都不能让海报生成失败。
+   *
+   * 为什么不能直接截小程序原生 map 组件：canvasToTempFilePath 不包含原生组件。
    */
-  _drawFootprintMap(ctx, x, y, w, h) {
-    const points = this._mapPoints || { path: [], meets: [] }
-    const all = points.path.concat(points.meets)
+  _drawFootprintMap(ctx, x, y, w, h, mapImage, mapping, overlay) {
+    const data = overlay || { stops: [], arcs: [], meets: [], labels: [] }
+    const hasPoints = data.stops.length > 0 || data.meets.length > 0
+    // 经纬度 → 画布绝对坐标（含卡片偏移与铺图缩放）
+    const toCanvas = point => projectToBox(point, mapping, x, y)
+    // 全国视图下境外记录会落在地图卡之外：直接跳过，别让它画到海报别处去
+    const onCard = pt => !!pt && pt.x >= x - 12 && pt.x <= x + w + 12 && pt.y >= y - 12 && pt.y <= y + h + 12
 
-    // 底图：浅色网格 + 圆角矩形，营造"地图"感
+    // 卡片底：白底 + 暖色描边 + 柔和投影
+    ctx.save()
+    ctx.shadowColor = 'rgba(150, 118, 62, 0.18)'
+    ctx.shadowBlur = 16
+    ctx.shadowOffsetY = 5
     this._roundRect(ctx, x, y, w, h, 18)
-    ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fill()
+    ctx.fillStyle = POSTER.card
+    ctx.fill()
+    ctx.restore()
+    ctx.lineWidth = 1.5; ctx.strokeStyle = POSTER.cardBorder
+    this._roundRect(ctx, x, y, w, h, 18)
+    ctx.stroke()
 
-    if (!all.length) return
+    // 底图实际铺在卡片上的矩形：底图比卡片大，短边铺满、长边居中多出不到 1px，
+    // 由下面的圆角裁剪吃掉。网格回退也按同一个矩形铺，两条路径的经纬范围才一致。
+    const drawW = mapping ? mapping.imageWidth * mapping.scale : w
+    const drawH = mapping ? mapping.imageHeight * mapping.scale : h
+    const drawX = x + (mapping ? mapping.offsetX : 0)
+    const drawY = y + (mapping ? mapping.offsetY : 0)
 
-    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
-    all.forEach(p => {
-      minLat = Math.min(minLat, p.latitude); maxLat = Math.max(maxLat, p.latitude)
-      minLng = Math.min(minLng, p.longitude); maxLng = Math.max(maxLng, p.longitude)
-    })
-    const spanLat = Math.max(maxLat - minLat, 0.02)
-    const spanLng = Math.max(maxLng - minLng, 0.02)
-    const padX = 30, padY = 26
-    const toXY = p => ({
-      x: x + padX + ((p.longitude - minLng) / spanLng) * (w - padX * 2),
-      y: y + h - padY - ((p.latitude - minLat) / spanLat) * (h - padY * 2)
-    })
+    ctx.save()
+    this._roundRect(ctx, x, y, w, h, 18)
+    ctx.clip()
+    if (mapImage) {
+      // ── 真地图底图：弧线与标记由 canvas 自己叠上去（静态图 API 画不出弧线）──
+      ctx.drawImage(mapImage, drawX, drawY, drawW, drawH)
+      // 极淡暖纱：把腾讯底图偏冷的色调拉向海报的米白暖调
+      ctx.fillStyle = 'rgba(255, 243, 224, 0.12)'
+      ctx.fillRect(x, y, w, h)
+    } else {
+      // ── 回退：经纬网格撑住画面。点和弧线照样画，两种底图下视觉语言保持一致 ──
+      const gridStep = 24
+      let gridIndex = 0
+      for (let gx = drawX; gx <= drawX + drawW; gx += gridStep, gridIndex++) {
+        ctx.beginPath(); ctx.moveTo(gx, drawY); ctx.lineTo(gx, drawY + drawH)
+        ctx.strokeStyle = gridIndex % 4 === 2 ? POSTER.gridMajor : POSTER.gridMinor
+        ctx.lineWidth = 1; ctx.stroke()
+      }
+      gridIndex = 0
+      for (let gy = drawY; gy <= drawY + drawH; gy += gridStep, gridIndex++) {
+        ctx.beginPath(); ctx.moveTo(drawX, gy); ctx.lineTo(drawX + drawW, gy)
+        ctx.strokeStyle = gridIndex % 4 === 2 ? POSTER.gridMajor : POSTER.gridMinor
+        ctx.lineWidth = 1; ctx.stroke()
+      }
+    }
+    ctx.restore()
 
-    // 足迹连线
-    if (points.path.length >= 2) {
-      ctx.beginPath()
-      points.path.forEach((p, index) => {
-        const pt = toXY(p)
-        if (index === 0) ctx.moveTo(pt.x, pt.y)
-        else ctx.lineTo(pt.x, pt.y)
-      })
-      ctx.strokeStyle = 'rgba(255,255,255,.55)'
-      ctx.lineWidth = 2.5
-      ctx.setLineDash([6, 6])
-      ctx.stroke()
-      ctx.setLineDash([])
+    // 地图审图号：《地图管理条例》要求公开展示的地图标注审图号，而腾讯静态图底图
+    // 不自带，必须由展示者叠加。编号在 utils/mapView.js 的 MAP_APPROVAL_NUMBER 配置，
+    // 留空则不画。画在裁剪区之外、卡片左下角，只在使用真底图时出现（矢量网格不算地图）。
+    if (mapImage && MAP_APPROVAL_NUMBER) {
+      ctx.save()
+      ctx.fillStyle = 'rgba(90, 78, 58, 0.6)'
+      ctx.font = '20px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(MAP_APPROVAL_NUMBER, x + 14, y + h - 12)
+      ctx.restore()
     }
 
-    // 足迹点
-    points.path.forEach(p => {
-      const pt = toXY(p)
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2)
-      ctx.fillStyle = MARKER_COLOR_FOOTPRINT; ctx.fill()
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke()
+    if (!hasPoints || !mapping) {
+      ctx.fillStyle = POSTER.inkSoft; ctx.font = '26px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText('还没有带坐标的出毛记录', x + w / 2, y + h / 2)
+      return
+    }
+
+    // 覆盖物一律裁在卡片内：全国视图下点可能落在卡外，不裁就会画到海报的标题区上
+    ctx.save()
+    this._roundRect(ctx, x, y, w, h, 18)
+    ctx.clip()
+
+    // ── 弧线：相邻两个地点之间，颜色按时间从浅绿到品牌橙 ──
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+    data.arcs.forEach(arc => {
+      const traceArc = () => {
+        ctx.beginPath()
+        let started = false
+        arc.path.forEach(point => {
+          const pt = toCanvas(point)
+          if (!pt) return
+          if (started) ctx.lineTo(pt.x, pt.y)
+          else { ctx.moveTo(pt.x, pt.y); started = true }
+        })
+        return started
+      }
+      // 白色粗描边打底：弧线要压在真实底图的道路与地名上，不垫一层会看不清
+      if (traceArc()) { ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)'; ctx.lineWidth = 7; ctx.stroke() }
+      if (traceArc()) { ctx.strokeStyle = arc.color; ctx.lineWidth = 3.5; ctx.stroke() }
     })
 
-    // 兽聚点（更大、青色）
-    points.meets.forEach(p => {
-      const pt = toXY(p)
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2)
-      ctx.fillStyle = MARKER_COLOR_FURMEET; ctx.fill()
-      ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke()
+    // ── 地点：一个地点一个点，去得越多点越大（用大小表达频率）──
+    data.stops.forEach(stop => {
+      const pt = toCanvas(stop)
+      if (!onCard(pt)) return
+      const radius = 6 + Math.min(4, Math.max(0, stop.visits - 1)) * 1.6
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2)
+      ctx.fillStyle = POSTER.brand; ctx.fill()
+      ctx.lineWidth = 3; ctx.strokeStyle = '#FFFFFF'; ctx.stroke()
     })
+
+    // ── 兽聚：绿色点，去得越多也越大 ──
+    data.meets.forEach(meet => {
+      const pt = toCanvas(meet)
+      if (!onCard(pt)) return
+      const visits = Math.max(1, Number(meet.attendances) || 1)
+      const radius = 7 + Math.min(4, visits - 1) * 1.6
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2)
+      ctx.fillStyle = POSTER.green; ctx.fill()
+      ctx.lineWidth = 3; ctx.strokeStyle = '#FFFFFF'; ctx.stroke()
+    })
+
+    // 只有一个地点时补两圈脉冲，否则图正中孤零零一个点很像画错了
+    if (data.stops.length === 1 && !data.meets.length) {
+      const pt = toCanvas(data.stops[0])
+      if (onCard(pt)) {
+        ;[22, 34].forEach(radius => {
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2)
+          ctx.strokeStyle = 'rgba(212, 137, 14, 0.32)'; ctx.lineWidth = 2; ctx.stroke()
+        })
+      }
+    }
+
+    // ── 地点名：白底胶囊，压在底图和弧线之上才读得清 ──
+    // 全国视图下城市会挤成一团（上海/杭州/苏州相距不到 20px），所以按顺序摆：
+    // 先试点的上方，压住了就改摆下方，两边都占就跳过 —— 宁可少标一个，也不要糊成一坨。
+    // 图例与指北针先占位：东北城市（哈尔滨一带）正好落在指北针那一角。
+    ctx.font = '24px sans-serif'; ctx.textAlign = 'left'
+    const legendItems = [
+      { color: POSTER.brand, text: '足迹' },
+      { color: POSTER.green, text: '兽聚' }
+    ]
+    const legendW = legendItems.reduce((sum, item) => sum + 34 + ctx.measureText(item.text).width, 0) + 24
+    const legendBox = { left: x + 12, top: y + 12, right: x + 12 + legendW, bottom: y + 58 }
+    const compassBox = { left: x + w - 76, top: y + 18, right: x + w - 16, bottom: y + 78 }
+    const blocked = [legendBox, compassBox]
+
+    ctx.font = 'bold 24px sans-serif'
+    ;(data.labels || []).forEach(label => {
+      if (!label || !label.text) return
+      const pt = toCanvas(label)
+      if (!onCard(pt)) return
+      const pillW = ctx.measureText(label.text).width + 24
+      // 横向也要夹在卡片内：4 字城市名的胶囊半宽能超过留白，贴边的点会把标签甩出卡外
+      const pillX = Math.max(x + 4, Math.min(pt.x - pillW / 2, x + w - pillW - 4))
+      const box = [pt.y - 48, pt.y + 20]
+        .map(top => Math.max(y + 6, Math.min(top, y + h - 40)))
+        .map(top => ({ left: pillX, top, right: pillX + pillW, bottom: top + 34 }))
+        .find(candidate => !blocked.some(prev => rectsOverlap(candidate, prev)))
+      if (!box) return
+      blocked.push(box)
+      this._roundRect(ctx, pillX, box.top, pillW, 34, 17)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)'; ctx.fill()
+      ctx.lineWidth = 1.5; ctx.strokeStyle = POSTER.cardBorder; ctx.stroke()
+      ctx.fillStyle = POSTER.ink; ctx.textAlign = 'center'
+      ctx.fillText(label.text, pillX + pillW / 2, box.top + 24)
+    })
+
+    ctx.restore()
+
+    // ── 卡内左上角图例：点的颜色代表什么（白底胶囊，压在任何底图上都读得清）──
+    ctx.font = '24px sans-serif'; ctx.textAlign = 'left'
+    this._roundRect(ctx, legendBox.left, legendBox.top, legendW, 46, 23)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'; ctx.fill()
+    let legendX = x + 12 + 16
+    legendItems.forEach(item => {
+      ctx.beginPath(); ctx.arc(legendX + 7, y + 35, 7, 0, Math.PI * 2)
+      ctx.fillStyle = item.color; ctx.fill()
+      ctx.fillStyle = POSTER.inkSoft
+      ctx.fillText(item.text, legendX + 20, y + 43)
+      legendX += 34 + ctx.measureText(item.text).width
+    })
+
+    this._drawCompass(ctx, x + w - 46, y + 48)
+
+    // ── 比例尺：按视图缩放反推一个整齐的公里数 ──
+    // 每像素多少公里 = 1 经度多少公里 ÷ 1 经度多少像素；
+    // 1 经度 ≈ 111.32×cos(纬度) km，1 经度 = TILE_SIZE×2^zoom/360 像素。
+    // 注意要再 ÷ 铺图缩放：尺子是画在卡片上的，量的是**卡片像素**，
+    // 底图缩小过，一卡片像素对应的实际距离比一底图像素更大。
+    const worldSize = TILE_SIZE * Math.pow(2, mapping.view.zoom)
+    const kmPerLngDegree = 111.32 * Math.cos(mapping.view.latitude * Math.PI / 180)
+    const kmPerPx = kmPerLngDegree / (worldSize / 360) / mapping.scale
+    // 从大到小找第一个塞得下的：这样尺子尽量长、读数尽量整（从小到大找会永远停在 10 km，
+    // 全国视图下就成了一根 1px 的尺子）
+    const target = [2000, 1000, 500, 200, 100, 50, 20, 10].find(km => km / kmPerPx <= w * 0.42)
+    if (target) {
+      const barW = target / kmPerPx
+      const bx = x + 18
+      const by = y + h - 22
+      ctx.beginPath()
+      ctx.moveTo(bx, by); ctx.lineTo(bx + barW, by)
+      ctx.moveTo(bx, by - 6); ctx.lineTo(bx, by + 6)
+      ctx.moveTo(bx + barW, by - 6); ctx.lineTo(bx + barW, by + 6)
+      ctx.strokeStyle = POSTER.inkSoft; ctx.lineWidth = 2; ctx.stroke()
+      // 公里数写在尺子右侧同一基线上
+      ctx.fillStyle = POSTER.inkSoft; ctx.font = '24px sans-serif'; ctx.textAlign = 'left'
+      ctx.fillText(`${target} km`, bx + barW + 12, by + 8)
+    }
   },
 
-  _infoTile(ctx, x, y, w, label, value) {    this._roundRect(ctx, x, y, w, 92, 14); ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,.64)'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x + w / 2, y + 31)
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 15px sans-serif'; ctx.fillText(value, x + w / 2, y + 62)
+  /** 指北针：小图里最能"点题"的地图元素，真底图与矢量回退都用它 */
+  _drawCompass(ctx, cx, cy) {
+    ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.94)'; ctx.fill()
+    ctx.lineWidth = 1.5; ctx.strokeStyle = POSTER.cardBorder; ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - 16); ctx.lineTo(cx + 8, cy + 4); ctx.lineTo(cx, cy - 1); ctx.lineTo(cx - 8, cy + 4)
+    ctx.closePath(); ctx.fillStyle = POSTER.brand; ctx.fill()
+    ctx.fillStyle = POSTER.ink; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText('N', cx, cy + 26)
+  },
+
+  /** 三格信息块。light=true 走足迹海报的浅色主题（白卡 + 橙色数字） */
+  _infoTile(ctx, x, y, w, label, value, light) {
+    this._roundRect(ctx, x, y, w, 104, 14)
+    ctx.fillStyle = light ? POSTER.card : 'rgba(255,255,255,.16)'
+    ctx.fill()
+    if (light) {
+      ctx.lineWidth = 1.5; ctx.strokeStyle = POSTER.cardBorder
+      this._roundRect(ctx, x, y, w, 104, 14); ctx.stroke()
+    }
+    ctx.fillStyle = light ? POSTER.inkSoft : 'rgba(255,255,255,.78)'
+    ctx.font = '24px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x + w / 2, y + 42)
+    ctx.fillStyle = light ? POSTER.brandInk : '#fff'
+    ctx.font = 'bold 34px sans-serif'; ctx.fillText(value, x + w / 2, y + 86)
   },
 
   _pill(ctx, x, y, w, h, color) { this._roundRect(ctx, x, y, w, h, h / 2); ctx.fillStyle = color; ctx.fill() },

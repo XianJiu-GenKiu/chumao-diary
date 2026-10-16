@@ -2,8 +2,8 @@
 <view class="page {{darkMode ? 'dark-theme' : ''}}">
   <block wx:if="{{!submitted}}">
     <view class="intro">
-      <text class="intro-title">推荐新地点</text>
-      <text class="intro-desc">发现了好去处？填一下告诉我们，核对后由我们录入地点库。</text>
+      <text class="intro-title">{{isPoi ? '反馈地点信息' : '推荐新地点'}}</text>
+      <text class="intro-desc">{{isPoi ? '补充或纠正这个地点的信息，核对后我们会在后台更新。' : '发现了好去处？填一下告诉我们，核对后由我们录入地点库。'}}</text>
     </view>
 
     <view class="card">
@@ -84,10 +84,11 @@
       <icon name="check" size="64" color="#4CAF50" />
     </view>
     <text class="done-title">已收到，谢谢！</text>
-    <text class="done-desc">我们会尽快核对。若确认收录，它会出现在地图上供大家查看。</text>
+    <text class="done-desc">{{isPoi ? '我们会尽快核对，确认无误后更新这个地点的信息。' : '我们会尽快核对。若确认收录，它会出现在地图上供大家查看。'}}</text>
     <view class="done-actions">
-      <view class="done-btn ghost" bindtap="onSubmitAnother">再推荐一个</view>
+      <view class="done-btn ghost" wx:if="{{!isPoi}}" bindtap="onSubmitAnother">再推荐一个</view>
       <view class="done-btn" bindtap="onBack">返回</view>
     </view>
   </view>
+  <privacy-popup />
 </view>

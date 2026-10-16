@@ -36,35 +36,55 @@
       <!-- 城市选择器 + 定位 -->
       <view class="nav-city-wrap" bindtap="onCityTap">
         <icon name="map-pin" size="28" color="#D4890E" />
-        <text class="nav-city-name">{{currentCity}}</text>
+        <text class="nav-city-name">{{currentCity === '待定位' ? '点击定位' : currentCity}}</text>
         <text class="nav-city-arrow">▼</text>
       </view>
     </view>
 
-  <!-- 固定在搜索栏底部的视角快切栏：精选 / 全部 / 我出过毛 / 我收藏的 -->
-  <view class="fixed-top-bar">
-    <view class="filter-section">
-      <view class="filter-container">
-        <view class="filter-list">
-          <block wx:for="{{viewOptions}}" wx:key="key">
-            <view
-              class="filter-tag {{viewMode === item.key ? 'active' : ''}}"
-              data-view="{{item.key}}"
-              bindtap="onViewTap"
-            >
-              <icon name="{{item.icon}}" size="22" color="{{viewMode === item.key ? '#fff' : '#D4890E'}}" />
-              <text>{{item.name}}</text>
+    <!-- 精选地点抽屉：收起态只露滑动条，下拉展开精选地点列表。
+         取代原先的「精选 / 全部 / 我出过毛 / 我收藏的」筛选标签栏：
+         精选 → 本抽屉；我出过毛 / 我收藏的 → 地图右侧 FAB 列。 -->
+    <view class="featured-drawer {{featuredExpanded ? 'expanded' : ''}} {{featuredDragging ? 'dragging' : ''}}">
+      <!-- 列表在手柄上方，展开后手柄仍留在抽屉的下边框，随时可以上拉收起 -->
+      <view class="featured-body" style="height: {{featuredBodyHeight}}px;">
+        <scroll-view class="featured-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+          <view class="featured-card"
+            wx:for="{{featuredLocations}}"
+            wx:key="_id"
+            data-item="{{item}}"
+            bindtap="onFeaturedTap"
+          >
+            <image class="featured-cover" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images[0]}}" lazy-load />
+            <view class="featured-cover featured-cover-placeholder" wx:else></view>
+            <view class="featured-info">
+              <text class="featured-name">{{item.name || '未命名地点'}}</text>
+              <text class="featured-desc">{{item.serviceSummary}}</text>
+              <view class="featured-loc"><icon name="map-pin" size="20" color="#D4890E" /><text>{{item.address || '运营方精选地点'}}</text></view>
             </view>
-          </block>
+          </view>
+          <view class="featured-empty" wx:if="{{!featuredLocations.length}}">
+            <text class="featured-empty-text">运营方正在整理精选地点，敬请期待</text>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="featured-handle"
+        catchtouchstart="onFeaturedTouchStart"
+        catchtouchmove="onFeaturedTouchMove"
+        catchtouchend="onFeaturedTouchEnd"
+        catchtouchcancel="onFeaturedTouchEnd"
+        bindtap="onFeaturedToggle"
+      >
+        <view class="featured-handle-bar"></view>
+        <view class="featured-handle-title">
+          <icon name="star" size="26" color="#D4890E" />
+          <text>精选地点</text>
+          <text class="featured-handle-count" wx:if="{{featuredLocations.length}}">{{featuredLocations.length}}</text>
         </view>
-        <!-- 地点计数（不可点击，仅展示当前视角的地点数量） -->
-        <view class="filter-all-btn static">
-          <text>{{viewCount}} 个</text>
-        </view>
+        <icon name="chevron-down" size="26" color="#999" class="featured-handle-arrow {{featuredExpanded ? 'up' : ''}}" />
       </view>
     </view>
   </view>
-  </view>
+
   <!-- 地图地点加载失败提示：避免加载失败时标点静默消失、用户无法判断原因 -->
   <view class="map-load-error" wx:if="{{errorMessage}}" bindtap="onMapLoadRetry">
     <icon name="info" size="30" color="#D4890E" />
@@ -92,7 +112,12 @@
       <icon name="search" size="28" color="#999" class="city-search-icon" />
     </view>
     <view class="city-panel-subtitle" wx:if="{{!citySearchKeyword}}">
-      <view class="city-panel-subtitle-inner"><icon name="map-pin" size="24" color="#D4890E" /><text>当前定位：{{locatedCity || '定位中...'}}</text></view>
+      <!-- 定位入口：点击即由用户主动发起定位（启动时不自动索权） -->
+      <view class="city-panel-subtitle-inner" bindtap="onReLocate">
+        <icon name="map-pin" size="24" color="#D4890E" />
+        <text wx:if="{{locatedCity && locatedCity !== '待定位' && locatedCity !== '定位失败'}}">当前定位：{{locatedCity}} · 点击重新定位</text>
+        <text wx:else>未获取定位 · 点击定位</text>
+      </view>
     </view>
     <view class="city-panel-content">
       <!-- 无搜索结果提示 -->
@@ -134,55 +159,43 @@
         enable-zoom
         show-location
         show-scale
-      >
-        <!-- map 原生层之上的地点缩略浮层，必须使用 cover-view 才能稳定显示。 -->
-        <cover-view
-          class="map-poi-mini"
-          wx:if="{{showPoiMini && selectedPoi}}"
-          style="top: {{mapPoiMiniTop}}px; transform: scale({{poiMiniScale}});"
-          bindtap="onOpenPoiPreview"
-        >
-          <cover-image class="map-poi-mini-cover" wx:if="{{selectedPoi.previewImage}}" src="{{selectedPoi.previewImage}}" />
-          <cover-view class="map-poi-mini-cover map-poi-mini-placeholder" wx:else>地点</cover-view>
-          <cover-view class="map-poi-mini-content">
-            <cover-view class="map-poi-mini-name">{{selectedPoi.name || '未命名地点'}}</cover-view>
-            <cover-view class="map-poi-mini-meta">{{selectedPoi.miniMeta}}</cover-view>
-          </cover-view>
-          <cover-view class="map-poi-mini-arrow">详情</cover-view>
-        </cover-view>
-      </map>
+      />
     </view>
 
-    <!-- 地图模式 FAB 浮动按钮：贴着环境栏上沿，并随面板一起滑动 -->
-    <view class="map-fab-wrap {{mapPanelExpanded ? 'panel-expanded' : 'collapsed'}} {{mapFabDragging ? 'dragging' : ''}}" style="--fab-panel-offset: {{mapFabFollowOffset}}px;">
-      <view class="map-fab-btn secondary map-fab-finder" bindtap="onOpenSiteFinder">
-        <icon name="compass" size="40" color="#D4890E" />
+    <!-- 地图模式 FAB 浮动按钮：贴着面板上沿，并随面板一起滑动。
+         原先的「找场地」入口已移除，改为「我出过毛 / 我收藏的」两个视角开关，
+         与定位按钮同列；点击后把对应地点标注到地图上，再点一次恢复全部。 -->
+    <view class="map-fab-wrap {{mapFabDragging ? 'dragging' : ''}}" style="--fab-panel-offset: {{mapFabFollowOffset}}px;">
+      <view class="map-fab-btn secondary {{viewMode === 'visited' ? 'active' : ''}}" bindtap="onFabVisited">
+        <icon name="paw" size="38" color="{{viewMode === 'visited' ? '#fff' : '#D4890E'}}" />
       </view>
-      <view class="map-fab-btn secondary map-fab-locate" bindtap="moveToMyLocation">
+      <view class="map-fab-btn secondary {{viewMode === 'favored' ? 'active' : ''}}" bindtap="onFabFavored">
+        <icon name="heart" size="38" color="{{viewMode === 'favored' ? '#fff' : '#D4890E'}}" />
+      </view>
+      <view class="map-fab-btn secondary" bindtap="moveToMyLocation">
         <icon name="map-pin" size="40" color="#D4890E" />
       </view>
     </view>
 
-    <!-- 浮动面板（附近动态） -->
-    <view class="float-panel {{mapPanelExpanded ? 'expanded' : 'collapsed'}} {{mapPanelDragging ? 'dragging' : ''}}" style="--panel-drag-offset: {{mapPanelDragOffset}}px;">
-      <!-- 拖拽手柄 -->
-      <view class="panel-handle"
+    <!-- 地点面板（三段式 bottom sheet）：概况 / 操作 / 详情按功能分区
+         收起态：拖拽手柄 + 环境栏
+         半开态：+ 地点概况（名称 / 距离 / 分类 / 地址）+ 操作区（已出毛 / 导航 / 详情 / 反馈）
+         全开态：+ 详情区（封面 / 属性 / 热度 / 标签）
+         操作区在收起 / 半开 / 全开三档都常驻面板底部，不随档位增减入口。
+         高度与位移均由 JS 计算为 px 后内联，避免 CSS 变量在真机上的兼容问题。 -->
+    <view class="float-panel {{mapPanelDragging ? 'dragging' : ''}}"
+      style="height: {{panelFullHeight}}px; transform: translateY({{panelTranslate + mapPanelDragOffset}}px);"
+    >
+      <!-- 环境信息条固定在面板顶部，顶边与精选地点抽屉底边对齐；仍可拖动面板 -->
+      <view class="env-bar"
         catchtouchstart="onPanelTouchStart"
         catchtouchmove="onPanelTouchMove"
         catchtouchend="onPanelTouchEnd"
         catchtouchcancel="onPanelTouchEnd"
       >
-        <view class="handle-bar"></view>
-      </view>
-      <!-- 环境信息条：固定在面板顶部，不参与滚动，避免下划后被裁切 -->
-      <view class="env-bar"
-        bindtouchstart="onPanelTouchStart"
-        bindtouchmove="onPanelTouchMove"
-        bindtouchend="onPanelTouchEnd"
-        bindtouchcancel="onPanelTouchEnd"
-      >
+
         <!-- 出毛适宜度：由温度/湿度/风力/天气本地计算，点击看分项拆解 -->
-        <view class="env-fur" wx:if="{{weatherView.furIndex && weatherView.furIndex.ok}}" bindtap="onFurIndexTap">
+        <view class="env-fur" wx:if="{{weatherView.furIndex && weatherView.furIndex.ok}}" catchtap="onFurIndexTap">
           <view class="env-fur-dot" style="background: {{weatherView.furIndex.levelColor}};"></view>
           <text class="env-fur-text">{{weatherView.furIndex.levelLabel}} {{weatherView.furIndex.score}}</text>
         </view>
@@ -207,48 +220,165 @@
           <text class="env-lbl">天气</text>
         </view>
       </view>
-      <scroll-view class="panel-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-        <!-- 精选推荐：运营方标记 featured 的地点（见 location-upload 的精选开关） -->
-        <view class="panel-section-head">
-          <text class="panel-section-title">精选推荐</text>
-          <text class="panel-section-sub">运营方发布的精选地点</text>
+
+      <!-- 拖拽手柄放在环境栏之后：上边环境栏可以贴齐顶部抽屉，手柄仍可控制面板 -->
+      <view class="panel-handle"
+        catchtouchstart="onPanelTouchStart"
+        catchtouchmove="onPanelTouchMove"
+        catchtouchend="onPanelTouchEnd"
+        catchtouchcancel="onPanelTouchEnd"
+      >
+        <view class="handle-bar"></view>
+      </view>
+
+      <!-- 地点信息区 -->
+      <block wx:if="{{selectedPoi}}">
+        <!-- ① 概况区：任何档位都可见，只放「这是什么地方」 -->
+        <view class="panel-poi-head">
+          <view class="panel-poi-title-row">
+            <text class="panel-poi-name">{{selectedPoi.name || '未命名地点'}}</text>
+            <!-- 收藏：仅内部地点可用，面板内直接收藏无需进详情 -->
+            <view
+              wx:if="{{selectedPoi.canFavorite}}"
+              class="poi-fav-btn {{selectedPoi.isFavorited ? 'active' : ''}} {{favPending ? 'pending' : ''}}"
+              hover-class="poi-fav-hover"
+              hover-stay-time="80"
+              catchtap="onPoiFavorite"
+            >
+              <icon name="{{selectedPoi.isFavorited ? 'heart' : 'heart-outline'}}" size="36" color="{{selectedPoi.isFavorited ? '#fff' : '#D4890E'}}" fill="{{selectedPoi.isFavorited}}" />
+              <text class="poi-fav-text">{{selectedPoi.isFavorited ? '已收藏' : '收藏'}}</text>
+              <text class="poi-fav-count">{{selectedPoi.favoriteCount || 0}}</text>
+            </view>
+          </view>
+          <view class="panel-poi-subline">
+            <text class="poi-distance" wx:if="{{selectedPoi.distance}}">{{selectedPoi.distance}}</text>
+            <text class="poi-category-tag" wx:if="{{selectedPoi.categoryName}}">{{selectedPoi.categoryName}}</text>
+            <text class="poi-uncollected-tag" wx:if="{{selectedPoi.collectionStatus !== 'collected'}}">暂未收录</text>
+          </view>
+          <!-- 地址属于概况信息，各档位都可复制，不重复出现在详情里 -->
+          <view class="panel-poi-addr-row" wx:if="{{selectedPoi.address}}">
+            <icon name="map-pin" size="24" color="#909090" />
+            <text class="panel-poi-addr-text">{{selectedPoi.address}}</text>
+            <text class="panel-poi-copy" catchtap="onPoiCopyAddress">复制</text>
+          </view>
+          <text class="panel-poi-hint" wx:if="{{mapPanelState !== 'full'}}"
+            catchtouchstart="onPanelTouchStart"
+            catchtouchmove="onPanelTouchMove"
+            catchtouchend="onPanelTouchEnd"
+            catchtouchcancel="onPanelTouchEnd"
+          >上滑查看详情</text>
         </view>
-        <!-- 精选地点列表：点击进入 POI 详情，可继续查看周边服务 -->
-        <view class="panel-post-card panel-location-card"
-          wx:for="{{nearbyLocations}}"
-          wx:key="_id"
-          data-id="{{item._id}}"
-          bindtap="onNearbyTap"
-        >
-          <image class="panel-post-cover" src="{{item.images[0]}}" mode="aspectFill" wx:if="{{item.images && item.images[0]}}" lazy-load />
-          <view class="panel-post-cover panel-post-placeholder" wx:else></view>
-          <view class="panel-post-info">
-            <text class="panel-location-name">{{item.name || '未命名地点'}}</text>
-            <text class="panel-post-text">{{item.serviceSummary}}</text>
-            <view class="panel-post-loc"><icon name="map-pin" size="20" color="#D4890E" /><text>{{item.address || '运营方精选地点'}}</text></view>
+
+        <!-- ② 详情区：仅全开态展开，收起态不占位（否则半开面板底部会留一大块空白） -->
+        <view class="panel-poi-detail-wrap" wx:if="{{mapPanelState === 'full'}}">
+          <scroll-view class="panel-poi-detail" scroll-y enhanced show-scrollbar="{{false}}">
+            <!-- 封面：多图轮播 / 单图 / 分类占位 -->
+            <block wx:if="{{poiGallery.length > 1}}">
+              <swiper
+                class="poi-cover-swiper"
+                circular
+                current="{{poiCurrentImage}}"
+                bindchange="onPoiGalleryChange"
+                duration="260"
+                easing-function="easeOutCubic"
+              >
+                <swiper-item wx:for="{{poiGallery}}" wx:for-item="imgUrl" wx:key="*this">
+                  <image class="poi-cover-img" src="{{imgUrl}}" mode="aspectFill" bindtap="onPoiPreviewImage" />
+                </swiper-item>
+              </swiper>
+              <view class="poi-dots">
+                <view wx:for="{{poiGallery}}" wx:key="*this" class="poi-dot {{poiCurrentImage === index ? 'active' : ''}}"></view>
+              </view>
+            </block>
+            <image
+              wx:elif="{{poiGallery.length === 1}}"
+              class="poi-cover-img"
+              src="{{poiGallery[0]}}"
+              mode="aspectFill"
+              bindtap="onPoiPreviewImage"
+            />
+            <view class="poi-cover-placeholder" wx:else>
+              <icon name="{{selectedPoi.placeholderIcon || 'map-pin'}}" size="64" color="#D4890E" />
+              <text class="poi-cover-placeholder-text">{{selectedPoi.categoryName || '这个地点还没有照片'}}</text>
+            </view>
+
+            <!-- 内部地点：属性 + 热度条 -->
+            <block wx:if="{{!selectedPoi.isExternalPoi}}">
+              <view class="poi-meta-row">
+                <view class="poi-indoor-tag {{selectedPoi.isIndoor ? 'indoor' : 'outdoor'}}">
+                  <icon name="{{selectedPoi.isIndoor ? 'home' : 'sun'}}" size="26" />
+                  <text>{{selectedPoi.isIndoor ? '室内' : '室外'}}</text>
+                </view>
+              </view>
+              <view class="poi-heat-row">
+                <view class="poi-heat-head">
+                  <icon name="trending-up" size="26" color="#D4890E" />
+                  <text class="poi-heat-title">地点热度</text>
+                  <text class="poi-heat-num">{{selectedPoi.heat}}</text>
+                </view>
+                <view class="poi-heat-track">
+                  <view class="poi-heat-fill tone-{{selectedPoi.heatTone}}" style="width: {{selectedPoi.heatPercent}}%;"></view>
+                </view>
+              </view>
+            </block>
+
+            <!-- 外部地点：收录状态说明（不显示热度，避免误以为已收录） -->
+            <view class="poi-status-row" wx:else>
+              <icon name="{{selectedPoi.collectionStatus === 'unresolved' ? 'info' : 'compass'}}" size="28" color="#909090" />
+              <view class="poi-status-text-wrap">
+                <text class="poi-status-title">{{selectedPoi.collectionStatus === 'unresolved' ? '地图上暂无该地点信息' : '出毛日记暂未收录此地'}}</text>
+                <text class="poi-status-desc">点「反馈」把信息给运营方，核对后即可收录</text>
+              </view>
+            </view>
+
+            <!-- 标签 / 设施 / 最佳时间（仅内部地点） -->
+            <view class="poi-chip-row" wx:if="{{!selectedPoi.isExternalPoi && (selectedPoi.tags.length || selectedPoi.facilities.length || selectedPoi.bestTime)}}">
+              <text class="poi-chip" wx:for="{{selectedPoi.tags}}" wx:for-item="tagName" wx:key="*this">{{tagName}}</text>
+              <view class="poi-chip facility" wx:for="{{selectedPoi.facilities}}" wx:for-item="facilityName" wx:key="*this">
+                <icon name="check" size="22" color="#5BA81A" />
+                <text>{{facilityName}}</text>
+              </view>
+              <view class="poi-chip time" wx:if="{{selectedPoi.bestTime}}">
+                <icon name="clock" size="22" color="#D4890E" />
+                <text>最佳 {{selectedPoi.bestTime}}</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- ③ 操作区：任何档位都常驻在面板底部，按「先记录、再导航、后纠错」排序 -->
+        <view class="poi-actions">
+          <view class="poi-btn primary" catchtap="onPoiMarkVisited">
+            <icon name="paw" size="30" color="#fff" />
+            <text>已出毛</text>
+          </view>
+          <view class="poi-btn secondary" wx:if="{{selectedPoi.canNavigate}}" catchtap="onPoiNavigate">
+            <icon name="navigation" size="30" color="#D4890E" />
+            <text>导航</text>
+          </view>
+          <view class="poi-btn secondary" wx:if="{{selectedPoi.canViewDetail}}" catchtap="onPoiViewDetail">
+            <icon name="info" size="30" color="#D4890E" />
+            <text>详情</text>
+          </view>
+          <!-- 反馈此地点：对所有地点开放（已收录的也可反馈纠错），帮助运营方核对 -->
+          <view class="poi-btn secondary" catchtap="onPoiFeedback">
+            <icon name="edit" size="30" color="#D4890E" />
+            <text>反馈</text>
+          </view>
+          <view class="poi-btn secondary" wx:if="{{isAdmin && selectedPoi.canAddToDiary}}" catchtap="onPoiAddToDiary">
+            <icon name="plus" size="30" color="#D4890E" />
+            <text>录入</text>
           </view>
         </view>
-        <view class="panel-empty" wx:if="{{nearbyLocations.length === 0}}">
-          <text class="panel-empty-text">运营方正在整理精选地点，敬请期待</text>
-        </view>
-      </scroll-view>
+      </block>
+
+      <!-- 未选中地点时的提示（仅在面板被拉起时才可能看到） -->
+      <view class="panel-poi-empty" wx:else>
+        <icon name="map-pin" size="56" color="#ddd" />
+        <text class="panel-poi-empty-text">点击地图上的地点查看详情</text>
+      </view>
     </view>
   </view>
 
-    <!-- POI 预览卡片（地图模式点击 marker 后显示） -->
-  <poi-preview-card
-    item="{{selectedPoi}}"
-    visible="{{showPoiPreview}}"
-    placement="floating"
-    top="{{poiCardTop}}"
-    bind:viewDetail="onViewPoiDetail"
-    bind:navigate="onNavigateToPoi"
-    bind:favorite="onTogglePoiFavorite"
-    bind:nearbyServices="onNearbyServices"
-    show-add="{{isAdmin}}"
-    bind:addToDiary="onAddExternalPoi"
-    bind:markVisited="onMarkVisitedFromPoi"
-    bind:close="onClosePoiPreview"
-  />
-
+  <privacy-popup />
 </view>

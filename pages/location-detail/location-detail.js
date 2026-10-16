@@ -269,6 +269,32 @@ Page({
     })
   },
 
+  /**
+   * 反馈地点信息：跳到「用户 → 运营方」的单向反馈表单并预填本地点。
+   * 与发现页地点卡片的「反馈」共用同一个落点，不为纠错再开第二套通道。
+   */
+  feedbackLocation() {
+    const location = this.data.location
+    if (!location || !location.name) {
+      wx.showToast({ title: '地点信息未加载', icon: 'none' })
+      return
+    }
+    const params = {
+      mode: 'poi',
+      name: location.name,
+      category: location.categoryName || location.category || '',
+      address: location.address || '',
+      latitude: Number(location.latitude) || '',
+      longitude: Number(location.longitude) || ''
+    }
+    const query = Object.keys(params)
+      .filter(key => params[key] !== '' && params[key] !== null && params[key] !== undefined)
+      .map(key => `${key}=${encodeURIComponent(params[key])}`)
+      .join('&')
+    wx.navigateTo({ url: `/pages/location-feedback/location-feedback?${query}` })
+    app.trackEvent('location_feedback_open', { targetId: this.data.id || '', targetType: 'location' })
+  },
+
   async addToCollection() {
     if (this._collectionPending) return
     try {
@@ -280,8 +306,10 @@ Page({
         } })
         return
       }
+      // ponytail: showActionSheet 的 itemList 上限是 6 项，超了整张面板不弹（点了没反应）。
+      // 合集多于 6 个时只列前 6 个；要支持更多得换成选择器页，暂不做。
       wx.showActionSheet({
-        itemList: collections.map(item => item.name || item.title),
+        itemList: collections.slice(0, 6).map(item => item.name || item.title),
         success: async result => {
           // ActionSheet 回调内的异步调用必须自行捕获异常，否则断网时会静默失败。
           if (this._collectionPending) return

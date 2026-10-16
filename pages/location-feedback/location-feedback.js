@@ -12,9 +12,17 @@ const app = getApp()
 const { bindDarkMode, unbindDarkMode } = require('../../utils/common')
 const { FEEDBACK_CATEGORIES, NAME_MAX, NOTE_MAX, ADDRESS_MAX } = require('../../config/location-feedback')
 
+/** 查询串可能已经（或还没有）被框架解码，解不开就按原样用，不能让预填把页面搞崩。 */
+function safeDecode(value) {
+  const raw = String(value === undefined || value === null ? '' : value)
+  try { return decodeURIComponent(raw) } catch (e) { return raw }
+}
+
 Page({
   data: {
     darkMode: false,
+    // 从地点卡片（mode=poi）进来：是对已有地点的补充 / 纠错，文案随之切换
+    isPoi: false,
     categories: FEEDBACK_CATEGORIES,
     nameMax: NAME_MAX,
     noteMax: NOTE_MAX,
@@ -30,11 +38,30 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ darkMode: app.globalData.darkMode || false })
+    const opts = options || {}
+    // 两条入口共用本页：
+    //   mode=poi  ← 地点卡片的「反馈此地点」（已收录 / 未收录地点都能纠错）
+    //   默认       ← 「找场地」搜不到结果、设置页「推荐新地点」
+    const isPoi = opts.mode === 'poi'
+    const patch = {
+      darkMode: app.globalData.darkMode || false,
+      isPoi
+    }
+    const name = safeDecode(opts.name).trim()
+    if (name) patch.name = name.slice(0, NAME_MAX)
+    const address = safeDecode(opts.address).trim()
+    if (address) patch.address = address.slice(0, ADDRESS_MAX)
+    // 类型来自卡片展示名，只有落进封闭集合才预选，避免把自定义文案塞进单选标签墙。
+    const category = safeDecode(opts.category).trim()
+    if (FEEDBACK_CATEGORIES.indexOf(category) !== -1) patch.category = category
+    const latitude = Number(opts.latitude)
+    const longitude = Number(opts.longitude)
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0) {
+      patch.latitude = latitude
+      patch.longitude = longitude
+    }
+    this.setData(patch)
     bindDarkMode(this)
-    // 从「找场地」搜不到结果时跳来，带上用户已输入的关键词作为名称预填。
-    const preset = options && options.name ? decodeURIComponent(options.name) : ''
-    if (preset) this.setData({ name: preset.slice(0, NAME_MAX) })
   },
 
   onUnload() { unbindDarkMode(this) },

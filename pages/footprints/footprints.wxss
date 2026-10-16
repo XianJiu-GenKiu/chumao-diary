@@ -162,36 +162,110 @@
   text-align: center;
 }
 
-/* ── 城市徽章墙 ── */
+/* ── 省份徽章墙（填充色 = 该省出毛次数的绿→橙色阶，见 footprints.js 的 PROVINCE_RAMP） ── */
 .badge-wall {
   display: flex;
   flex-wrap: wrap;
   gap: 14rpx;
 }
-.city-badge {
+.province-legend {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: var(--spacing-md);
+}
+.legend-swatch {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+}
+.legend-text {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.province-badge {
   min-width: 120rpx;
-  padding: 10rpx 20rpx;
+  padding: 12rpx 22rpx;
   border-radius: var(--radius-round);
-  background: var(--color-bg-card);
   border: 2rpx solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8rpx;
-  opacity: 0.5;
 }
-.city-badge.active {
-  opacity: 1;
-  border-color: var(--color-primary);
+.province-badge-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+.province-badge-count {
+  font-size: var(--font-size-2xs);
+  font-family: var(--font-family-num);
+}
+
+/* ── 省份下钻面板 ── */
+.province-panel {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 2rpx solid var(--color-border-light);
+}
+.province-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: var(--spacing-md);
+}
+.province-panel-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.province-panel-meta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.city-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.city-chip {
+  padding: 10rpx 20rpx;
+  border-radius: var(--radius-round);
+  background: var(--color-bg-page);
+  border: 2rpx solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.city-chip.active {
   background: var(--color-primary-bg);
+  border-color: var(--color-primary);
 }
-.city-badge-name {
+.city-chip-name {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 }
-.city-badge-count {
+.city-chip-count {
   font-size: var(--font-size-2xs);
   color: var(--color-primary);
+  font-family: var(--font-family-num);
+}
+.province-add {
+  margin-top: var(--spacing-md);
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-md);
+}
+.province-tip {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  line-height: 1.6;
 }
 
 /* ── 兽聚徽章 ── */
@@ -518,7 +592,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-display);
   color: var(--color-text-hint);
 }
 .form-actions {
@@ -549,19 +623,9 @@
 /* ── 里程碑计数 ── */
 .section-title-strong { color: #D4890E; font-weight: 600; }
 
-/* ── 城市徽章：可点击标注 ── */
-.city-badge { text-align: center; }
-.city-badge-mark { display: block; font-size: 20rpx; color: #C0C0C0; margin-top: 2rpx; }
-.city-badge.active .city-badge-mark { color: #B9791B; }
-.city-badge.add-city {
-  border: 1rpx dashed #D0B080;
-  background: #FFFDF6;
-}
-.city-badge.add-city .city-badge-name { color: #B9791B; }
-.city-badge.add-city .city-badge-mark { color: #B9791B; }
 .badge-tip {
   margin-top: 16rpx;
-  font-size: 22rpx;
+  font-size: var(--font-size-2xs);
   color: #A0A0A0;
   line-height: 1.6;
 }
@@ -580,3 +644,90 @@
   background: #F4FBFA;
 }
 .furmeet-add:active { opacity: 0.7; }
+
+/* ── 兽聚「记一次」选择弹层（先选已有聚，再决定要不要新增） ── */
+.picker-hint {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+  margin-bottom: var(--spacing-md);
+}
+.picker-empty {
+  padding: 40rpx 24rpx;
+  margin-bottom: var(--spacing-md);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-hint);
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+  line-height: 1.6;
+}
+.picker-scroll {
+  max-height: 620rpx;
+}
+.picker-group {
+  margin-bottom: var(--spacing-md);
+}
+.picker-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  padding: 8rpx 0;
+}
+.picker-group-city {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.picker-group-count {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.picker-meet {
+  min-height: 96rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  border: 2rpx solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.picker-meet:active { opacity: 0.7; }
+.picker-meet-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.picker-meet-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+.picker-meet-meta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-hint);
+}
+.picker-meet-action {
+  flex: none;
+  padding: 12rpx 24rpx;
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-2xs);
+}
+.picker-new {
+  margin-top: var(--spacing-md);
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1rpx dashed var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  font-size: var(--font-size-base);
+}
+.picker-new:active { opacity: 0.7; }

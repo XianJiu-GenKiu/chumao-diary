@@ -41,6 +41,10 @@ function validateWxml(file) {
     const closing = raw.startsWith('</')
     const selfClosing = /\/\s*>$/.test(raw) || voidTags.has(tag)
     if (closing) {
+      // void 标签在项目里两种写法都有（<textarea /> 和 <textarea></textarea>）。
+      // 前一种不入栈，所以遇到显式闭合的 void 标签直接跳过 ——
+      // 否则每一处 <textarea></textarea> 都会被误报成闭合错配。
+      if (voidTags.has(tag)) continue
       const expected = stack.pop()
       if (expected !== tag) {
         errors.push(`${path.relative(root, file)}: WXML 标签闭合错误，期望 </${expected || '?'}>，实际为 </${tag}>`)

@@ -12,19 +12,23 @@
 
 const app = getApp()
 const { bindDarkMode, unbindDarkMode } = require('../../utils/common.js')
-const { CITY_CANDIDATES } = require('../../config/cities.js')
+const { CITY_CANDIDATES, PROVINCE_OF_CITY, CITY_MAP } = require('../../config/cities.js')
 const { cityLabel } = require('../../config/city-labels.js')
+const { ALL_PROVINCES, PROVINCE_LEGEND, buildProvinceBadges } = require('../../utils/provinceBadges.js')
+const {
+  firstAttendedAt,
+  meetDates,
+  addAttendance,
+  meetAttendances,
+  groupMeetsByCity,
+  buildMeetCards,
+  meetStats
+} = require('../../utils/furmeets.js')
 
 const STORAGE_KEY = 'fur_footprints_v1'
 const MEET_STORAGE_KEY = 'fur_furmeets_v1'
 const MARKER_FOOTPRINT = '/images/map/marker-footprint.png'
 const MARKER_FURMEET = '/images/map/marker-furmeet.png'
-
-// 城市中心兜底坐标（城市徽章标注 / 兽聚未选点时使用）
-const CITY_MAP = CITY_CANDIDATES.reduce((acc, c) => {
-  acc[c.name] = { latitude: c.lat, longitude: c.lng }
-  return acc
-}, {})
 
 /** 中国大致中心，足迹为空时的地图默认视野 */
 const DEFAULT_CENTER = { latitude: 35.0, longitude: 105.0, scale: 4 }
@@ -34,23 +38,23 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 /** 里程碑规则（纯计算，达成即点亮） */
 const MILESTONES = [
-  { key: 'first-visit', label: '初次出毛', desc: '记录第 1 次出毛', test: s => s.visits >= 1 },
-  { key: 'visits-5', label: '出毛学徒', desc: '累计出毛 5 次', test: s => s.visits >= 5 },
-  { key: 'visits-30', label: '出毛常客', desc: '累计出毛 30 次', test: s => s.visits >= 30 },
-  { key: 'visits-100', label: '出毛狂人', desc: '累计出毛 100 次', test: s => s.visits >= 100 },
-  { key: 'places-2', label: '两地巡游', desc: '到访 2 个不同地点', test: s => s.places >= 2 },
-  { key: 'places-5', label: '五地行者', desc: '到访 5 个不同地点', test: s => s.places >= 5 },
-  { key: 'places-10', label: '十地漫游', desc: '到访 10 个不同地点', test: s => s.places >= 10 },
-  { key: 'places-20', label: '廿地远征', desc: '到访 20 个不同地点', test: s => s.places >= 20 },
-  { key: 'cities-2', label: '双城记', desc: '点亮 2 座城市', test: s => s.cities >= 2 },
-  { key: 'cities-5', label: '五城征途', desc: '点亮 5 座城市', test: s => s.cities >= 5 },
-  { key: 'cities-10', label: '十城灯火', desc: '点亮 10 座城市', test: s => s.cities >= 10 },
-  { key: 'cities-20', label: '廿城星图', desc: '点亮 20 座城市', test: s => s.cities >= 20 },
-  { key: 'furmeet-first', label: '初逢兽友', desc: '记录第 1 场兽聚', test: s => s.furmeetCount >= 1 },
-  { key: 'furmeet-3', label: '兽聚常客', desc: '参加 3 场兽聚', test: s => s.furmeetCount >= 3 },
-  { key: 'furmeet-10', label: '兽聚达人', desc: '累计参加兽聚 10 场', test: s => s.furmeetCount >= 10 },
-  { key: 'furmeet-cities-5', label: '五城聚友', desc: '在 5 座城市参加过兽聚', test: s => s.furmeetCities >= 5 },
-  { key: 'furmeet-places-5', label: '聚游收藏家', desc: '记录 5 个不同兽聚', test: s => s.furmeetDistinct >= 5 },
+  { key: 'first-visit', label: '毛装初体验', desc: '记录第 1 次出毛', test: s => s.visits >= 1 },
+  { key: 'visits-5', label: '新毛报到', desc: '累计出毛 5 次', test: s => s.visits >= 5 },
+  { key: 'visits-30', label: '老毛出没', desc: '累计出毛 30 次', test: s => s.visits >= 30 },
+  { key: 'visits-100', label: '毛瘾晚期', desc: '累计出毛 100 次', test: s => s.visits >= 100 },
+  { key: 'places-2', label: '两枚爪印', desc: '到访 2 个不同地点', test: s => s.places >= 2 },
+  { key: 'places-5', label: '五爪留痕', desc: '到访 5 个不同地点', test: s => s.places >= 5 },
+  { key: 'places-10', label: '十爪寻踪', desc: '到访 10 个不同地点', test: s => s.places >= 10 },
+  { key: 'places-20', label: '兽迹遍地', desc: '到访 20 个不同地点', test: s => s.places >= 20 },
+  { key: 'cities-2', label: '双城兽影', desc: '点亮 2 座城市', test: s => s.cities >= 2 },
+  { key: 'cities-5', label: '五城毛踪', desc: '点亮 5 座城市', test: s => s.cities >= 5 },
+  { key: 'cities-10', label: '十城毛迹', desc: '点亮 10 座城市', test: s => s.cities >= 10 },
+  { key: 'cities-20', label: '廿城兽图', desc: '点亮 20 座城市', test: s => s.cities >= 20 },
+  { key: 'furmeet-first', label: '首次认亲', desc: '记录第 1 场兽聚', test: s => s.furmeetCount >= 1 },
+  { key: 'furmeet-3', label: '聚会熟毛', desc: '参加 3 场兽聚', test: s => s.furmeetCount >= 3 },
+  { key: 'furmeet-10', label: '兽聚扛把子', desc: '累计参加兽聚 10 场', test: s => s.furmeetCount >= 10 },
+  { key: 'furmeet-cities-5', label: '五城认亲', desc: '在 5 座城市参加过兽聚', test: s => s.furmeetCities >= 5 },
+  { key: 'furmeet-places-5', label: '兽聚集邮', desc: '记录 5 个不同兽聚', test: s => s.furmeetDistinct >= 5 },
   { key: 'span-year', label: '出毛元年', desc: '出毛记录跨越一整年', test: s => s.spanDays >= 365 }
 ]
 
@@ -142,8 +146,17 @@ Page({
 
     // ── 徽章 ──
     milestones: [],
-    cityBadges: [],
+    rampLegend: PROVINCE_LEGEND,
+    provinceTotal: ALL_PROVINCES.length,
+    provinceBadges: [],
+    litProvinceCount: 0,
+    // 当前展开的省份名与它的下钻数据（null 表示面板收起）
+    openProvince: '',
+    openProvinceData: null,
     myMeets: [],
+    // 兽聚选择弹层：先从自己记过的聚里点一个，再决定要不要新增
+    showMeetPicker: false,
+    meetChoices: [],
 
     // ── 记录列表 ──
     logGroups: [],
@@ -179,8 +192,7 @@ Page({
       longitude: null,
       date: '',
       note: '',
-      photos: [],
-      attendCount: 1
+      photos: []
     },
     meetDate: '',
     meetCityIndex: -1,
@@ -244,6 +256,9 @@ Page({
       unlocked: m.test(stats)
     }))
     const unlockedCount = milestones.filter(m => m.unlocked).length
+    const provinceBadges = buildProvinceBadges(records)
+    // 展开的省份在下钻数据里找不到（记录被删空或换了人）时自动收起，面板不停留在过期数据上
+    const openProvinceData = provinceBadges.find(p => p.name === this.data.openProvince) || null
 
     this.setData({
       stats,
@@ -256,8 +271,12 @@ Page({
       mapScale: map.center.scale,
       milestones,
       unlockedCount,
-      cityBadges: this._buildCityBadges(records),
-      myMeets: this._buildMeetList(meets),
+      provinceBadges,
+      litProvinceCount: provinceBadges.filter(p => p.active).length,
+      openProvince: openProvinceData ? openProvinceData.name : '',
+      openProvinceData,
+      myMeets: buildMeetCards(meets),
+      meetChoices: groupMeetsByCity(meets),
       logGroups: this._buildLogGroups(records),
       logTotal: records.length
     })
@@ -280,21 +299,17 @@ Page({
       }
     })
 
-    const meetCities = new Set()
-    let furmeetCount = 0
-    ;(meets || []).forEach(m => {
-      furmeetCount += Math.max(1, Number(m.attendCount) || 1)
-      if (m.city) meetCities.add(m.city)
-    })
+    // 兽聚口径统一走 utils/furmeets —— 分享海报用的是同一份，避免两处各算一套
+    const meetAgg = meetStats(meets)
 
     return {
       visits: records.length,
       places: places.size,
       cities: cities.size,
       days: days.size,
-      furmeetCount,
-      furmeetDistinct: (meets || []).length,
-      furmeetCities: meetCities.size,
+      furmeetCount: meetAgg.furmeetCount,
+      furmeetDistinct: meetAgg.furmeetDistinct,
+      furmeetCities: meetAgg.furmeetCities,
       spanDays: Number.isFinite(firstTs) && lastTs > firstTs ? Math.floor((lastTs - firstTs) / DAY_MS) : 0
     }
   },
@@ -385,49 +400,6 @@ Page({
     return { markers, polyline, includePoints: allPoints, center }
   },
 
-  _buildCityBadges(records) {
-    const counts = {}
-    records.forEach(r => {
-      if (r.city) counts[r.city] = (counts[r.city] || 0) + 1
-    })
-    // 47 个内置城市 + 记录里出现过的自定义城市（全国任意城市都可持续标注）
-    const customCities = Object.keys(counts).filter(name => !CITY_MAP[name])
-    const builtin = CITY_CANDIDATES.map(c => ({
-      name: c.name,
-      label: cityLabel(c.name),
-      count: counts[c.name] || 0,
-      active: !!counts[c.name],
-      custom: false
-    }))
-    const custom = customCities.map(name => ({
-      name,
-      label: cityLabel(name),
-      count: counts[name],
-      active: true,
-      custom: true
-    }))
-    return builtin.concat(custom)
-      .sort((a, b) => (b.active - a.active) || (b.count - a.count) || (b.custom - a.custom))
-  },
-
-  _buildMeetList(meets) {
-    return (meets || [])
-      .slice()
-      .sort((a, b) => (b.date || 0) - (a.date || 0))
-      .map(m => {
-        const d = new Date(m.date || Date.now())
-        return {
-          id: m.id,
-          name: m.name,
-          cityLabel: cityLabel(m.city),
-          dateText: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-          note: m.note || '',
-          photos: Array.isArray(m.photos) ? m.photos : [],
-          attendCount: Math.max(1, Number(m.attendCount) || 1)
-        }
-      })
-  },
-
   _buildLogGroups(records) {
     const sorted = records.slice().sort((a, b) => (b.visitedAt || 0) - (a.visitedAt || 0))
     const groups = []
@@ -473,17 +445,26 @@ Page({
     wx.navigateTo({ url: '/pages/share-card/share-card?type=footprint' })
   },
 
-  // ── 城市徽章（点击 = 标注在该城市出过毛） ──
+  // ── 省份 / 城市徽章（点省份展开，点城市 = 标注在该城市出过毛） ──
+
+  onProvinceTap(e) {
+    const name = e.currentTarget.dataset.name
+    if (!name) return
+    // 展开/收起都走 rebuild：下钻数据只有一处构建逻辑，不用在两处各维护一份
+    this.setData({ openProvince: this.data.openProvince === name ? '' : name })
+    this.rebuild()
+  },
 
   onCityBadgeTap(e) {
     const name = e.currentTarget.dataset.name
-    if (!name) return
-    const badge = this.data.cityBadges.find(b => b.name === name)
-    if (!badge) return
+    const panel = this.data.openProvinceData
+    if (!name || !panel) return
+    const city = panel.cities.find(c => c.name === name)
+    if (!city) return
 
-    if (badge.active) {
+    if (city.active) {
       wx.showActionSheet({
-        itemList: [`再记一次（当前 ${badge.count} 次）`],
+        itemList: [`再记一次（当前 ${city.count} 次）`],
         success: res => {
           if (res.tapIndex === 0) this._createCityRecord(name)
         }
@@ -498,8 +479,8 @@ Page({
     })
   },
 
-  /** 创建一条城市级出毛记录（坐标用城市中心；自定义城市须带选点坐标） */
-  _createCityRecord(city, coords) {
+  /** 创建一条城市级出毛记录（坐标用城市中心；表外城市必须带选点坐标） */
+  _createCityRecord(city, coords, province) {
     const fallback = CITY_MAP[city] || {}
     const latitude = (coords && coords.latitude) || fallback.latitude || null
     const longitude = (coords && coords.longitude) || fallback.longitude || null
@@ -508,6 +489,8 @@ Page({
       id: `city_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       placeName: `${cityLabel(city)} · 城市出毛`,
       city,
+      // 内置城市一律以城市表为准，只有表外的自定义城市才采用调用方给的省份
+      province: PROVINCE_OF_CITY[city] || province || '',
       locationId: '',
       latitude,
       longitude,
@@ -521,8 +504,14 @@ Page({
     wx.showToast({ title: `已点亮${cityLabel(city)}`, icon: 'success' })
   },
 
-  /** 「添加城市」：地图选点 + 逆解析城市名，支持 47 城之外的全国城市 */
-  addCityByChoose() {
+  /**
+   * 在展开的省份里补一个表外城市：地图选点 → 逆解析城市名 → 归到当前省份。
+   * 这样 47 城之外的全国任意城市也能标注，而且足迹地图上的针落在真实选点坐标，
+   * 不再只能落在城市中心。
+   */
+  addCityInProvince() {
+    const province = this.data.openProvince
+    if (!province || province === '其他') return
     wx.chooseLocation({
       success: res => {
         if (!res || !Number.isFinite(res.latitude)) return
@@ -530,18 +519,22 @@ Page({
           .then(result => {
             let city = result && result.code === 0 && result.data ? result.data.city : ''
             if (!city) {
-              wx.showToast({ title: '未能识别所在城市，可从徽章墙选择', icon: 'none' })
+              wx.showToast({ title: '未能识别所在城市，换个位置再试', icon: 'none' })
               return
             }
-            // 归一化：去掉「市/地区/盟/自治州」后缀再匹配内置表，保持徽章口径一致
+            // 归一化：去掉「市/地区/盟/自治州/特别行政区」后缀再匹配内置表，保持徽章口径一致
             const normalized = city.replace(/(市|地区|盟|自治州|特别行政区)$/g, '')
             if (!CITY_MAP[city] && CITY_MAP[normalized]) city = normalized
+            // 内置城市的省份以城市表为准，避免在错的省份下点选时归错省
+            const finalProvince = PROVINCE_OF_CITY[city] || province
             wx.showModal({
-              title: `标注 · ${cityLabel(city)}`,
-              content: `把「${res.name || '所选位置'}」标注为在${cityLabel(city)}出过毛？`,
+              title: `标注 · ${finalProvince} · ${cityLabel(city)}`,
+              content: `把「${res.name || '所选位置'}」记为在${finalProvince}的${cityLabel(city)}出过毛？坐标用这次选点，地图上的针会更准。`,
               confirmText: '标注',
               success: r => {
-                if (r.confirm) this._createCityRecord(city, { latitude: res.latitude, longitude: res.longitude })
+                if (!r.confirm) return
+                this.setData({ openProvince: finalProvince })
+                this._createCityRecord(city, { latitude: res.latitude, longitude: res.longitude }, finalProvince)
               }
             })
           })
@@ -552,6 +545,37 @@ Page({
   },
 
   // ── 我的兽聚（本机自建） ──
+
+  /**
+   * 「＋ 记录一场兽聚」的入口：先弹「记一次」选择层，而不是直接开一张空表单。
+   *
+   * 兽聚不做预置名录：降级契约（e2e-degrade-verify 的 S 层断言）要求客户端不得内置
+   * 官方名录，而且预置名录一定会随新聚出现而过期。所以候选就是用户自己记过的聚 ——
+   * 天然按城市分布、天然含"去过多次"的场次、随新聚自动生长。
+   */
+  openMeetPicker() {
+    // 一律先弹选择层。曾经想在"一场都没记过"时直接进空表单省一次点击，
+    // 结果那条分支让新用户完全看不到这个流程（点下去还是老样子的空表单），
+    // 所以空态就放在选择层里，由「＋ 新的兽聚」承担新增入口。
+    this.setData({ showMeetPicker: true })
+  },
+
+  closeMeetPicker() {
+    this.setData({ showMeetPicker: false })
+  },
+
+  /** 点一个已有兽聚 = 记今天一次，不用填任何字段、不用选城市和日期 */
+  onMeetPick(e) {
+    const id = e.currentTarget.dataset.id
+    if (!id) return
+    this.setData({ showMeetPicker: false })
+    this._recordMeetAgain(id)
+  },
+
+  onMeetNewFromPicker() {
+    this.setData({ showMeetPicker: false })
+    this.openMeetFormNew()
+  },
 
   openMeetFormNew() {
     const now = new Date()
@@ -566,8 +590,7 @@ Page({
         longitude: null,
         date: '',
         note: '',
-        photos: [],
-        attendCount: 1
+        photos: []
       },
       meetDate: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
       meetCityIndex: CITY_CANDIDATES.findIndex(c => c.name === this._guessCity())
@@ -578,7 +601,8 @@ Page({
     const id = e.currentTarget.dataset.id
     const meet = loadMeets().find(m => m.id === id)
     if (!meet) return
-    const d = new Date(meet.date || Date.now())
+    const firstAt = firstAttendedAt(meet) || Date.now()
+    const d = new Date(firstAt)
     this.setData({
       showMeetForm: true,
       editingMeetId: id,
@@ -588,10 +612,9 @@ Page({
         city: meet.city || '',
         latitude: meet.latitude || null,
         longitude: meet.longitude || null,
-        date: meet.date || '',
+        date: firstAt,
         note: meet.note || '',
-        photos: Array.isArray(meet.photos) ? meet.photos.slice() : [],
-        attendCount: Math.max(1, Number(meet.attendCount) || 1)
+        photos: Array.isArray(meet.photos) ? meet.photos.slice() : []
       },
       meetDate: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
       meetCityIndex: CITY_CANDIDATES.findIndex(c => c.name === meet.city)
@@ -682,17 +705,24 @@ Page({
       return
     }
     const dateTs = this.data.meetDate ? new Date(`${this.data.meetDate}T12:00`).getTime() : Date.now()
+    const firstAt = Number.isFinite(dateTs) ? dateTs : Date.now()
     const fallback = CITY_MAP[form.city] || {}
+    // 表单填的是「首次参加日期」：编辑时只改 dates[0]，后面几次参加的日期原样保留
+    const rest = this.data.editingMeetId
+      ? meetDates(loadMeets().find(m => m.id === this.data.editingMeetId)).slice(1)
+      : []
+    const dates = [firstAt].concat(rest).sort((a, b) => a - b)
     const meet = {
       id: this.data.editingMeetId || `mt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name,
       city: form.city,
       latitude: Number.isFinite(form.latitude) ? form.latitude : (fallback.latitude || null),
       longitude: Number.isFinite(form.longitude) ? form.longitude : (fallback.longitude || null),
-      date: Number.isFinite(dateTs) ? dateTs : Date.now(),
+      date: dates[0],
+      dates,
       note: String(form.note || '').trim(),
       photos: form.photos || [],
-      attendCount: Math.max(1, Number(form.attendCount) || 1)
+      attendCount: dates.length
     }
 
     const meets = loadMeets()
@@ -714,23 +744,29 @@ Page({
     const meet = loadMeets().find(m => m.id === id)
     if (!meet) return
     wx.showActionSheet({
-      itemList: [`再参加一次（已记 ${meet.attendCount} 次）`, '编辑', '删除'],
+      itemList: [`再记一次（今天，已记 ${meetAttendances(meet)} 次）`, '编辑', '删除'],
       success: res => {
-        if (res.tapIndex === 0) this._incMeet(id)
+        if (res.tapIndex === 0) this._recordMeetAgain(id)
         else if (res.tapIndex === 1) this.openMeetFormEdit({ currentTarget: { dataset: { id } } })
         else if (res.tapIndex === 2) this._deleteMeet(id)
       }
     })
   },
 
-  _incMeet(id) {
+  /**
+   * 追加一次参加，日期记成今天。
+   * 改造前这里只把 attendCount +1，既不记这次的日期，也不更新 date ——
+   * 结果既丢了年度届次的日期，又因为列表按 date 排序而让「最近去过的聚」沉底。
+   */
+  _recordMeetAgain(id) {
     const meets = loadMeets()
-    const meet = meets.find(m => m.id === id)
-    if (!meet) return
-    meet.attendCount = Math.max(1, (Number(meet.attendCount) || 1) + 1)
+    const index = meets.findIndex(m => m.id === id)
+    if (index === -1) return
+    const updated = addAttendance(meets[index], Date.now())
+    meets[index] = updated
     saveMeets(meets)
     this.rebuild()
-    wx.showToast({ title: `已记第 ${meet.attendCount} 次`, icon: 'success' })
+    wx.showToast({ title: `已记第 ${meetAttendances(updated)} 次`, icon: 'success' })
   },
 
   _deleteMeet(id) {

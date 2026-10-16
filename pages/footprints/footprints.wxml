@@ -76,27 +76,51 @@
       </view>
     </view>
 
-    <!-- 城市徽章墙（点击徽章 = 标注在该城市出过毛） -->
+    <!-- 省份徽章墙（色阶 = 该省出毛次数，绿 → 橙；点省份展开，再点城市标注） -->
     <view class="section">
-      <view class="section-title">城市徽章 · 已点亮 {{stats.cities}} / {{cityBadges.length}}</view>
+      <view class="section-title">省份徽章 · 已点亮 <text class="section-title-strong">{{litProvinceCount}}</text> / {{provinceTotal}} 省 · {{stats.cities}} 市</view>
+      <view class="province-legend">
+        <text class="legend-text">出毛次数</text>
+        <view class="legend-swatch" wx:for="{{rampLegend}}" wx:key="label" style="background: {{item.color}}"></view>
+        <text class="legend-text">1 → 5+ 次</text>
+      </view>
       <view class="badge-wall">
         <view
-          class="city-badge {{item.active ? 'active' : ''}}"
-          wx:for="{{cityBadges}}"
+          class="province-badge"
+          wx:for="{{provinceBadges}}"
           wx:key="name"
           data-name="{{item.name}}"
-          bindtap="onCityBadgeTap"
+          bindtap="onProvinceTap"
+          style="background: {{item.bg}}; border-color: {{item.border}}; color: {{item.text}}"
         >
-          <text class="city-badge-name">{{item.label}}</text>
-          <text class="city-badge-count" wx:if="{{item.active}}">{{item.count}} 次</text>
-          <text class="city-badge-mark" wx:else>＋</text>
-        </view>
-        <view class="city-badge add-city" bindtap="addCityByChoose">
-          <text class="city-badge-name">📍 其他城市</text>
-          <text class="city-badge-mark">选点标注</text>
+          <text class="province-badge-name">{{item.name}}</text>
+          <text class="province-badge-count" wx:if="{{item.active}}" style="color: {{item.countColor}}">{{item.count}}</text>
         </view>
       </view>
-      <view class="badge-tip">点未点亮的徽章即可标注「在这个城市出过毛」；其他城市可通过地图选点添加，全国城市均可标注。全部数据仅保存在本机。</view>
+
+      <!-- 省份下钻：点城市标注，或补一个表外城市（自动归到本省） -->
+      <view class="province-panel" wx:if="{{openProvinceData}}">
+        <view class="province-panel-head">
+          <text class="province-panel-title">{{openProvinceData.name}}</text>
+          <text class="province-panel-meta">{{openProvinceData.cityCount}} 城 · 出毛 {{openProvinceData.count}} 次</text>
+        </view>
+        <view class="city-row">
+          <view
+            class="city-chip {{item.active ? 'active' : ''}}"
+            wx:for="{{openProvinceData.cities}}"
+            wx:key="name"
+            data-name="{{item.name}}"
+            bindtap="onCityBadgeTap"
+          >
+            <text class="city-chip-name">{{item.label}}</text>
+            <text class="city-chip-count" wx:if="{{item.active}}">{{item.count}}</text>
+          </view>
+        </view>
+        <view class="province-add" wx:if="{{openProvinceData.name !== '其他'}}" bindtap="addCityInProvince">＋ 添加{{openProvinceData.name}}的其他城市（地图选点）</view>
+        <view class="province-tip" wx:else>这些记录的城市没能对上省份（多为早期用地图选点添加的表外城市）。在本省徽章下重新添加一次，就能归到对应省份。</view>
+      </view>
+
+      <view class="badge-tip">点省份展开，再点城市即标注「在这个城市出过毛」；表外的城市在省份面板里地图选点添加，足迹地图上的针会落在真实选点。全部数据仅保存在本机。</view>
     </view>
 
     <!-- 我的兽聚（本机自建） -->
@@ -113,12 +137,12 @@
         >
           <view class="furmeet-main">
             <text class="furmeet-name">{{item.cityLabel}} · {{item.name}}</text>
-            <text class="furmeet-meta">{{item.dateText}}{{item.note ? ' · ' + item.note : ''}}</text>
+            <text class="furmeet-meta">最近 {{item.lastText}}{{item.note ? ' · ' + item.note : ''}}</text>
           </view>
-          <text class="furmeet-count">去过 {{item.attendCount}} 次</text>
+          <text class="furmeet-count">去过 {{item.attendances}} 次</text>
         </view>
       </view>
-      <view class="furmeet-add" bindtap="openMeetFormNew">＋ 记录一场兽聚</view>
+      <view class="furmeet-add" bindtap="openMeetPicker">＋ 记录一场兽聚</view>
     </view>
 
     <!-- 海报入口 -->
@@ -255,6 +279,36 @@
     </view>
   </view>
 
+  <!-- ══════════ 兽聚选择弹层（先选已有聚，再决定要不要新增） ══════════ -->
+  <view class="form-mask" wx:if="{{showMeetPicker}}" bindtap="closeMeetPicker"></view>
+  <view class="form-sheet" wx:if="{{showMeetPicker}}" catchtap="noop">
+    <view class="form-title">记一次兽聚</view>
+    <view class="picker-hint" wx:if="{{meetChoices.length}}">点你记过的兽聚即可记今天一次，不用重填城市和日期</view>
+    <view class="picker-empty" wx:else>还没有记过的兽聚。先新增一场，之后再来这里就能一键记今天。</view>
+    <scroll-view class="picker-scroll" scroll-y>
+      <view class="picker-group" wx:for="{{meetChoices}}" wx:key="city" wx:for-item="group">
+        <view class="picker-group-head">
+          <text class="picker-group-city">{{group.cityLabel}}</text>
+          <text class="picker-group-count">{{group.meets.length}} 个</text>
+        </view>
+        <view
+          class="picker-meet"
+          wx:for="{{group.meets}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onMeetPick"
+        >
+          <view class="picker-meet-main">
+            <text class="picker-meet-name">{{item.name}}</text>
+            <text class="picker-meet-meta">去过 {{item.attendances}} 次 · 最近 {{item.lastText}}</text>
+          </view>
+          <text class="picker-meet-action">记今天</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="picker-new" bindtap="onMeetNewFromPicker">＋ 新的兽聚</view>
+  </view>
+
   <!-- ══════════ 兽聚表单（底部弹层，本机自建） ══════════ -->
   <view class="form-mask" wx:if="{{showMeetForm}}" bindtap="closeMeetForm"></view>
   <view class="form-sheet" wx:if="{{showMeetForm}}" catchtap="noop">
@@ -279,7 +333,7 @@
     </view>
 
     <view class="form-field">
-      <text class="form-label">日期</text>
+      <text class="form-label">首次参加日期</text>
       <picker mode="date" value="{{meetDate}}" bindchange="onMeetDateChange">
         <view class="form-picker">{{meetDate || '选择日期'}}</view>
       </picker>
@@ -319,4 +373,5 @@
     </view>
   </view>
 
+  <privacy-popup />
 </view>

@@ -168,7 +168,10 @@ function staticChecks() {
     let src
     try { src = read(c.file) } catch (e) { fail(c.name, '文件缺失 ' + c.file); continue }
     // 剔除注释，避免注释里的说明文字造成误判
-    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    let code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    // 「要把哪些已下线字段从返回值里删掉」的白名单声明不算返回这些字段，
+    // 先摘掉再匹配，否则正确的剔除实现反而会被黑名单误判成违规。
+    code = code.replace(/const\s+RETIRED_FIELDS\s*=\s*\[[\s\S]*?\]/, '')
     if (c.bad && c.bad.test(code)) { fail(c.name, c.hint); continue }
     if (c.must && !c.must.test(code)) { fail(c.name, c.hint); continue }
     if (c.miss && !c.miss.test(code)) { fail(c.name, c.hint); continue }
@@ -358,17 +361,31 @@ async function runtimeChecks() {
   if (!badPages.length) pass(`${normalPages.length} 个常规页面全部可达且路径匹配`)
   else fail('常规页面不可达', badPages.join(' | '))
 
-  // 门禁页：应被重定向回 discover
+  // 门禁页的正确预期取决于「验证机登录的是谁」：
+  // 命中 ADMIN_OPENIDS 的运营方账号本来就该进得去，只有普通用户才该被弹回。
+  // 先探一次身份再决定断言方向，否则用所有者账号跑这条检查会长期误报。
+  let testerIsAdmin = false
+  try {
+    testerIsAdmin = !!(await mp.evaluate(() => wx.cloud.callFunction({ name: 'manageReports', data: { action: 'whoami' } })
+      .then(res => !!(res && res.result && res.result.code === 0 && res.result.data && res.result.data.isAdmin))
+      .catch(() => false)))
+  } catch (e) { testerIsAdmin = false }
+  info(`验证机身份：${testerIsAdmin ? '运营方 —— 门禁页应放行' : '普通用户 —— 门禁页应弹回'}`)
+
   for (const [p, tip] of Object.entries(GATED)) {
     let actual = null
     try {
       await reLaunchWithRetry('/' + p)
-      await sleep(2600) // 门禁弹回有 1200ms 延时
+      await sleep(testerIsAdmin ? 1600 : 2600) // 非运营方弹回有 1200ms 延时
       const page = await mp.currentPage()
       actual = page && page.path
     } catch (e) { actual = 'ERR' }
-    if (actual === 'pages/discover/discover') pass(`门禁页「${p.split('/')[1]}」按预期弹回发现页`, tip)
-    else fail(`门禁页「${p.split('/')[1]}」未按预期弹回`, `实际停留 ${actual}`)
+    const expected = testerIsAdmin ? p : 'pages/discover/discover'
+    if (actual === expected) {
+      pass(`门禁页「${p.split('/')[1]}」${testerIsAdmin ? '对运营方放行' : '对普通用户弹回发现页'}`, tip)
+    } else {
+      fail(`门禁页「${p.split('/')[1]}」行为不符预期`, `预期 ${expected}，实际停留 ${actual}`)
+    }
   }
 
   // ── C：tabBar ──

@@ -3,7 +3,5 @@
   "navigationBarTitleText": "",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
-  "usingComponents": {
-    "poi-preview-card": "/components/poi-preview-card/poi-preview-card"
-  }
+  "usingComponents": {}
 }

@@ -1,4 +1,6 @@
-<!-- pages/location-detail/location-detail.wxml -->
+<!-- pages/location-detail/location-detail.wxml
+     板块顺序按「是什么 → 适不适合去 → 关于这里 → 配套 → 怎么去」排列，
+     底部操作栏只留个人事务与纠错反馈，跨用户内容一律没有。 -->
 <view class="page page-location-detail {{darkMode ? 'dark-theme' : ''}}" wx:if="{{!loading}}">
   <view class="detail-nav" style="padding-top: {{statusBarHeight}}px;">
     <view class="detail-nav-inner">
@@ -7,17 +9,26 @@
       <view class="detail-nav-placeholder"></view>
     </view>
   </view>
-  <!-- 顶部轮播图 -->
-  <view class="swiper-wrap">
-    <swiper class="banner-swiper" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#D4890E" autoplay circular bindchange="onSwiperChange">
-      <swiper-item wx:for="{{images}}" wx:key="*this">
-        <image class="banner-image" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" lazy-load />
-      </swiper-item>
-    </swiper>
-    <view class="swiper-counter">{{currentSwiper + 1}}/{{images.length}}</view>
+
+  <!-- ① 封面：有图才轮播；没有图用品牌占位，不再出现「1/0」这种空计数器 -->
+  <view class="swiper-wrap {{images.length > 0 ? '' : 'is-empty'}}">
+    <block wx:if="{{images.length > 0}}">
+      <swiper class="banner-swiper" indicator-dots="{{images.length > 1}}"
+        indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#D4890E"
+        autoplay="{{images.length > 1}}" circular="{{images.length > 1}}" bindchange="onSwiperChange">
+        <swiper-item wx:for="{{images}}" wx:key="*this">
+          <image class="banner-image" src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage" lazy-load />
+        </swiper-item>
+      </swiper>
+      <view class="swiper-counter" wx:if="{{images.length > 1}}">{{currentSwiper + 1}}/{{images.length}}</view>
+    </block>
+    <view class="banner-placeholder" wx:else>
+      <icon name="{{location.indoor ? 'home' : 'compass'}}" size="64" color="#D4890E" />
+      <text class="banner-placeholder-text">{{location.categoryName || location.category || '这个地点'}} · 还没有照片</text>
+    </view>
   </view>
 
-  <!-- 地点信息 -->
+  <!-- ② 地点信息：名称 / 室内外 / 分类 / 地址 / 标签 -->
   <view class="detail-section location-info-card">
     <view class="location-title-row">
       <view class="location-title-block">
@@ -34,40 +45,21 @@
         <icon name="compass" size="24" color="{{location.indoor ? '#5BA81A' : '#D4890E'}}" wx:else />
         <text>{{location.indoor ? '室内' : '室外'}}</text>
       </view>
-      <text class="location-category">{{location.categoryName || location.category || ''}}</text>
+      <text class="location-category" wx:if="{{location.categoryName || location.category}}">{{location.categoryName || location.category}}</text>
     </view>
     <view class="address-row" wx:if="{{location.address}}" bindtap="copyAddress">
       <icon name="map-pin" size="24" color="#999" />
       <text class="address-text">{{location.address}}</text>
       <text class="copy-address">复制</text>
     </view>
-    <view class="tag-list">
+    <view class="tag-list" wx:if="{{location.tags && location.tags.length}}">
       <text class="tag tag-outline" wx:for="{{location.tags}}" wx:key="*this">{{item}}</text>
     </view>
   </view>
 
-  <!-- 周边设施层 -->
-  <view class="detail-section" wx:if="{{location.facilities && location.facilities.length > 0}}">
-    <text class="section-title">周边设施</text>
-    <view class="facility-tags">
-      <view class="facility-tag" wx:for="{{location.facilities}}" wx:key="key">
-        <icon name="check" size="20" color="#5BA81A" />
-        <text>{{item.name}}</text>
-      </view>
-    </view>
-    <view class="best-time" wx:if="{{location.bestTime}}">
-      <icon name="info" size="20" color="#D4890E" />
-      <text class="best-time-text">最佳拍摄：{{location.bestTime}}</text>
-    </view>
-    <view class="best-time" wx:if="{{location.season}}">
-      <icon name="info" size="20" color="#5BA81A" />
-      <text class="best-time-text">推荐季节：{{location.season}}</text>
-    </view>
-  </view>
-
-  <!-- 出毛适宜度：实时天气 + 本地规则计算，点击看分项拆解 -->
-  <view class="card fur-index-card" wx:if="{{furIndex && furIndex.ok}}" bindtap="onFurIndexTap">
-    <view class="fur-index-head">
+  <!-- ③ 环境：出毛适宜度 + 实时天气合并成一张卡（原先两块各说一遍天气） -->
+  <view class="detail-section env-card" wx:if="{{(furIndex && furIndex.ok) || location.weather}}">
+    <view class="fur-index-head" wx:if="{{furIndex && furIndex.ok}}" bindtap="onFurIndexTap">
       <view class="fur-index-badge" style="background: {{furIndex.levelColor}};">
         <text class="fur-index-score">{{furIndex.score}}</text>
         <text class="fur-index-label">{{furIndex.levelLabel}}</text>
@@ -78,13 +70,8 @@
       </view>
       <text class="fur-index-arrow">›</text>
     </view>
-    <view class="fur-index-tip">仅供参考，不构成专业建议</view>
-  </view>
 
-  <!-- 天气信息卡片 -->
-  <view class="card weather-card" wx:if="{{location.weather}}">
-    <view class="card-header">天气信息</view>
-    <view class="card-body weather-grid">
+    <view class="weather-grid" wx:if="{{location.weather}}">
       <view class="weather-item">
         <text class="weather-label">温度</text>
         <text class="weather-value">{{location.weather.temperature}}</text>
@@ -102,19 +89,40 @@
         <text class="weather-value">{{location.weather.wind}}</text>
       </view>
     </view>
+
+    <view class="fur-index-tip">实时天气 + 本地规则计算，仅供参考，不构成专业建议</view>
   </view>
 
-  <!-- 描述文字 -->
-  <view class="detail-section" wx:if="{{location.description}}">
-    <text class="section-title">简介</text>
-    <text class="desc-text">{{location.description}}</text>
-  </view>
-  <view class="detail-section" wx:if="{{location.notice}}">
-    <text class="section-title">注意事项</text>
-    <text class="desc-text">{{location.notice}}</text>
+  <!-- ④ 关于这里：简介与注意事项同属「说明」，合成一块 -->
+  <view class="detail-section" wx:if="{{location.description || location.notice}}">
+    <text class="section-title">关于这里</text>
+    <text class="desc-text" wx:if="{{location.description}}">{{location.description}}</text>
+    <view class="notice-block" wx:if="{{location.notice}}">
+      <icon name="alert-circle" size="28" color="#D4890E" />
+      <text class="notice-text">{{location.notice}}</text>
+    </view>
   </view>
 
-  <!-- 地图位置展示 -->
+  <!-- ⑤ 周边与建议：设施 / 最佳拍摄 / 推荐季节 -->
+  <view class="detail-section" wx:if="{{(location.facilities && location.facilities.length > 0) || location.bestTime || location.season}}">
+    <text class="section-title">周边与建议</text>
+    <view class="facility-tags" wx:if="{{location.facilities && location.facilities.length > 0}}">
+      <view class="facility-tag" wx:for="{{location.facilities}}" wx:key="key">
+        <icon name="check" size="20" color="#5BA81A" />
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+    <view class="best-time" wx:if="{{location.bestTime}}">
+      <icon name="clock" size="22" color="#D4890E" />
+      <text class="best-time-text">最佳拍摄：{{location.bestTime}}</text>
+    </view>
+    <view class="best-time" wx:if="{{location.season}}">
+      <icon name="info" size="22" color="#5BA81A" />
+      <text class="best-time-text">推荐季节：{{location.season}}</text>
+    </view>
+  </view>
+
+  <!-- ⑥ 位置 -->
   <view class="detail-section" wx:if="{{location.latitude}}">
     <text class="section-title">位置</text>
     <map class="detail-map" latitude="{{mapLatitude || location.latitude}}" longitude="{{mapLongitude || location.longitude}}" scale="15" markers="{{mapMarkers}}" bindcallouttap="openMap" show-location>
@@ -125,13 +133,14 @@
     </view>
   </view>
 
-  <!-- 底部操作栏：收藏 / 加入合集 / 分享（均为个人事务，无跨用户互动） -->
+  <!-- 底部操作栏：收藏 / 加入合集（个人事务）→ 反馈（纠错）→ 分享 -->
   <view class="bottom-bar">
     <view class="bottom-action" bindtap="toggleFavorite">
       <icon name="heart" size="36" color="{{location.isFavorited ? '#D4890E' : '#999'}}" fill="{{location.isFavorited}}" />
       <text class="action-text">{{location.isFavorited ? '已收藏' : '收藏'}}</text>
     </view>
     <view class="bottom-action" bindtap="addToCollection"><icon name="bookmark" size="36" color="#999" /><text class="action-text">加入合集</text></view>
+    <view class="bottom-action" bindtap="feedbackLocation"><icon name="edit" size="36" color="#999" /><text class="action-text">反馈</text></view>
     <button class="bottom-action share-btn" open-type="share">
       <icon name="share" size="36" color="#999" />
       <text class="action-text">分享</text>
@@ -155,4 +164,5 @@
     <view class="skeleton-block skeleton-text" style="width: 100%; margin-top: 12rpx;"></view>
     <view class="skeleton-block skeleton-text" style="width: 90%;"></view>
   </view>
+  <privacy-popup />
 </view>
