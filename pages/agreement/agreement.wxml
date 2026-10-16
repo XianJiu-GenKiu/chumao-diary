@@ -107,5 +107,6 @@
 
   <view class="agreement-footer">
     <text class="footer-text">{{appName}} v{{appVersion}}</text>
+    <text class="footer-icp" wx:if="{{icpLicense}}">{{icpLicense}}</text>
   </view>
 </view>

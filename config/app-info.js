@@ -22,9 +22,19 @@ const CONTACT_EMAIL = ''
 /** 备用联系方式（微信号 / 公众号名）。留空则隐藏。 */
 const CONTACT_WECHAT = ''
 
+/**
+ * ICP 备案号。
+ *
+ * 小程序备案通过后由工信部下发，须在小程序内可查看（本应用展示在
+ * 「设置 - 关于我们」弹窗、设置页底部与协议页页脚三处）。
+ * 备案主体与小程序主体不一致会被认定为「未备案」，改主体时记得同步这里。
+ */
+const ICP_LICENSE = '京ICP备00000000号'
+
 module.exports = {
   VERSION,
   APP_NAME,
   CONTACT_EMAIL,
-  CONTACT_WECHAT
+  CONTACT_WECHAT,
+  ICP_LICENSE
 }

@@ -1,5 +1,5 @@
 const app = getApp()
-const { VERSION, APP_NAME, CONTACT_EMAIL, CONTACT_WECHAT } = require('../../config/app-info')
+const { VERSION, APP_NAME, CONTACT_EMAIL, CONTACT_WECHAT, ICP_LICENSE } = require('../../config/app-info')
 
 Page({
   data: {
@@ -7,7 +7,8 @@ Page({
     appName: APP_NAME,
     appVersion: VERSION,
     contactEmail: CONTACT_EMAIL,
-    contactWechat: CONTACT_WECHAT
+    contactWechat: CONTACT_WECHAT,
+    icpLicense: ICP_LICENSE
   },
 
   onLoad() {

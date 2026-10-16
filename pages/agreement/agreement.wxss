@@ -65,3 +65,11 @@
   font-size: 24rpx;
   color: var(--color-text-hint, #ccc);
 }
+
+/* 备案号：须可读，用 secondary 而非 hint 的极浅灰 */
+.footer-icp {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--color-text-secondary, #707070);
+}

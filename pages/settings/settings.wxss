@@ -141,3 +141,13 @@
   background: var(--color-gray-100);
   margin: 0 24rpx;
 }
+/* 备案号页脚：须可读，用 secondary 而非 hint 的极浅灰 */
+.settings-footer {
+  padding: 32rpx 24rpx 48rpx;
+  text-align: center;
+}
+.footer-line {
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #707070);
+}

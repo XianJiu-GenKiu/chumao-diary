@@ -49,5 +49,10 @@
       </view>
     </view>
   </view>
+
+  <!-- 备案号：工信部要求小程序内可查看，此处常驻展示 -->
+  <view class="settings-footer">
+    <text class="footer-line" wx:if="{{icpLicense}}">{{icpLicense}}</text>
+  </view>
   <privacy-popup />
 </view>

@@ -1,13 +1,14 @@
 const app = getApp()
 const { uploadImages, stopRefresh, bindDarkMode, unbindDarkMode } = require('../../utils/common')
-const { VERSION, APP_NAME, CONTACT_EMAIL, CONTACT_WECHAT } = require('../../config/app-info')
+const { VERSION, APP_NAME, CONTACT_EMAIL, CONTACT_WECHAT, ICP_LICENSE } = require('../../config/app-info')
 
 Page({
   data: {
     userInfo: null,
     stats: { favoriteCount: 0, locationCount: 0 },
     settingGroups: [],
-    darkMode: false
+    darkMode: false,
+    icpLicense: ICP_LICENSE
   },
 
   onLoad() {
@@ -172,9 +173,16 @@ Page({
   },
 
   about() {
+    // 备案号必须在小程序内可查，放在这里和设置页底部两处冗余展示。
+    const lines = [
+      `${APP_NAME} v${VERSION}`,
+      '一个为出毛拍摄地点与足迹记录而做的小程序。',
+      '地点与天气信息仅供参考，请遵守场地规则并注意出行安全。'
+    ]
+    if (ICP_LICENSE) lines.push('', ICP_LICENSE)
     wx.showModal({
       title: `关于${APP_NAME}`,
-      content: `${APP_NAME} v${VERSION}\n一个为出毛拍摄地点与足迹记录而做的小程序。\n地点与天气信息仅供参考，请遵守场地规则并注意出行安全。`,
+      content: lines.join('\n'),
       showCancel: false
     })
   },
