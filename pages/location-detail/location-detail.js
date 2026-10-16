@@ -116,9 +116,10 @@ Page({
         // 实时天气 + 出毛适宜度（本地计算，公共气象数据，用户零输入）
         this._loadFurIndex(data)
 
-        // 判断当前用户是否为创建者（历史数据），供「编辑 / 删除」入口使用
-        const openId = app.globalData.openId || await app.getOpenId()
-        if (openId && data.creatorOpenId === openId) {
+        // 是否创建者由服务端判定（接口返回 isMine）。
+        // 原先在客户端比对 data.creatorOpenId，要求接口把 openid 下发到客户端；
+        // 现在 creatorOpenId 已不下发，这个判断完全落在服务端。
+        if (data.isMine) {
           this.setData({ isOwner: true })
         }
       } else {

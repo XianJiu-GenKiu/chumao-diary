@@ -9,6 +9,9 @@ const db = cloud.database()
 const _ = db.command
 const { isPubliclyVisible } = require('./visibility')
 const { getBlockedIds, filterBlocked } = require('./blocked')
+// 公开字段出口：剔除已下线功能的遗留字段 + creatorOpenId。
+// 搜索页 wxml 上有 `wx:if="{{item.rating}}"`，不剔除就会给已下线的评分渲染一颗星。
+const { toPublicLocation } = require('./locationFields')
 const MAX_FETCH = 100 // 云数据库单次查询上限
 
 exports.main = async (event, context) => {
@@ -46,7 +49,7 @@ exports.main = async (event, context) => {
     const merged = filterBlocked(locRes.data
       .filter(item => isPubliclyVisible(item, openid))
       .filter(item => matchesScene(item, scene)), blockedIds)
-      .map(item => ({ ...item, _type: 'location' }))
+      .map(item => toPublicLocation(item, { openid, extra: { _type: 'location' } }))
       .sort((a, b) => {
         const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
         const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0

@@ -6,19 +6,9 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-
-// 已下线功能遗留的字段：签到 / 评分 / 种草踩雷 / 评论计数。
-// 历史文档里仍然存着这些值（addLocation 当年会初始化它们），
-// 直接 ...location 会把它们一并带回客户端，这里显式剔除。
-const RETIRED_FIELDS = [
-  'checkinCount',
-  'rating',
-  'ratingCount',
-  'creatorRating',
-  'reactionUpCount',
-  'reactionDownCount',
-  'commentCount'
-]
+// 公开字段出口：剔除已下线功能的遗留字段 + creatorOpenId，并算出 isMine。
+// 四个读接口共用同一份规则，避免再出现「详情页剔了、列表页漏了」。
+const { toPublicLocation } = require('./locationFields')
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
@@ -74,8 +64,11 @@ exports.main = async (event, context) => {
       favoriteCount = favCountRes.total
     }
 
-    const payload = { ...location, isFavorited, favoriteCount }
-    RETIRED_FIELDS.forEach(key => { delete payload[key] })
+    // isMine 由服务端判定：客户端不再需要 creatorOpenId，openid 不下发。
+    const payload = toPublicLocation(location, {
+      openid,
+      extra: { isFavorited, favoriteCount }
+    })
 
     return { code: 0, data: payload }
   } catch (err) {

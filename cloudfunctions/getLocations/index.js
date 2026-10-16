@@ -7,6 +7,8 @@ const db = cloud.database()
 const _ = db.command
 const { isPubliclyVisible } = require('./visibility')
 const { getBlockedIds, filterBlocked } = require('./blocked')
+// 公开字段出口：剔除已下线功能的遗留字段 + creatorOpenId。
+const { toPublicLocation } = require('./locationFields')
 const FILTER_CATEGORY_ALIASES = {
   forest: ['自然风光'],
   urban: ['城市街景'],
@@ -122,16 +124,19 @@ exports.main = async (event, context) => {
 
     return {
       code: 0,
-      data: filtered.map(item => ({
-        ...item,
-        favoriteCount: Number.isFinite(Number(item.favoriteCount))
-          ? Math.max(0, Number(item.favoriteCount))
-          : (favoriteCountMap[item._id] || 0),
-        isFavorited: myFavoritedIds.has(item._id),
-        // 卡片热度条依赖这几个计数，统一保证为有效数值，避免出现 NaN。
-        checkinCount: Math.max(0, Number(item.checkinCount) || 0),
-        reactionUpCount: Math.max(0, Number(item.reactionUpCount) || 0),
-        viewCount: Math.max(0, Number(item.viewCount) || 0)
+      // 统一走 toPublicLocation：剔除 checkinCount / rating / commentCount 等
+      // 已下线功能的遗留字段，以及 creatorOpenId。
+      // 注：热度条（discover.js 的 computeHeat）只用 favoriteCount + viewCount，
+      // 不需要 checkinCount / reactionUpCount —— 早前这里给它们补 0 的注释是过时的。
+      data: filtered.map(item => toPublicLocation(item, {
+        openid,
+        extra: {
+          favoriteCount: Number.isFinite(Number(item.favoriteCount))
+            ? Math.max(0, Number(item.favoriteCount))
+            : (favoriteCountMap[item._id] || 0),
+          isFavorited: myFavoritedIds.has(item._id),
+          viewCount: Math.max(0, Number(item.viewCount) || 0)
+        }
       })),
       // A sparse category can return fewer than one UI page while the scanned
       // source window still has more records to inspect.

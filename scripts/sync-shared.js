@@ -71,6 +71,14 @@ const MANIFEST = {
   'locationFeedback.js': [
     'submitLocationFeedback'
   ],
+  // 地点文档的公开字段出口：剔除已下线功能的遗留字段与 creatorOpenId，并算 isMine。
+  // 这四个函数都会把 locations 文档返回给客户端，必须共用同一份剔除规则。
+  'locationFields.js': [
+    'getLocations',
+    'getLocationDetail',
+    'getSeasonalLocations',
+    'searchLocations'
+  ],
   // 腾讯位置服务统一调用层：key 读取、请求封装、城市表。
   // 下列函数此前各自复制了一份 MAP_KEY 与 https 封装，并共用一个官方示例 key。
   'mapApi.js': [

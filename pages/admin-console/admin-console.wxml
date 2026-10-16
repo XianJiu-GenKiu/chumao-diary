@@ -98,4 +98,7 @@
     <text>{{error}}</text>
     <text class="retry" bindtap="onRetry">重试</text>
   </view>
+
+  <!-- 本页有「复制 OpenID」（wx.setClipboardData），属隐私接口，需挂授权弹窗 -->
+  <privacy-popup />
 </view>
