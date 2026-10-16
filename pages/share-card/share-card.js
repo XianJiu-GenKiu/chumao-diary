@@ -23,7 +23,8 @@ const {
   buildMapMapping,
   projectToBox,
   buildStops,
-  buildArcs
+  buildArcs,
+  buildRadialArcs
 } = require('../../utils/mapView.js')
 
 const FOOTPRINT_STORAGE_KEY = 'fur_footprints_v1'
@@ -106,6 +107,9 @@ Page({
   },
 
   onLoad(options) {
+    // 地图画法由上游页面带过来（足迹页在迁徙图下生成的就是迁徙图海报）。
+    // 存在实例上而不是 data 里：它只影响画布，界面没有需要跟着变的东西。
+    this._mapMode = options.map === 'migration' ? 'migration' : 'trace'
     this.setData({ type: options.type || 'location', id: options.id || '' })
     this._loadData()
   },
@@ -547,10 +551,10 @@ Page({
 
     // ── 地图卡：海报的主角，给它最大面积 ──
     const points = this._mapPoints || { path: [], meets: [], labels: [] }
-    // 一个地点一个点（同一地点去多次只留一个，次数决定点的大小）；
-    // 相邻地点之间连弧线，弧线颜色按时间先后走绿→橙色阶
+    // 一个地点一个点（同一地点去多次只留一个，次数决定点的大小）；弧线颜色按时间先后走绿→橙色阶。
+    // 两种画法共用同一份 stops：trace 连相邻两点成时间轨迹，migration 从第一个地点放射成迁徙图
     const stops = buildStops(points.path)
-    const arcs = buildArcs(stops, ARC_TIME_RAMP, { bow: 0.18, steps: 24 })
+    const arcs = (this._mapMode === 'migration' ? buildRadialArcs : buildArcs)(stops, ARC_TIME_RAMP, { bow: 0.18, steps: 24 })
     // 底图必须和取图时那份视图配对：弧线是按 view 算像素的，
     // 用另一套取景去铺图会让整张图错位 —— 那种情况宁可老实退回网格。
     // 取不到底图时退到同一个全国视图（nationalMapView），这样两种底图下

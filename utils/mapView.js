@@ -400,6 +400,41 @@ function buildArcs(stops, ramp, options) {
 }
 
 /**
+ * 迁徙图：以第一个地点为起点，向其余每个地点各连一条弧线。
+ *
+ * 与 buildArcs 的区别：buildArcs 连相邻两点，画出来是一条「时间轨迹」；
+ * 本函数把所有线都收敛到同一个起点，画出来是放射状，一眼看出「从哪儿出发、
+ * 一共散出去多少个地方」。
+ *
+ * 起点取 stops[0] 而不是「常驻城市」：项目里没有常驻城市字段，
+ * 首次出毛的地点是最有意义的原点，也不用用户额外填任何东西。
+ *
+ * @param {Array} stops buildStops 的结果（已按时间排序）
+ * @param {Array<string>} ramp 色阶，同 buildArcs，由调用方传入
+ * @returns {Array<{from:object,to:object,path:Array,color:string}>}
+ */
+function buildRadialArcs(stops, ramp, options) {
+  const list = Array.isArray(stops) ? stops : []
+  if (list.length < 2) return []
+  const colors = Array.isArray(ramp) && ramp.length ? ramp : ['#D4890E']
+  const hub = list[0]
+  const arcs = []
+  for (let i = 1; i < list.length; i++) {
+    const path = buildArcPath(hub, list[i], options)
+    if (path.length < 2) continue
+    // 同一个色阶：越晚去的地方越"热"，和 buildArcs 的读法保持一致
+    const t = list.length <= 2 ? 1 : (i - 1) / (list.length - 2)
+    arcs.push({
+      from: hub,
+      to: list[i],
+      path,
+      color: colors[Math.min(colors.length - 1, Math.round(t * (colors.length - 1)))]
+    })
+  }
+  return arcs
+}
+
+/**
  * 组装 getMapSnapshot 的入参：**只要纯底图**。
  * 弧线、标记、地名都在客户端画（静态图 API 画不出弧线）。
  *
@@ -471,6 +506,7 @@ module.exports = {
   buildArcPath,
   buildStops,
   buildArcs,
+  buildRadialArcs,
   buildStaticMapRequest,
   buildNationalMapRequest
 }

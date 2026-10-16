@@ -54,6 +54,18 @@
         <text class="map-empty-title">还没有足迹</text>
         <text class="map-empty-desc">点亮一座城市，或记录第一次出毛</text>
       </view>
+      <view class="map-mode" wx:if="{{hasPoints}}">
+        <view
+          class="map-mode-item {{mapMode === 'trace' ? 'active' : ''}}"
+          data-mode="trace"
+          bindtap="onMapModeTap"
+        >足迹轨迹</view>
+        <view
+          class="map-mode-item {{mapMode === 'migration' ? 'active' : ''}}"
+          data-mode="migration"
+          bindtap="onMapModeTap"
+        >迁徙图</view>
+      </view>
       <view class="map-legend">
         <view class="legend-item"><image class="legend-icon" src="/images/map/marker-footprint.png" mode="aspectFit" /><text>我的足迹</text></view>
         <view class="legend-item"><image class="legend-icon" src="/images/map/marker-furmeet.png" mode="aspectFit" /><text>我的兽聚</text></view>

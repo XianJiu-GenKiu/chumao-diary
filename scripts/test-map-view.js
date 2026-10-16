@@ -36,6 +36,8 @@ const {
   buildMapMapping,
   projectToBox,
   buildArcPath,
+  buildStops,
+  buildRadialArcs,
   buildStaticMapRequest,
   buildNationalMapRequest
 } = require(path.join(ROOT, 'utils/mapView.js'))
@@ -188,6 +190,29 @@ check('bow=0 时退化为直线', Math.max.apply(null, straight.map(p => {
 check('同一点之间不抛错且退化', buildArcPath(from, from, { steps: 8 }).length === 9)
 check('坐标非法的端点返回空数组', buildArcPath(from, { latitude: NaN, longitude: 1 }).length === 0)
 check('steps 被夹在 4~64', buildArcPath(from, to, { steps: 999 }).length === 65)
+
+console.log('\n══ 6b. 迁徙图：从第一个地点放射出去 ══')
+const migrationStops = buildStops([
+  { placeName: '上海', latitude: 31.2304, longitude: 121.4737 },
+  { placeName: '广州', latitude: 23.1291, longitude: 113.2644 },
+  { placeName: '成都', latitude: 30.5728, longitude: 104.0668 },
+  { placeName: '上海', latitude: 31.2304, longitude: 121.4737 }
+])
+check('同一地点去两次只留一个点', migrationStops.length === 3, `实际 ${migrationStops.length}`)
+check('到访次数被记下（决定点的大小）', migrationStops[0].visits === 2)
+const radial = buildRadialArcs(migrationStops, ['#111111', '#222222'], { steps: 8 })
+check('弧线条数 = 地点数 - 1（起点不连自己）', radial.length === 2, `实际 ${radial.length}`)
+check('每条弧线都从第一个地点出发',
+  radial.every(a => a.from.key === migrationStops[0].key))
+check('终点依次是第 2、3 个地点',
+  radial.every((a, i) => a.to.key === migrationStops[i + 1].key))
+check('弧线采样点数 = steps + 1（原生 polyline 靠采样点画弯）',
+  radial.every(a => a.path.length === 9))
+check('颜色按时间从色阶头走到尾',
+  radial[0].color === '#111111' && radial[1].color === '#222222',
+  radial.map(a => a.color).join(','))
+check('只有一个地点时不画弧', buildRadialArcs(migrationStops.slice(0, 1), ['#111111']).length === 0)
+check('空/非法输入不抛错', buildRadialArcs(null, null).length === 0 && buildRadialArcs([], null).length === 0)
 
 console.log('\n══ 7. 全国视图：装得下整块版图 + 铺图映射 ══')
 const national = nationalMapView()

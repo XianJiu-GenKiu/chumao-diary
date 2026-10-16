@@ -14,7 +14,8 @@ const app = getApp()
 const { bindDarkMode, unbindDarkMode } = require('../../utils/common.js')
 const { CITY_CANDIDATES, PROVINCE_OF_CITY, CITY_MAP } = require('../../config/cities.js')
 const { cityLabel } = require('../../config/city-labels.js')
-const { ALL_PROVINCES, PROVINCE_LEGEND, buildProvinceBadges } = require('../../utils/provinceBadges.js')
+const { ALL_PROVINCES, PROVINCE_LEGEND, PROVINCE_RAMP, buildProvinceBadges } = require('../../utils/provinceBadges.js')
+const { buildStops, buildRadialArcs } = require('../../utils/mapView.js')
 const {
   firstAttendedAt,
   meetDates,
@@ -147,6 +148,8 @@ Page({
     // ── 徽章 ──
     milestones: [],
     rampLegend: PROVINCE_LEGEND,
+    // 成就地图两种画法：trace = 相邻两点连成时间轨迹，migration = 从第一次出毛的地点放射出去
+    mapMode: 'trace',
     provinceTotal: ALL_PROVINCES.length,
     provinceBadges: [],
     litProvinceCount: 0,
@@ -260,10 +263,13 @@ Page({
     // 展开的省份在下钻数据里找不到（记录被删空或换了人）时自动收起，面板不停留在过期数据上
     const openProvinceData = provinceBadges.find(p => p.name === this.data.openProvince) || null
 
+    // 两种画法一次都建好，切换时只换 polyline，不必为了一次点击重跑整页 rebuild
+    this._polylines = { trace: map.polyline, migration: map.migrationPolyline }
+
     this.setData({
       stats,
       markers: map.markers,
-      polyline: map.polyline,
+      polyline: this._polylines[this.data.mapMode] || [],
       includePoints: map.includePoints,
       hasPoints: map.markers.length > 0,
       mapLatitude: map.center.latitude,
@@ -397,7 +403,23 @@ Page({
         }]
       : []
 
-    return { markers, polyline, includePoints: allPoints, center }
+    // 迁徙图：从第一次出毛的地点向其余每个地点各画一条弧。
+    // 弧线用 buildArcPath 采样成多点折线 —— 原生 map 的 polyline 只会连直线，
+    // 采样够密（24 段）屏幕上才呈现出弓形；每条弧线一个 polyline 对象，
+    // 否则相邻两条会被当成一条线连起来。
+    // ponytail: 一个地点一条 polyline（轨迹只需一条）。几十条没问题，
+    // 上百个地点才会开始吃力，到那时再按时间截断或聚类，现在没这个量。
+    const migrationPolyline = footPoints.length >= 2
+      ? buildRadialArcs(buildStops(footPoints), PROVINCE_RAMP, { bow: 0.18, steps: 24 }).map(arc => ({
+          points: arc.path,
+          color: `${arc.color}CC`,
+          width: 3,
+          dottedLine: false,
+          arrowLine: true
+        }))
+      : []
+
+    return { markers, polyline, migrationPolyline, includePoints: allPoints, center }
   },
 
   _buildLogGroups(records) {
@@ -437,12 +459,20 @@ Page({
 
   onMarkerTap() { /* callout 已展示名称，无需额外处理 */ },
 
+  onMapModeTap(e) {
+    const mode = e.currentTarget.dataset.mode
+    if (!mode || mode === this.data.mapMode) return
+    this.setData({ mapMode: mode, polyline: (this._polylines || {})[mode] || [] })
+  },
+
   goPoster() {
     if (!this.data.logTotal) {
       wx.showToast({ title: '先记录一次出毛，再生成海报', icon: 'none' })
       return
     }
-    wx.navigateTo({ url: '/pages/share-card/share-card?type=footprint' })
+    // 海报跟着地图当前的画法走：在迁徙图下生成的就是迁徙图海报
+    const mode = this.data.mapMode === 'migration' ? 'migration' : 'trace'
+    wx.navigateTo({ url: `/pages/share-card/share-card?type=footprint&map=${mode}` })
   },
 
   // ── 省份 / 城市徽章（点省份展开，点城市 = 标注在该城市出过毛） ──
