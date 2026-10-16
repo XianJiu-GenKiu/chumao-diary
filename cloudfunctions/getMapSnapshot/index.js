@@ -239,14 +239,17 @@ exports.main = async (event) => {
     }
   }
 
-  let url = buildStaticMapUrl(params)
-  if (url.length > MAX_URL_LENGTH && params.labels) {
-    // 宁可少几个地名标签，也别让整张图取不回来
-    delete params.labels
-    url = buildStaticMapUrl(params)
-  }
-
+  // URL 构建放进 try：getMapKey() 在未配置 TENCENT_MAP_KEY 时会抛错，
+  // 放在 try 外面会让整个云函数以未捕获异常失败，而不是走下面的降级返回。
+  let url = ''
   try {
+    url = buildStaticMapUrl(params)
+    if (url.length > MAX_URL_LENGTH && params.labels) {
+      // 宁可少几个地名标签，也别让整张图取不回来
+      delete params.labels
+      url = buildStaticMapUrl(params)
+    }
+
     // 超时压到 5s：客户端 app.callCloud 的总超时是 10s，而这个云函数平时几乎不被调用、
     // 基本每次都是冷启动（1~3s）。内部再放 8s 就会撞上客户端超时，
     // 表现为"第一张海报没有真地图、第二张才有"。取不到就退回矢量地图，不值得多等。
@@ -266,7 +269,7 @@ exports.main = async (event) => {
   } catch (err) {
     // 把去掉 key 的请求 URL 一并打出来：这条链路此前从未被调用过，
     // 失败时能把 URL 贴到浏览器里直接看到静态图服务返回的错误原文。
-    const safeUrl = url.replace(/key=[^&]+/, 'key=***')
+    const safeUrl = url ? url.replace(/key=[^&]+/, 'key=***') : '(URL 未构建成功，多半是缺 TENCENT_MAP_KEY)'
     console.error('getMapSnapshot 失败:', err)
     console.error(`getMapSnapshot 请求 URL（已隐去 key）: ${safeUrl}`)
     return { code: -1, message: '地图快照生成失败', error: String((err && err.message) || err) }

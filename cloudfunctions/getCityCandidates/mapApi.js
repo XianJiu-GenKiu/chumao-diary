@@ -3,18 +3,25 @@
  *
  * ── 为什么要有这个模块 ──
  * 项目早期在 getWeather / getCityByLocation / getNearbyMapPoi / suggestPlaces
- * 四个云函数里各自复制了一份 `https.get` 封装和 `MAP_KEY` 常量，并且用的是
- * **腾讯位置服务官方文档的示例 key**。这带来三个问题：
+ * 四个云函数里各自复制了一份 `https.get` 封装和 `MAP_KEY` 常量。这带来两个问题：
  *   1. key 散落 4 处，换 key 要改 4 个文件、重新部署 4 次，极易漏改；
- *   2. 示例 key 是全网共用的，没有配额保障，随时可能被限流或停用；
- *   3. 每个函数各写一遍请求封装，超时与错误语义不一致。
- * 本模块把以上三点收敛为一处。
+ *   2. 每个函数各写一遍请求封装，超时与错误语义不一致。
+ * 本模块把以上两点收敛为一处。
  *
  * ── 配置方式（重要）──
- * 在云函数**环境变量**中设置 TENCENT_MAP_KEY = 你在 lbs.qq.com 申请的 key。
+ * key **只从云函数环境变量读取**，源码里不再保留任何 key 字面量。
+ * 变量名：TENCENT_MAP_KEY
  * 申请路径：https://lbs.qq.com/dev/console/key/manage → 创建应用 → 申请 key，
  * key 的「启用产品」需勾选 WebService API，并填写小程序 AppID 授权。
- * 未配置时回落到官方示例 key 并打印警告（保证开发环境可用，但**不可用于生产**）。
+ *
+ * 以下 7 个云函数都需要配置该变量（缺任何一个，对应功能就会失败）：
+ *   getCityByLocation / getCityCandidates / getMapSnapshot /
+ *   getNearbyMapPoi / getWeather / planRoute / suggestPlaces
+ *
+ * 未配置时 `getMapKey()` 会**直接抛错**，不再回落到任何硬编码 key ——
+ * 早前版本内置了一个「官方示例 key」兜底，那串值实际上是本项目自有的 key，
+ * 既把真实密钥写进了源码，又让「忘了配环境变量」这件事被静默掩盖。
+ * 现在缺配置会以明确的错误暴露出来，由各调用方转成 degraded 降级。
  *
  * ── 用法 ──
  *   const { request, distanceMeters, lookupAdcode } = require('./mapApi')
@@ -30,31 +37,18 @@ const https = require('https')
 const LBS_HOST = 'https://apis.map.qq.com'
 const KEY_ENV = 'TENCENT_MAP_KEY'
 
-/** 腾讯位置服务官方文档中的示例 key。仅供开发兜底，生产必须替换。 */
-const DEMO_KEY = '4IUBZ-FRDLA-LREK3-CNEAT-C75D2-H7FRU'
-
-let demoKeyWarned = false
-
 /**
  * 读取地图服务 key。
- * 冷启动时只警告一次，避免每个请求都刷日志。
+ *
+ * 只认环境变量。没配就抛错，让问题在第一次调用时立刻暴露，
+ * 而不是悄悄用一个硬编码 key 把故障藏起来。
  */
 function getMapKey() {
   const configured = String(process.env[KEY_ENV] || '').trim()
   if (configured) return configured
-  if (!demoKeyWarned) {
-    demoKeyWarned = true
-    console.warn(
-      `[mapApi] 未配置环境变量 ${KEY_ENV}，正在使用腾讯位置服务官方示例 key。` +
-      '该 key 全网共用、无配额保障、随时可能失效，请尽快配置自有 key。'
-    )
-  }
-  return DEMO_KEY
-}
-
-/** 当前是否在用兜底示例 key（供上层决定要不要给出降级提示）。 */
-function isUsingDemoKey() {
-  return !String(process.env[KEY_ENV] || '').trim()
+  throw new Error(
+    `[mapApi] 未配置环境变量 ${KEY_ENV}。请在云函数配置里补上腾讯位置服务的 key`
+  )
 }
 
 function buildUrl(pathname, params) {
@@ -209,9 +203,7 @@ function listCities() {
 module.exports = {
   LBS_HOST,
   KEY_ENV,
-  DEMO_KEY,
   getMapKey,
-  isUsingDemoKey,
   buildUrl,
   getJson,
   request,
